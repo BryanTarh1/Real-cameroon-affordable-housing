@@ -1,0 +1,41 @@
+```mermaid
+flowchart LR
+  S[Seeker] -->|Search / request contact / report| W[Web or PWA client]
+  O[Owner or agent] -->|Submit / update listing| W
+  M[Moderator] -->|Review / verify / resolve reports| A[Moderation console]
+  W --> API[Application API]
+  A --> API
+  API --> DB[(Relational catalogue database)]
+  API --> MEDIA[(Image storage)]
+  API --> N[SMS / email / WhatsApp notification provider]
+  API --> L[Optional map and geocoding service]
+  API --> LOG[Audit logs and analytics]
+```
+
+```mermaid
+flowchart TD
+  A[Open service] --> B[Enter city, neighborhood or landmark]
+  B --> C[Set monthly and upfront budget]
+  C --> D[Review active listings]
+  D --> E{Costs and freshness understandable?}
+  E -- No --> F[Show missing information and safety note]
+  E -- Yes --> G[Open listing details]
+  G --> H[Request protected contact]
+  H --> I[Receive safety guidance]
+  I --> J[Contact owner or agent]
+  J --> K[Report outcome: responded, visit, unavailable, suspicious]
+```
+
+```mermaid
+erDiagram
+  USER ||--o{ LISTING : submits
+  USER ||--o{ CONTACT_REQUEST : makes
+  USER ||--o{ REPORT : files
+  LISTING ||--|| COST : has
+  LISTING ||--o{ MEDIA : contains
+  LISTING ||--o{ VERIFICATION : receives
+  LISTING ||--o{ CONTACT_REQUEST : receives
+  LISTING ||--o{ REPORT : concerns
+  USER ||--o{ AUDIT_EVENT : creates
+  LISTING ||--o{ AUDIT_EVENT : changes
+```
