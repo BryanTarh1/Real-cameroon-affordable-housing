@@ -186,3 +186,10 @@
 - [x] Provide the private Admin URL and tested trusted-role-assignment instructions.
 - [x] Deliver owner-facing Field Moderator sign-in steps and dashboard responsibilities, noting that the signed-out route was verified but a live staff walkthrough requires an assigned moderator account.
 - [x] Deliver the owner-facing private Admin URL and role-assignment procedure, noting that role assignment has automated coverage but was not exercised through a live Admin session after the reset.
+
+## Temporary test environment
+
+- [x] Create clearly labelled non-production seeker, agent, Field Moderator, and Admin accounts with temporary credentials.
+- [x] Create representative test records for listings, payment reconciliation, publication review, field verification, and the 80/20 commission ledger without adding reviews or testimonials.
+- [x] Verify the temporary role accounts and visible workflow states in the preview.
+- [x] Deliver temporary credentials and an explicit post-test cleanup warning to the owner.
