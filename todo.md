@@ -81,3 +81,15 @@
 - [ ] Clearly label frontend-demo behavior and future backend requirements.
 - [ ] Verify desktop, mobile, keyboard, and reduced-motion behavior.
 - [ ] Save a checkpoint before delivering the first interactive version.
+
+## AHC full-stack rebuild
+
+- [x] Review the supplied `index.html` and the database file when provided.
+- [x] Map the new requirements to the actual database schema and identify missing fields.
+- [x] Replace the blueprint marketplace direction with the lightweight AHC stack and flows.
+- [x] Implement itemized move-in cost calculation and primary display.
+- [x] Implement approximate 200–500 m map coordinates and Leaflet markers.
+- [x] Implement 14-day `last_reconfirmed` freshness archival logic.
+- [x] Implement WhatsApp deep-link contact flow.
+- [x] Add agent subscription, featured pin, and physical verification surfaces.
+- [x] Test and deliver the new downloadable website file set after the database is received.
