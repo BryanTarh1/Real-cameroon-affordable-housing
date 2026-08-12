@@ -8,8 +8,14 @@ import viteConfig from "../../vite.config";
 
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
+    ...(viteConfig.server ?? {}),
     middlewareMode: true,
-    hmr: { server },
+    // Keep the public HMR protocol and port configured in vite.config.ts while
+    // supplying the Express HTTP server Vite needs for middleware mode.
+    hmr: {
+      ...(typeof viteConfig.server?.hmr === "object" ? viteConfig.server.hmr : {}),
+      server,
+    },
     allowedHosts: true as const,
   };
 

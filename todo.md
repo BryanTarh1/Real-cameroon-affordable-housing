@@ -117,6 +117,7 @@
 - [x] Expose immutable listing-review history to authorized operations staff.
 - [x] Add API-level tests for payment-reference reconciliation and listing-credit gating before moderator review.
 - [ ] Complete a live signed-in mobile Admin walkthrough of payment, listing, verification, and audit controls after Manus human verification is available.
+- [x] Fix the Vite WebSocket connection failure on the proxied Admin preview route and verify the browser console is clean.
 - [x] Document the Admin and Field Moderator authority boundaries, including the 80/20 physical-verification commission rule.
 - [x] Add durable platform-setting, user-ban, and field-verification commission records to the data model.
 - [x] Add protected Admin-only procedures for platform settings, user moderation, cash-flow audit, and commission audit.
