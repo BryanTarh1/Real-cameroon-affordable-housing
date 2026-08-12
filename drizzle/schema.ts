@@ -22,7 +22,11 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: mysqlEnum("role", ["user", "moderator", "admin"]).default("user").notNull(),
+  isBanned: boolean("isBanned").default(false).notNull(),
+  bannedAt: timestamp("bannedAt"),
+  bannedByUserId: int("bannedByUserId"),
+  banReason: text("banReason"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -35,12 +39,46 @@ export const agentProfiles = mysqlTable("agent_profiles", {
   publicName: varchar("publicName", { length: 100 }).notNull(),
   agencyName: varchar("agencyName", { length: 120 }),
   whatsappPhone: varchar("whatsappPhone", { length: 20 }).notNull(),
-  subscriptionTier: mysqlEnum("subscriptionTier", ["free", "starter", "pro"]).default("free").notNull(),
-  subscriptionStatus: mysqlEnum("subscriptionStatus", ["active", "past_due", "paused", "expired"]).default("active").notNull(),
+  subscriptionTier: mysqlEnum("subscriptionTier", ["access", "growth", "agency"]).default("access").notNull(),
+  subscriptionStatus: mysqlEnum("subscriptionStatus", ["pending_payment", "active", "past_due", "suspended", "expired"]).default("pending_payment").notNull(),
   subscriptionExpiresAt: timestamp("subscriptionExpiresAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
+
+/** A trusted operational reviewer. Creating or suspending moderators remains an admin-only action. */
+export const moderatorProfiles = mysqlTable("moderator_profiles", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  displayName: varchar("displayName", { length: 100 }).notNull(),
+  cityCoverage: varchar("cityCoverage", { length: 100 }),
+  status: mysqlEnum("status", ["active", "suspended"]).default("active").notNull(),
+  createdByUserId: int("createdByUserId").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+/** Singleton platform configuration. Only administrators can adjust commercial rules. */
+export const platformSettings = mysqlTable("platform_settings", {
+  id: int("id").primaryKey(),
+  agentAccessFeeXaf: int("agentAccessFeeXaf").default(3_000).notNull(),
+  listingPassFeeXaf: int("listingPassFeeXaf").default(1_000).notNull(),
+  featuredPinFeeXaf: int("featuredPinFeeXaf").default(3_000).notNull(),
+  physicalVerificationFeeXaf: int("physicalVerificationFeeXaf").default(7_500).notNull(),
+  fieldModeratorShareBps: int("fieldModeratorShareBps").default(8_000).notNull(),
+  updatedByUserId: int("updatedByUserId").references(() => users.id, { onDelete: "set null" }),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+/** Immutable record of administrator actions affecting trust, access, or commercial rules. */
+export const adminAuditEvents = mysqlTable("admin_audit_events", {
+  id: int("id").autoincrement().primaryKey(),
+  action: mysqlEnum("action", ["settings_updated", "user_banned", "user_unbanned", "role_changed"]).notNull(),
+  actorUserId: int("actorUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  targetUserId: int("targetUserId").references(() => users.id, { onDelete: "set null" }),
+  details: text("details").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [index("admin_audit_events_created_idx").on(table.createdAt)]);
 
 /**
  * Public rental inventory. Internal exact coordinates are intentionally not stored
@@ -55,7 +93,7 @@ export const listings = mysqlTable("listings", {
   propertyType: varchar("propertyType", { length: 50 }).notNull(),
   householdFit: varchar("householdFit", { length: 80 }),
   availableFrom: date("availableFrom").notNull(),
-  status: mysqlEnum("status", ["draft", "under_review", "published", "needs_reconfirmation", "suspended", "archived"]).default("under_review").notNull(),
+  status: mysqlEnum("status", ["draft", "under_review", "changes_requested", "rejected", "published", "needs_reconfirmation", "suspended", "archived"]).default("under_review").notNull(),
   agentUserId: int("agentUserId").references(() => users.id, { onDelete: "set null" }),
   agentNameSnapshot: varchar("agentNameSnapshot", { length: 100 }).notNull(),
   lastReconfirmed: timestamp("lastReconfirmed").defaultNow().notNull(),
@@ -68,6 +106,11 @@ export const listings = mysqlTable("listings", {
   verificationStatus: mysqlEnum("verificationStatus", ["unverified", "remote_checked", "physical_verified"]).default("unverified").notNull(),
   verificationExpiresAt: timestamp("verificationExpiresAt"),
   photosCount: int("photosCount").default(0).notNull(),
+  submittedAt: timestamp("submittedAt").defaultNow().notNull(),
+  approvedAt: timestamp("approvedAt"),
+  reviewedAt: timestamp("reviewedAt"),
+  reviewedByUserId: int("reviewedByUserId").references(() => users.id, { onDelete: "set null" }),
+  reviewSummary: text("reviewSummary"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => [
@@ -105,6 +148,56 @@ export const listingPromotions = mysqlTable("listing_promotions", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => [index("listing_promotions_listing_idx").on(table.listingId, table.status)]);
 
+/**
+ * Paid orders are reconciled by operations until a licensed merchant integration is configured.
+ * Entering a transaction reference alone never activates a paid product.
+ */
+export const paymentOrders = mysqlTable("payment_orders", {
+  id: varchar("id", { length: 32 }).primaryKey(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  listingId: varchar("listingId", { length: 32 }).references(() => listings.id, { onDelete: "set null" }),
+  type: mysqlEnum("type", ["agent_access", "listing_pass", "featured_pin", "physical_verification"]).notNull(),
+  status: mysqlEnum("status", ["awaiting_reference", "reference_submitted", "confirmed", "rejected", "expired", "cancelled"]).default("awaiting_reference").notNull(),
+  amountXaf: int("amountXaf").notNull(),
+  provider: mysqlEnum("provider", ["mtn_momo", "orange_money", "other"]).default("mtn_momo").notNull(),
+  providerReference: varchar("providerReference", { length: 120 }),
+  submittedAt: timestamp("submittedAt"),
+  reconciledAt: timestamp("reconciledAt"),
+  reconciledByUserId: int("reconciledByUserId").references(() => users.id, { onDelete: "set null" }),
+  reconciliationNote: text("reconciliationNote"),
+  expiresAt: timestamp("expiresAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  index("payment_orders_queue_idx").on(table.status, table.type, table.createdAt),
+  index("payment_orders_user_idx").on(table.userId, table.status),
+]);
+
+/** A reconciled payment creates a controlled, single-use right to submit a new listing. */
+export const listingCredits = mysqlTable("listing_credits", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  paymentOrderId: varchar("paymentOrderId", { length: 32 }).references(() => paymentOrders.id, { onDelete: "set null" }),
+  status: mysqlEnum("status", ["available", "consumed", "restored", "expired"]).default("available").notNull(),
+  usedForListingId: varchar("usedForListingId", { length: 32 }).references(() => listings.id, { onDelete: "set null" }),
+  expiresAt: timestamp("expiresAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  consumedAt: timestamp("consumedAt"),
+}, (table) => [index("listing_credits_user_idx").on(table.userId, table.status)]);
+
+/** Immutable event log for reviewer assignments, decisions, and resulting listing states. */
+export const listingReviewEvents = mysqlTable("listing_review_events", {
+  id: int("id").autoincrement().primaryKey(),
+  listingId: varchar("listingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
+  action: mysqlEnum("action", ["submitted", "assigned", "approved", "changes_requested", "rejected", "resubmitted", "suspended", "archived"]).notNull(),
+  fromStatus: varchar("fromStatus", { length: 32 }),
+  toStatus: varchar("toStatus", { length: 32 }).notNull(),
+  reason: text("reason"),
+  actorUserId: int("actorUserId").references(() => users.id, { onDelete: "set null" }),
+  assignedModeratorUserId: int("assignedModeratorUserId").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [index("listing_review_events_queue_idx").on(table.listingId, table.createdAt)]);
+
 /** Paid field-verification request and evidence status, independent from the public badge. */
 export const verificationOrders = mysqlTable("verification_orders", {
   id: int("id").autoincrement().primaryKey(),
@@ -119,6 +212,34 @@ export const verificationOrders = mysqlTable("verification_orders", {
   providerReference: varchar("providerReference", { length: 120 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => [index("verification_orders_listing_idx").on(table.listingId, table.status)]);
+
+/** Immutable accountability trail for paid physical verification activity and field outcomes. */
+export const verificationEvents = mysqlTable("verification_events", {
+  id: int("id").autoincrement().primaryKey(),
+  verificationOrderId: int("verificationOrderId").notNull().references(() => verificationOrders.id, { onDelete: "cascade" }),
+  listingId: varchar("listingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
+  action: mysqlEnum("action", ["assigned", "scheduled", "passed", "failed", "cancelled"]).notNull(),
+  fromStatus: varchar("fromStatus", { length: 32 }),
+  toStatus: varchar("toStatus", { length: 32 }).notNull(),
+  reason: text("reason").notNull(),
+  actorUserId: int("actorUserId").references(() => users.id, { onDelete: "set null" }),
+  assignedModeratorUserId: int("assignedModeratorUserId").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [index("verification_events_order_idx").on(table.verificationOrderId, table.createdAt)]);
+
+/** Allocations earned only after a Field Moderator records a passed physical verification. */
+export const fieldVerificationCommissions = mysqlTable("field_verification_commissions", {
+  id: int("id").autoincrement().primaryKey(),
+  verificationOrderId: int("verificationOrderId").notNull().unique().references(() => verificationOrders.id, { onDelete: "cascade" }),
+  moderatorUserId: int("moderatorUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  grossAmountXaf: int("grossAmountXaf").notNull(),
+  fieldModeratorAmountXaf: int("fieldModeratorAmountXaf").notNull(),
+  platformAmountXaf: int("platformAmountXaf").notNull(),
+  fieldModeratorShareBps: int("fieldModeratorShareBps").notNull(),
+  status: mysqlEnum("status", ["accrued", "paid", "voided"]).default("accrued").notNull(),
+  paidAt: timestamp("paidAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [index("field_verification_commissions_moderator_idx").on(table.moderatorUserId, table.status)]);
 
 export const reports = mysqlTable("reports", {
   id: int("id").autoincrement().primaryKey(),

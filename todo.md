@@ -100,3 +100,36 @@
 - [x] Prepare a clean AHC source archive for local development without secrets or installed dependencies.
 - [x] Add a Windows/macOS/Linux setup guide covering Node.js, MySQL, migrations, and development commands.
 - [x] Inspect the archive contents and deliver the downloadable package.
+
+## Paid launch and moderated publication
+
+- [x] Audit the existing listing, subscription, promotion, verification, report, and authorization implementation.
+- [x] Document the paid-from-day-one agent operating model and moderator approval lifecycle.
+- [x] Replace free-tier language and flows with paid listing access, physical verification, and featured-pin offers.
+- [x] Add moderator roles, review assignments, decision reasons, and immutable listing-review audit records.
+- [x] Prevent agent self-publication; require approved payment and moderator approval before first publication.
+- [x] Add a secure operations queue for review, approval, correction request, rejection, and physical-verification outcomes.
+- [x] Add agent payment records, listing credit gating, and payment-reference capture pending provider reconciliation.
+- [x] Add subscription-access checks, renewal reminders, and clear non-payment suspension states.
+- [x] Strengthen the public trust page and listing disclosures for paid listing access, freshness, safety, and approximate location.
+- [x] Test role restrictions, payment gating, review decisions, audit trail, freshness, and rendered mobile operations experience.
+- [x] Add API-level test coverage for moderator review decisions and the immutable review-history endpoint.
+- [x] Expose immutable listing-review history to authorized operations staff.
+- [x] Add API-level tests for payment-reference reconciliation and listing-credit gating before moderator review.
+- [ ] Complete a live signed-in mobile Admin walkthrough of payment, listing, verification, and audit controls after Manus human verification is available.
+- [x] Document the Admin and Field Moderator authority boundaries, including the 80/20 physical-verification commission rule.
+- [x] Add durable platform-setting, user-ban, and field-verification commission records to the data model.
+- [x] Add protected Admin-only procedures for platform settings, user moderation, cash-flow audit, and commission audit.
+- [x] Create an Admin workspace at `/admin` on the same domain with restricted access and clear operational controls.
+- [x] Refine the Field Moderator workflow to show paid verification assignment, evidence, badge issuance, and the 80/20 commission record.
+- [x] Keep the public marketplace focused on Total Move-In Cash search, WhatsApp contact, landmark-radius privacy, and relative freshness badges.
+- [x] Add automated tests for Admin-only access, user-ban enforcement, cash-flow/commission audit data, and Field Moderator restrictions.
+- [x] Add an Admin-only commission ledger with verification, moderator, allocation, status, and time details.
+- [x] Display per-verification commission records to the corresponding Field Moderator and cover ledger access with automated tests.
+- [x] Validate public, Admin, and Field Moderator routes on desktop and mobile before the final checkpoint.
+- [x] Add an Admin-only cash-flow audit API test for confirmed revenue and recorded verification allocation totals.
+- [ ] Checkpoint and deliver the paid, moderator-controlled AHC website revision.
+- [x] Block listing reconfirmation when Agent Access is inactive and explain the renewal requirement in inventory actions.
+- [x] Add automated tests for paid-access expiration and reconfirmation guards.
+- [x] Test paid-status expiry messaging and API-level rejection or acceptance of listing submission and reconfirmation by access state.
+- [x] Add frontend unit coverage for the visible renewal countdown, suspended-state explanation, and renewal call to action.

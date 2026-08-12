@@ -3,20 +3,40 @@ import { z } from "zod";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { adminProcedure, moderatorProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import {
+  assignListingReview,
   archiveStaleListings,
+  createPaymentOrder,
   createListing,
   createListingReport,
   createPromotionRequest,
+  decideListingReview,
+  decideVerificationOrder,
+  getAdminCashFlowAudit,
+  getAgentPaidStatus,
   getAgentProfile,
+  getPlatformSettings,
   getPublicListingContact,
   listAgentListings,
+  listAgentPaymentOrders,
+  listAdminUsers,
+  listAdminCommissionLedger,
+  listFieldModeratorCommissions,
   listFreshPublicListings,
+  listOperationsPaymentQueue,
+  listOperationsReviewQueue,
+  listOperationsVerificationQueue,
+  listReviewHistory,
+  claimVerificationOrder,
   reconfirmAgentListing,
+  reconcilePaymentOrder,
+  submitPaymentReference,
+  setUserBan,
+  updatePlatformSettings,
   upsertAgentProfile,
 } from "./db";
-import { createApproximatePoint, createWhatsAppListingLink, normalizeCameroonWhatsAppPhone } from "../shared/ahc";
+import { createApproximatePoint, createWhatsAppListingLink, normalizeCameroonWhatsAppPhone, type PaidOfferType } from "../shared/ahc";
 
 const costsSchema = z.object({
   monthlyRent: z.number().int().min(1),
@@ -82,6 +102,20 @@ export const appRouter = router({
       whatsappPhone: normalizeCameroonWhatsAppPhone(input.whatsappPhone),
     })),
     listings: protectedProcedure.query(({ ctx }) => listAgentListings(ensureUserId(ctx.user?.id))),
+    paidStatus: protectedProcedure.query(({ ctx }) => getAgentPaidStatus(ensureUserId(ctx.user?.id))),
+    paymentOrders: protectedProcedure.query(({ ctx }) => listAgentPaymentOrders(ensureUserId(ctx.user?.id))),
+    createPaymentOrder: protectedProcedure.input(z.object({
+      type: z.enum(["agent_access", "listing_pass", "featured_pin", "physical_verification"]),
+      listingId: z.string().min(4).max(32).optional(),
+    })).mutation(({ ctx, input }) => createPaymentOrder(
+      ensureUserId(ctx.user?.id), input.type as PaidOfferType, input.listingId,
+    )),
+    submitPaymentReference: protectedProcedure.input(z.object({
+      orderId: z.string().min(6).max(32), provider: z.enum(["mtn_momo", "orange_money", "other"]),
+      reference: z.string().trim().min(4).max(120),
+    })).mutation(({ ctx, input }) => submitPaymentReference(
+      ensureUserId(ctx.user?.id), input.orderId, input.provider, input.reference,
+    )),
     submitListing: protectedProcedure.input(listingSubmissionSchema).mutation(async ({ ctx, input }) => {
       const userId = ensureUserId(ctx.user?.id);
       const profile = await getAgentProfile(userId);
@@ -99,9 +133,60 @@ export const appRouter = router({
       .mutation(({ ctx, input }) => reconfirmAgentListing(ensureUserId(ctx.user?.id), input.listingId)),
     requestFeaturedPin: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
       .mutation(({ ctx, input }) => createPromotionRequest(ensureUserId(ctx.user?.id), input.listingId)),
+    requestPhysicalVerification: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
+      .mutation(({ ctx, input }) => createPaymentOrder(ensureUserId(ctx.user?.id), "physical_verification", input.listingId)),
   }),
 
-  operations: router({ archiveFreshnessGuard: publicProcedure.mutation(() => archiveStaleListings()) }),
+  operations: router({
+    reviewQueue: moderatorProcedure.query(() => listOperationsReviewQueue()),
+    reviewHistory: moderatorProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
+      .query(({ input }) => listReviewHistory(input.listingId)),
+    paymentQueue: moderatorProcedure.query(() => listOperationsPaymentQueue()),
+    verificationQueue: moderatorProcedure.query(() => listOperationsVerificationQueue()),
+    assignReview: moderatorProcedure.input(z.object({ listingId: z.string().min(4).max(32), moderatorUserId: z.number().int().positive() }))
+      .mutation(({ ctx, input }) => assignListingReview(ensureUserId(ctx.user?.id), input.listingId, input.moderatorUserId)),
+    decideReview: moderatorProcedure.input(z.object({
+      listingId: z.string().min(4).max(32), decision: z.enum(["approved", "changes_requested", "rejected"]),
+      reason: z.string().trim().min(8).max(1_200),
+    })).mutation(({ ctx, input }) => decideListingReview(ensureUserId(ctx.user?.id), input.listingId, input.decision, input.reason)),
+    reconcilePayment: moderatorProcedure.input(z.object({
+      orderId: z.string().min(6).max(32), decision: z.enum(["confirmed", "rejected"]),
+      note: z.string().trim().min(6).max(800),
+    })).mutation(({ ctx, input }) => reconcilePaymentOrder(ensureUserId(ctx.user?.id), input.orderId, input.decision, input.note)),
+    claimVerification: moderatorProcedure.input(z.object({ verificationOrderId: z.number().int().positive() }))
+      .mutation(({ ctx, input }) => claimVerificationOrder(ensureUserId(ctx.user?.id), input.verificationOrderId)),
+    decideVerification: moderatorProcedure.input(z.object({
+      verificationOrderId: z.number().int().positive(), decision: z.enum(["passed", "failed"]),
+      evidenceNote: z.string().trim().min(12).max(1_200),
+    })).mutation(({ ctx, input }) => decideVerificationOrder(ensureUserId(ctx.user?.id), input.verificationOrderId, input.decision, input.evidenceNote)),
+    myVerificationCommissions: moderatorProcedure.query(({ ctx }) => listFieldModeratorCommissions(ensureUserId(ctx.user?.id))),
+    archiveFreshnessGuard: adminProcedure.mutation(() => archiveStaleListings()),
+  }),
+
+  admin: router({
+    settings: adminProcedure.query(() => getPlatformSettings()),
+    updateSettings: adminProcedure.input(z.object({
+      agentAccessFeeXaf: z.number().int().min(0).max(100_000),
+      listingPassFeeXaf: z.number().int().min(0).max(100_000),
+      featuredPinFeeXaf: z.number().int().min(0).max(100_000),
+      physicalVerificationFeeXaf: z.number().int().min(0).max(100_000),
+      fieldModeratorShareBps: z.number().int().min(0).max(10_000),
+    })).mutation(({ ctx, input }) => updatePlatformSettings(ensureUserId(ctx.user?.id), input)),
+    users: adminProcedure.query(() => listAdminUsers()),
+    setUserBan: adminProcedure.input(z.object({ userId: z.number().int().positive(), isBanned: z.boolean(), reason: z.string().trim().min(8).max(800) }))
+      .mutation(({ ctx, input }) => setUserBan(ensureUserId(ctx.user?.id), input.userId, input.isBanned, input.reason)),
+    cashFlowAudit: adminProcedure.query(() => getAdminCashFlowAudit()),
+    commissionLedger: adminProcedure.query(() => listAdminCommissionLedger()),
+    paymentQueue: adminProcedure.query(() => listOperationsPaymentQueue()),
+    reviewQueue: adminProcedure.query(() => listOperationsReviewQueue()),
+    reviewHistory: adminProcedure.input(z.object({ listingId: z.string().min(4).max(32) })).query(({ input }) => listReviewHistory(input.listingId)),
+    assignReview: adminProcedure.input(z.object({ listingId: z.string().min(4).max(32), moderatorUserId: z.number().int().positive() }))
+      .mutation(({ ctx, input }) => assignListingReview(ensureUserId(ctx.user?.id), input.listingId, input.moderatorUserId)),
+    decideReview: adminProcedure.input(z.object({ listingId: z.string().min(4).max(32), decision: z.enum(["approved", "changes_requested", "rejected"]), reason: z.string().trim().min(8).max(1_200) }))
+      .mutation(({ ctx, input }) => decideListingReview(ensureUserId(ctx.user?.id), input.listingId, input.decision, input.reason)),
+    reconcilePayment: adminProcedure.input(z.object({ orderId: z.string().min(6).max(32), decision: z.enum(["confirmed", "rejected"]), note: z.string().trim().min(6).max(800) }))
+      .mutation(({ ctx, input }) => reconcilePaymentOrder(ensureUserId(ctx.user?.id), input.orderId, input.decision, input.note)),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
