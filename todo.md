@@ -128,7 +128,7 @@
 - [x] Display per-verification commission records to the corresponding Field Moderator and cover ledger access with automated tests.
 - [x] Validate public, Admin, and Field Moderator routes on desktop and mobile before the final checkpoint.
 - [x] Add an Admin-only cash-flow audit API test for confirmed revenue and recorded verification allocation totals.
-- [ ] Checkpoint and deliver the paid, moderator-controlled AHC website revision.
+- [x] Checkpoint and deliver the paid, moderator-controlled AHC website revision.
 - [x] Block listing reconfirmation when Agent Access is inactive and explain the renewal requirement in inventory actions.
 - [x] Add automated tests for paid-access expiration and reconfirmation guards.
 - [x] Test paid-status expiry messaging and API-level rejection or acceptance of listing submission and reconfirmation by access state.
