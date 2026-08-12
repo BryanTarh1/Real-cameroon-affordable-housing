@@ -158,3 +158,10 @@
 
 - [x] Permanently reset all AHC operational database records after the owner's explicit confirmation.
 - [x] Restart and verify the clean public preview after the reset.
+
+## Protected workspace architecture review
+
+- [x] Audit that Admin and Field Moderator tools are absent from public navigation and rendered only on standalone protected routes.
+- [x] Verify backend role enforcement rejects unauthenticated and unauthorized Admin and Moderator API calls with the appropriate access-control error.
+- [x] Verify direct navigation and refresh behavior for public, Admin, and Operations routes under the SPA server fallback.
+- [x] Apply and test any route, navigation, or access-control hardening identified by the architecture review; no corrective change was required because the existing controls meet the reviewed requirements.
