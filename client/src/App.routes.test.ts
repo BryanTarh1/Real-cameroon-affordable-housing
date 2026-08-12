@@ -1,0 +1,65 @@
+/** @vitest-environment jsdom */
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { createElement } from "react";
+
+const auth = vi.hoisted(() => ({
+  state: { user: null as null | { role: string }, loading: false, isAuthenticated: false },
+}));
+
+vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => auth.state }));
+vi.mock("./pages/Home", () => ({ default: () => "Public marketplace" }));
+vi.mock("./pages/Admin", () => ({ default: () => "Admin management controls" }));
+vi.mock("./pages/Operations", () => ({ default: () => "Field Moderator operations" }));
+vi.mock("./contexts/ThemeContext", () => ({ ThemeProvider: ({ children }: { children: unknown }) => children }));
+vi.mock("./components/ErrorBoundary", () => ({ default: ({ children }: { children: unknown }) => children }));
+vi.mock("@/components/ui/tooltip", () => ({ TooltipProvider: ({ children }: { children: unknown }) => children }));
+vi.mock("@/components/ui/sonner", () => ({ Toaster: () => null }));
+
+import App from "./App";
+
+function renderAt(path: string, role: string | null) {
+  window.history.pushState({}, "", path);
+  auth.state = {
+    user: role ? { role } : null,
+    loading: false,
+    isAuthenticated: Boolean(role),
+  };
+  return render(createElement(App));
+}
+
+describe("protected workspace routes", () => {
+  afterEach(cleanup);
+  beforeEach(() => vi.clearAllMocks());
+
+  it("redirects anonymous and ordinary users away from Admin without rendering management controls", async () => {
+    renderAt("/admin", null);
+    await waitFor(() => expect(screen.getByText("Public marketplace")).toBeTruthy());
+    expect(screen.queryByText("Admin management controls")).toBeNull();
+
+    cleanup();
+    renderAt("/admin", "user");
+    await waitFor(() => expect(screen.getByText("Public marketplace")).toBeTruthy());
+    expect(screen.queryByText("Admin management controls")).toBeNull();
+  });
+
+  it("renders Admin controls only for an administrator", () => {
+    renderAt("/admin", "admin");
+    expect(screen.getByText("Admin management controls")).toBeTruthy();
+    expect(screen.queryByText("Public marketplace")).toBeNull();
+  });
+
+  it("redirects plain users from Operations while allowing moderators and administrators", async () => {
+    renderAt("/operations", "user");
+    await waitFor(() => expect(screen.getByText("Public marketplace")).toBeTruthy());
+    expect(screen.queryByText("Field Moderator operations")).toBeNull();
+
+    cleanup();
+    renderAt("/operations", "moderator");
+    expect(screen.getByText("Field Moderator operations")).toBeTruthy();
+
+    cleanup();
+    renderAt("/operations", "admin");
+    expect(screen.getByText("Field Moderator operations")).toBeTruthy();
+  });
+});
