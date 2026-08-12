@@ -178,3 +178,11 @@
 - [x] Keep the Admin route out of public navigation and allow Admin authority only through intentional trusted role assignment.
 - [x] Add automated coverage for seeker detail gating, moderator entry behavior, and unchanged Admin role restrictions.
 - [x] Validate the revised role-specific entry points on desktop and mobile and update the owner guide.
+
+## Seeker flow test and staff access guidance
+
+- [x] Exercise the public seeker flow from search through the property-detail sign-in prompt; anonymous search was run in the browser and the deferred prompt was verified by regression test because the clean database has no listing to open.
+- [x] Provide the owner with tested Field Moderator login and dashboard-operation instructions.
+- [x] Provide the private Admin URL and tested trusted-role-assignment instructions.
+- [x] Deliver owner-facing Field Moderator sign-in steps and dashboard responsibilities, noting that the signed-out route was verified but a live staff walkthrough requires an assigned moderator account.
+- [x] Deliver the owner-facing private Admin URL and role-assignment procedure, noting that role assignment has automated coverage but was not exercised through a live Admin session after the reset.
