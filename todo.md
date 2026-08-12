@@ -153,3 +153,8 @@
 - [x] Add explicit regression tests proving local-agent authentication does not weaken existing Admin and Moderator role restrictions.
 - [x] Capture the AHC-owned agent onboarding panel at desktop and mobile widths and record the result.
 - [x] Support a shareable public `?agent=1` entry point that opens the independent AHC agent onboarding panel without requiring Manus OAuth.
+
+## Clean-start reset
+
+- [x] Permanently reset all AHC operational database records after the owner's explicit confirmation.
+- [x] Restart and verify the clean public preview after the reset.
