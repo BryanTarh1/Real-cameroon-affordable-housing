@@ -83,9 +83,9 @@ function AgentPortal({ onClose }: { onClose: () => void }) {
   return <PaidAgentPortal onClose={onClose} />;
 }
 
-export default function Home() {
+export default function Home({ startAgentOpen = false }: { startAgentOpen?: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [agentOpen, setAgentOpen] = useState(false);
+  const [agentOpen, setAgentOpen] = useState(() => startAgentOpen || new URLSearchParams(window.location.search).get("agent") === "1");
   const [city, setCity] = useState("All cities");
   const [search, setSearch] = useState("");
   const [maxMoveInCash, setMaxMoveInCash] = useState(300_000);

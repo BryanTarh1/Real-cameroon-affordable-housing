@@ -1,12 +1,15 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { COOKIE_NAME } from "@shared/const";
+import { AHC_LOCAL_SESSION_COOKIE, AHC_LOCAL_SESSION_MAX_AGE_MS, COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
+import { createLocalSessionToken, hashLocalPassword, verifyLocalPassword } from "./_core/localAuth";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, moderatorProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import {
   assignListingReview,
   archiveStaleListings,
+  clearLocalLoginFailures,
+  createLocalAgentAccount,
   createPaymentOrder,
   createListing,
   createListingReport,
@@ -16,6 +19,7 @@ import {
   getAdminCashFlowAudit,
   getAgentPaidStatus,
   getAgentProfile,
+  getLocalCredentialByEmail,
   getPlatformSettings,
   getPublicListingContact,
   listAgentListings,
@@ -31,6 +35,7 @@ import {
   claimVerificationOrder,
   reconfirmAgentListing,
   reconcilePaymentOrder,
+  recordLocalLoginFailure,
   submitPaymentReference,
   setUserBan,
   updatePlatformSettings,
@@ -61,6 +66,17 @@ const listingSubmissionSchema = z.object({
   costs: costsSchema,
 });
 
+const localAccountSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  email: z.string().trim().email().max(320),
+  password: z.string().min(10).max(128),
+});
+
+const localLoginSchema = z.object({
+  email: z.string().trim().email().max(320),
+  password: z.string().min(1).max(128),
+});
+
 function ensureUserId(id: number | undefined): number {
   if (!id) throw new TRPCError({ code: "UNAUTHORIZED", message: "Please sign in to continue." });
   return id;
@@ -70,9 +86,56 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    registerLocalAgent: publicProcedure.input(localAccountSchema).mutation(async ({ ctx, input }) => {
+      const email = input.email.toLowerCase();
+      try {
+        const user = await createLocalAgentAccount({
+          name: input.name,
+          email,
+          passwordHash: await hashLocalPassword(input.password),
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(AHC_LOCAL_SESSION_COOKIE, await createLocalSessionToken(user), {
+          ...cookieOptions,
+          maxAge: AHC_LOCAL_SESSION_MAX_AGE_MS,
+        });
+        return user;
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("already exists")) {
+          throw new TRPCError({ code: "CONFLICT", message: error.message });
+        }
+        throw error;
+      }
+    }),
+    loginLocalAgent: publicProcedure.input(localLoginSchema).mutation(async ({ ctx, input }) => {
+      const email = input.email.toLowerCase();
+      const account = await getLocalCredentialByEmail(email);
+      if (!account) {
+        await hashLocalPassword(input.password);
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password." });
+      }
+      if (account.credential.lockedUntil && account.credential.lockedUntil > new Date()) {
+        throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Too many attempts. Please wait 15 minutes and try again." });
+      }
+      if (!(await verifyLocalPassword(input.password, account.credential.passwordHash))) {
+        await recordLocalLoginFailure(email);
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password." });
+      }
+      if (account.user.isBanned) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "This account has been suspended. Contact AHC support." });
+      }
+      await clearLocalLoginFailures(account.user.id);
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie(AHC_LOCAL_SESSION_COOKIE, await createLocalSessionToken(account.user), {
+        ...cookieOptions,
+        maxAge: AHC_LOCAL_SESSION_MAX_AGE_MS,
+      });
+      return account.user;
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      ctx.res.clearCookie(AHC_LOCAL_SESSION_COOKIE, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
   }),

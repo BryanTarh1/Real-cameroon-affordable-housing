@@ -43,6 +43,12 @@ Request correction → returned to agent → resubmit
 Reject → archived → recorded reason retained for audit
 ```
 
+## Agent account access
+
+Prospective agents create an **AHC-owned account** directly in the paid workspace using their name, email address, and password. A Manus account is not required for agent registration or local agent sign-in. The account flow issues an isolated, signed, HTTP-only AHC session and uses secure password hashing, generic invalid-credential responses, and temporary lockouts after repeated failed passwords. This keeps the renter journey public and lets legitimate agents begin the paid-listing process independently of external platform accounts.
+
+Existing trusted **Admin** and **Field Moderator** identities continue to use the protected staff authentication path and retain their role-based routes. An AHC local agent account always starts with the ordinary `user` role; it cannot create or elevate itself to staff access. Account bans apply to local agents as well as staff identities, and the existing server-side Admin and Moderator checks remain the source of truth for all operational procedures.
+
 ## Non-negotiable controls
 
 | Control | Implementation rule |

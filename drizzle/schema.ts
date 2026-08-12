@@ -32,6 +32,24 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
+/**
+ * AHC-owned credentials for agent accounts. Staff can continue using their
+ * existing trusted identity while local agents no longer depend on Manus login.
+ * Passwords are stored only as salted, memory-hard hashes; this table never
+ * stores a plaintext password or a recoverable secret.
+ */
+export const localCredentials = mysqlTable("local_credentials", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  email: varchar("email", { length: 320 }).notNull().unique(),
+  passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
+  failedLoginAttempts: int("failedLoginAttempts").default(0).notNull(),
+  lockedUntil: timestamp("lockedUntil"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  lastPasswordChangedAt: timestamp("lastPasswordChangedAt").defaultNow().notNull(),
+}, (table) => [index("local_credentials_locked_idx").on(table.lockedUntil)]);
+
 /** Public and contact profile for an agent. Phone is normalized before any wa.me link is generated. */
 export const agentProfiles = mysqlTable("agent_profiles", {
   id: int("id").autoincrement().primaryKey(),

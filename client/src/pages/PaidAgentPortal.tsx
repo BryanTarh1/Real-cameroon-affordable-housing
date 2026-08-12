@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { AHC_PAID_OFFERS, calculateTotalMoveInCash, type PaidOfferType } from "@shared/ahc";
 import { Banknote, Check, CircleAlert, FilePlus2, ReceiptText, X } from "lucide-react";
 import { toast } from "sonner";
 import { getAgentAccessUiState } from "./agent-access-ui";
+import { AgentAccountPanel } from "./AgentAccountPanel";
 
 const formatXaf = (value: number) => `${new Intl.NumberFormat("en-US").format(value)} XAF`;
 const today = new Date().toISOString().slice(0, 10);
@@ -46,7 +46,7 @@ export function PaidAgentPortal({ onClose }: { onClose: () => void }) {
   const newOrder = (type: OfferType, listingId?: string) => createOrder.mutate({ type, listingId });
 
   if (loading) return <div className="agent-drawer"><span>Loading secure agent workspace…</span></div>;
-  if (!isAuthenticated) return <div className="agent-drawer"><button className="drawer-close" onClick={onClose}><X size={19} /></button><span className="section-overline">Paid agent workspace</span><h2>Professional supply starts with a paid pass.</h2><p>Renters search and make first contact free of charge. Agents pay before commercial inventory enters the independent review queue.</p><button className="button-primary full-width" onClick={startLogin}>Sign in to become an agent</button><div className="agent-benefits"><span><Check size={16} /> 3,000 XAF / 30-day Agent Access</span><span><Check size={16} /> 1,000 XAF per Listing Pass</span><span><Check size={16} /> Moderator approval before publication</span></div></div>;
+  if (!isAuthenticated) return <div className="agent-drawer scroll"><button className="drawer-close" onClick={onClose}><X size={19} /></button><span className="section-overline">Paid agent workspace</span><h2>Professional supply starts with a paid pass.</h2><p>Renters search and make first contact free of charge. Agents pay before commercial inventory enters the independent review queue.</p><AgentAccountPanel /><div className="agent-benefits"><span><Check size={16} /> 3,000 XAF / 30-day Agent Access</span><span><Check size={16} /> 1,000 XAF per Listing Pass</span><span><Check size={16} /> Moderator approval before publication</span></div></div>;
   if (profile.isLoading) return <div className="agent-drawer"><span>Preparing workspace…</span></div>;
   if (!profile.data) return <div className="agent-drawer scroll"><button className="drawer-close" onClick={onClose}><X size={19} /></button><span className="section-overline">Step 1 / Agent identity</span><h2>Set the WhatsApp route prospects will use.</h2><p>A profile is required before paid access. No property appears publicly until payment, review, and approval are complete.</p><form className="agent-form" onSubmit={event => { event.preventDefault(); setup.mutate(profileForm); }}><label>Public agent name<input required value={profileForm.publicName} onChange={e => setProfileForm({ ...profileForm, publicName: e.target.value })} /></label><label>Agency name <small>(optional)</small><input value={profileForm.agencyName} onChange={e => setProfileForm({ ...profileForm, agencyName: e.target.value })} /></label><label>WhatsApp mobile number<input required value={profileForm.whatsappPhone} onChange={e => setProfileForm({ ...profileForm, whatsappPhone: e.target.value })} placeholder="+237 6XX XXX XXX" /></label><button className="button-primary full-width" disabled={setup.isPending}>{setup.isPending ? "Saving…" : "Save agent profile"}</button></form></div>;
   return <div className="agent-drawer scroll"><button className="drawer-close" onClick={onClose}><X size={19} /></button><span className="section-overline">Paid agent workspace</span><h2>Hello, {profile.data.publicName}.</h2><div className="tier-bar"><span><b>{accessUi.label}</b></span><span>{credits} listing credit{credits === 1 ? "" : "s"}</span></div>

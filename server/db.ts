@@ -11,6 +11,7 @@ import {
   listingPromotions,
   listingReviewEvents,
   listings,
+  localCredentials,
   moderatorProfiles,
   paymentOrders,
   platformSettings,
@@ -66,6 +67,80 @@ export async function getUserByOpenId(openId: string) {
   const db = await getDb();
   if (!db) return undefined;
   return (await db.select().from(users).where(eq(users.openId, openId)).limit(1))[0];
+}
+
+export async function getUserById(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0];
+}
+
+export async function createLocalAgentAccount(input: {
+  name: string;
+  email: string;
+  passwordHash: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+
+  return db.transaction(async (tx) => {
+    const existingCredential = (await tx.select({ id: localCredentials.id })
+      .from(localCredentials)
+      .where(eq(localCredentials.email, input.email))
+      .limit(1))[0];
+    if (existingCredential) throw new Error("An AHC account already exists for this email. Sign in instead.");
+
+    const localOpenId = `local_${nanoid(24)}`;
+    await tx.insert(users).values({
+      openId: localOpenId,
+      name: input.name,
+      email: input.email,
+      loginMethod: "ahc_local",
+      role: "user",
+      lastSignedIn: new Date(),
+    });
+    const user = (await tx.select().from(users).where(eq(users.openId, localOpenId)).limit(1))[0];
+    if (!user) throw new Error("Unable to create AHC account.");
+
+    await tx.insert(localCredentials).values({
+      userId: user.id,
+      email: input.email,
+      passwordHash: input.passwordHash,
+    });
+    return user;
+  });
+}
+
+export async function getLocalCredentialByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select({ user: users, credential: localCredentials })
+    .from(localCredentials)
+    .innerJoin(users, eq(localCredentials.userId, users.id))
+    .where(eq(localCredentials.email, email))
+    .limit(1))[0];
+}
+
+export async function recordLocalLoginFailure(email: string, now = new Date()) {
+  const db = await getDb();
+  if (!db) return;
+  const credential = (await db.select()
+    .from(localCredentials)
+    .where(eq(localCredentials.email, email))
+    .limit(1))[0];
+  if (!credential) return;
+  const attempts = credential.failedLoginAttempts + 1;
+  const lockedUntil = attempts >= 5 ? new Date(now.getTime() + 15 * 60 * 1000) : credential.lockedUntil;
+  await db.update(localCredentials).set({ failedLoginAttempts: attempts, lockedUntil }).where(eq(localCredentials.id, credential.id));
+}
+
+export async function clearLocalLoginFailures(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.transaction(async (tx) => {
+    await tx.update(localCredentials).set({ failedLoginAttempts: 0, lockedUntil: null }).where(eq(localCredentials.userId, userId));
+    await tx.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, userId));
+  });
 }
 
 const DEFAULT_PLATFORM_SETTINGS = { id: 1, agentAccessFeeXaf: 3_000, listingPassFeeXaf: 1_000, featuredPinFeeXaf: 3_000, physicalVerificationFeeXaf: 7_500, fieldModeratorShareBps: DEFAULT_FIELD_MODERATOR_SHARE_BPS };

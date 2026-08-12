@@ -40,10 +40,19 @@ function OperationsRoute() {
   return <ProtectedWorkspaceRoute allowedRoles={["admin", "moderator"]}><Operations /></ProtectedWorkspaceRoute>;
 }
 
+function AgentOnboardingRoute() {
+  return <Home startAgentOpen />;
+}
+
+function MarketplaceRoute() {
+  return <Home />;
+}
+
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/" component={MarketplaceRoute} />
+      <Route path="/agent" component={AgentOnboardingRoute} />
       <Route path="/admin" component={AdminRoute} />
       <Route path="/operations" component={OperationsRoute} />
       <Route path="/404" component={NotFound} />

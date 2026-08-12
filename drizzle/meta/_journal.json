@@ -43,6 +43,13 @@
       "when": 1786531736491,
       "tag": "0005_complex_echo",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1786539986072,
+      "tag": "0006_long_freak",
+      "breakpoints": true
     }
   ]
 }

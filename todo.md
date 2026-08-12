@@ -138,3 +138,18 @@
 - [x] Add automated tests for paid-access expiration and reconfirmation guards.
 - [x] Test paid-status expiry messaging and API-level rejection or acceptance of listing submission and reconfirmation by access state.
 - [x] Add frontend unit coverage for the visible renewal countdown, suspended-state explanation, and renewal call to action.
+- [ ] Diagnose the reported human-verification failure during signup and login, distinguishing external Manus verification failure from AHC OAuth callback/configuration failure.
+- [ ] Add authentication regression coverage for failed verification/callback handling without weakening CSRF, nonce, or role protections.
+
+- [ ] Complete the new human-verification troubleshooting and report whether the remaining blocker is external to AHC.
+- [x] Trace the failed verification attempt through fresh preview, browser, network, and server diagnostics; no OAuth callback request reached AHC after the provider reported verification failure.
+- [ ] Resolve or escalate the external Manus human-verification failure and re-run signup/login on a normal browser or published domain.
+- [x] Define a secure AHC-owned agent authentication approach that does not require a Manus account.
+- [x] Add AHC-owned email registration, sign-in, password security, and session handling for agents.
+- [x] Preserve existing Admin and Field Moderator access while migrating agent identity away from Manus OAuth.
+- [x] Update agent onboarding UI and documentation to explain independent AHC account creation.
+- [x] Add tests for independent agent registration, sign-in, account bans, session authorization, and existing staff role restrictions.
+- [x] Validate renter public access and independent agent onboarding on desktop and mobile.
+- [x] Add explicit regression tests proving local-agent authentication does not weaken existing Admin and Moderator role restrictions.
+- [x] Capture the AHC-owned agent onboarding panel at desktop and mobile widths and record the result.
+- [x] Support a shareable public `?agent=1` entry point that opens the independent AHC agent onboarding panel without requiring Manus OAuth.
