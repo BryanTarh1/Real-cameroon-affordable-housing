@@ -204,3 +204,10 @@
 - [x] Extend the reusable temporary seed with Owner and Agent onboarding records plus moderator evidence, comparison outcomes, and proof-image references.
 - [x] Add automated tests and desktop/mobile validation covering evidence capture, outcome gating, onboarding requirements, access boundaries, and seeded demo workflows.
 - [x] Update the owner operating guide and temporary test-environment reference with the revised verification and onboarding process.
+
+## Local source and database export refresh
+
+- [x] Prepare a clean current source archive containing the React, TypeScript, CSS, server, migration, and configuration files without secrets or dependencies.
+- [x] Prepare a portable MySQL schema-and-demo-data SQL package using the current Drizzle migrations and clearly labelled non-production fixtures.
+- [x] Update local setup instructions for importing the supplied SQL package and running the application.
+- [x] Inspect the archive and SQL package for completeness, portability, and secret-free contents before delivery.

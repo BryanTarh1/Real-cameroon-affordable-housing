@@ -8,7 +8,9 @@ This package contains the **AHC full-stack source code**: React, TypeScript, Nod
 |---|---|---|
 | Public interface | `client/` | Cost-first housing search, Leaflet landmark map, WhatsApp contact, trust explanations, and agent entry points. |
 | Application server | `server/` | Express/tRPC application, listing queries, freshness archival handler, and authentication framework. |
-| MySQL model | `drizzle/` | Drizzle schema and generated SQL migrations for listings, itemized costs, subscriptions, verification, featured pins, and reports. |
+| MySQL model | `drizzle/` | Drizzle schema and generated SQL migrations for listings, itemized costs, subscriptions, verification, featured pins, reports, differentiated onboarding, and structured field evidence. |
+| Direct MySQL bootstrap | `database/ahc_local_bootstrap.sql` | Optional MySQL-client bootstrap that creates the local database and applies the current versioned migrations. |
+| Demo database fixtures | `scripts/seed-temporary-demo.mjs` | Reusable, labelled non-production users, onboarding records, listings, payment states, and verification-evidence records. |
 | Product rules | `shared/ahc.ts` | Reusable move-in-cost, freshness, phone-normalisation, WhatsApp-link, and approximate-location rules. |
 | Original schema input | `reference/ahc_db.sql` | The database SQL supplied for the project, retained as a reference artifact. |
 
@@ -46,26 +48,18 @@ The supplied original SQL is retained under `reference/ahc_db.sql`; it is refere
 
 ## 3. Create your local environment file
 
-Create a new file called `.env` in the project root. Update the MySQL password and cookie secret; do not use the sample values outside local development.
+Copy the contents of `local-env.template.txt` to a new file called `.env` in the project root. Update the MySQL password and cookie secret; do not use the sample values outside local development.
 
 ```env
 DATABASE_URL=mysql://ahc_user:change_this_password@127.0.0.1:3306/ahc_local
-JWT_SECRET=replace-with-a-long-random-local-secret
-VITE_APP_ID=
-OAUTH_SERVER_URL=
-VITE_OAUTH_PORTAL_URL=
-OWNER_OPEN_ID=
-BUILT_IN_FORGE_API_URL=
-BUILT_IN_FORGE_API_KEY=
-VITE_FRONTEND_FORGE_API_URL=
-VITE_FRONTEND_FORGE_API_KEY=
+JWT_SECRET=replace_with_a_long_random_local_secret
 ```
 
 > **Do not commit `.env`.** It is ignored because it contains local credentials.
 
 ## 4. Apply the AHC schema
 
-Generate and apply the Drizzle migrations to the empty database:
+Choose one of the two equivalent schema setup methods. The **Drizzle path** is preferred during development because it is what the project uses for future migrations:
 
 ```bash
 pnpm drizzle-kit generate
@@ -74,7 +68,33 @@ pnpm drizzle-kit migrate
 
 If you need to inspect the generated SQL first, check the new file in `drizzle/` before executing the migration command.
 
-## 5. Run the development server
+Alternatively, from the project root use the supplied MySQL-client bootstrap. It creates `ahc_local` and sources each tracked migration in order:
+
+```bash
+mysql -u ahc_user -p < database/ahc_local_bootstrap.sql
+```
+
+Do not use both methods on the same new database. After either method, you have the complete **current schema**, but no production data.
+
+## 5. Optional: load clearly labelled demo data
+
+The demo seed is optional and safe to re-run: it replaces only records marked with the `@test.ahc.local` domain or `demo-` identifiers. It contains no customer reviews, ratings, testimonials, live customer records, or real property evidence.
+
+```bash
+node scripts/seed-temporary-demo.mjs
+```
+
+The seed includes five local accounts, including the following supply-side examples:
+
+| Account | State |
+|---|---|
+| `agent@test.ahc.local` | Ordinary `user` role with an approved Agent onboarding application. |
+| `owner@test.ahc.local` | Ordinary `user` role with a submitted Owner onboarding application. |
+| `moderator@test.ahc.local` | Field Moderator account with demo verification workflow access. |
+
+The test passwords are documented in `AHC-Temporary-Test-Environment.md`. Change or remove them before exposing any local environment.
+
+## 6. Run the development server
 
 ```bash
 pnpm dev
@@ -82,7 +102,7 @@ pnpm dev
 
 Open the local address printed by the server, normally `http://localhost:3000`.
 
-## 6. Verify the local build
+## 7. Verify the local build
 
 ```bash
 pnpm test
