@@ -90,7 +90,7 @@
 - [x] Implement itemized move-in cost calculation and primary display.
 - [x] Implement approximate 200–500 m map coordinates and Leaflet markers.
 - [x] Implement the protected 14-day `last_reconfirmed` archival handler and database logic.
-- [ ] Deploy the site and create the production Heartbeat job that invokes the archival handler daily.
+- [x] Deploy the site and create the production Heartbeat job that invokes the archival handler daily (03:00 UTC; task UID `7fi5n9NWotqWsQtLAZMgrB`).
 - [x] Implement WhatsApp deep-link contact flow.
 - [x] Add agent subscription, featured pin, and physical verification surfaces.
 - [x] Test and deliver the new downloadable website file set after the database is received.
