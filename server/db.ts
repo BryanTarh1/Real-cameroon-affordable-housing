@@ -13,11 +13,13 @@ import {
   listings,
   localCredentials,
   moderatorProfiles,
+  onboardingApplications,
   paymentOrders,
   platformSettings,
   reports,
   users,
   verificationEvents,
+  verificationEvidence,
   verificationOrders,
 } from "../drizzle/schema";
 import { calculateFieldVerificationCommission, calculateTotalMoveInCash, DEFAULT_FIELD_MODERATOR_SHARE_BPS, FRESHNESS_WINDOW_DAYS, getAgentAccessState, getPaidOffer, type PaidOfferType } from "../shared/ahc";
@@ -79,6 +81,7 @@ export async function createLocalAgentAccount(input: {
   name: string;
   email: string;
   passwordHash: string;
+  onboarding?: { applicantType: "agent" | "owner"; governmentIdUrl: string; workProofUrl?: string; landTitleUrl?: string; occupancyRightUrl?: string; supportingDocumentUrl?: string };
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
@@ -107,6 +110,7 @@ export async function createLocalAgentAccount(input: {
       email: input.email,
       passwordHash: input.passwordHash,
     });
+    if (input.onboarding) await tx.insert(onboardingApplications).values({ userId: user.id, ...input.onboarding });
     return user;
   });
 }
@@ -633,6 +637,31 @@ export async function listOperationsVerificationQueue() {
     .orderBy(verificationOrders.createdAt);
 }
 
+/** Private staff view. Public marketplace queries never select proof URLs or observations. */
+export async function listOperationsVerificationEvidence() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: verificationEvidence.id,
+    verificationOrderId: verificationEvidence.verificationOrderId,
+    kind: verificationEvidence.kind,
+    mediaUrl: verificationEvidence.mediaUrl,
+    listingMatch: verificationEvidence.listingMatch,
+    observation: verificationEvidence.observation,
+    capturedByUserId: verificationEvidence.capturedByUserId,
+    createdAt: verificationEvidence.createdAt,
+    verificationStatus: verificationOrders.status,
+    evidenceNote: verificationOrders.evidenceNote,
+    listingId: listings.id,
+    title: listings.title,
+    city: listings.city,
+    neighborhood: listings.neighborhood,
+  }).from(verificationEvidence)
+    .innerJoin(verificationOrders, eq(verificationOrders.id, verificationEvidence.verificationOrderId))
+    .innerJoin(listings, eq(listings.id, verificationOrders.listingId))
+    .orderBy(desc(verificationEvidence.createdAt));
+}
+
 export async function claimVerificationOrder(operatorUserId: number, verificationOrderId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
@@ -650,13 +679,27 @@ export async function claimVerificationOrder(operatorUserId: number, verificatio
   });
 }
 
-export async function decideVerificationOrder(operatorUserId: number, verificationOrderId: number, decision: "passed" | "failed", evidenceNote: string) {
+export type FieldVerificationEvidenceInput = {
+  kind: "exterior" | "interior" | "bathroom" | "document" | "other";
+  mediaUrl: string;
+  listingMatch: "matches" | "partially_matches" | "does_not_match";
+  observation: string;
+};
+
+export function validateFieldVerificationEvidence(evidence: FieldVerificationEvidenceInput[]) {
+  if (evidence.length < 2 || !evidence.some(item => item.kind === "exterior")) {
+    throw new Error("Field verification requires at least two proof images, including an exterior comparison image.");
+  }
+}
+
+export async function decideVerificationOrder(operatorUserId: number, verificationOrderId: number, decision: "passed" | "failed", evidenceNote: string, evidence: FieldVerificationEvidenceInput[]) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   return db.transaction(async (tx) => {
     const order = (await tx.select().from(verificationOrders).where(eq(verificationOrders.id, verificationOrderId)).limit(1))[0];
     if (!order || order.status !== "scheduled") throw new Error("Only claimed verification requests can receive a field outcome.");
     if (order.assignedModeratorUserId !== operatorUserId) throw new Error("Only the assigned reviewer can record this verification outcome.");
+    validateFieldVerificationEvidence(evidence);
     const now = new Date();
     const expiresAt = decision === "passed" ? new Date(now.getTime() + getPaidOffer("physical_verification").validityDays * 86_400_000) : null;
     await tx.update(verificationOrders).set({ status: decision, evidenceNote, verifiedAt: now, expiresAt }).where(eq(verificationOrders.id, verificationOrderId));
@@ -668,6 +711,7 @@ export async function decideVerificationOrder(operatorUserId: number, verificati
       verificationOrderId, listingId: order.listingId, action: decision, fromStatus: order.status, toStatus: decision,
       reason: evidenceNote, actorUserId: operatorUserId, assignedModeratorUserId: operatorUserId,
     });
+    await tx.insert(verificationEvidence).values(evidence.map(item => ({ ...item, verificationOrderId, capturedByUserId: operatorUserId })));
     if (decision === "passed") {
       const settings = await getPlatformSettings();
       const allocation = calculateFieldVerificationCommission(order.amountXaf, settings.fieldModeratorShareBps);

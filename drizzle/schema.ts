@@ -76,6 +76,24 @@ export const moderatorProfiles = mysqlTable("moderator_profiles", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+/** Private supply-side application. Self-registration never grants Owner, Moderator, or Admin authority. */
+export const onboardingApplications = mysqlTable("onboarding_applications", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  applicantType: mysqlEnum("applicantType", ["agent", "owner"]).notNull(),
+  status: mysqlEnum("status", ["submitted", "approved", "changes_requested", "rejected"]).default("submitted").notNull(),
+  governmentIdUrl: text("governmentIdUrl").notNull(),
+  workProofUrl: text("workProofUrl"),
+  landTitleUrl: text("landTitleUrl"),
+  occupancyRightUrl: text("occupancyRightUrl"),
+  supportingDocumentUrl: text("supportingDocumentUrl"),
+  reviewNote: text("reviewNote"),
+  reviewedByUserId: int("reviewedByUserId").references(() => users.id, { onDelete: "set null" }),
+  reviewedAt: timestamp("reviewedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [index("onboarding_applications_user_idx").on(table.userId, table.status)]);
+
 /** Singleton platform configuration. Only administrators can adjust commercial rules. */
 export const platformSettings = mysqlTable("platform_settings", {
   id: int("id").primaryKey(),
@@ -244,6 +262,18 @@ export const verificationEvents = mysqlTable("verification_events", {
   assignedModeratorUserId: int("assignedModeratorUserId").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => [index("verification_events_order_idx").on(table.verificationOrderId, table.createdAt)]);
+
+/** Private structured visit proof retained for staff accountability and never returned by public listing queries. */
+export const verificationEvidence = mysqlTable("verification_evidence", {
+  id: int("id").autoincrement().primaryKey(),
+  verificationOrderId: int("verificationOrderId").notNull().references(() => verificationOrders.id, { onDelete: "cascade" }),
+  capturedByUserId: int("capturedByUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  kind: mysqlEnum("kind", ["exterior", "interior", "bathroom", "document", "other"]).notNull(),
+  mediaUrl: text("mediaUrl").notNull(),
+  listingMatch: mysqlEnum("listingMatch", ["matches", "partially_matches", "does_not_match"]).notNull(),
+  observation: text("observation").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [index("verification_evidence_order_idx").on(table.verificationOrderId, table.createdAt)]);
 
 /** Allocations earned only after a Field Moderator records a passed physical verification. */
 export const fieldVerificationCommissions = mysqlTable("field_verification_commissions", {

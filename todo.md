@@ -193,3 +193,14 @@
 - [x] Create representative test records for listings, payment reconciliation, publication review, field verification, and the 80/20 commission ledger without adding reviews or testimonials.
 - [x] Verify the temporary role accounts and visible workflow states in the preview.
 - [x] Deliver temporary credentials and an explicit post-test cleanup warning to the owner.
+
+## Evidence-based verification and differentiated supply onboarding
+
+- [x] Require Field Moderators to record structured in-person property evidence, including comparison against the listing photos and details, before issuing a passed or failed verification outcome.
+- [x] Display moderator evidence and listing-match outcomes to authorized staff without exposing private proof documents publicly.
+- [x] Add stronger Owner onboarding requirements for identity, land-title, and supporting property documents than the Agent identity and work-proof requirements.
+- [x] Keep self-service registration from granting Owner, Moderator, or Admin authority; require trusted Admin review and role assignment.
+- [x] Generate clearly labelled non-production property-evidence and document-preview images for the demo environment.
+- [x] Extend the reusable temporary seed with Owner and Agent onboarding records plus moderator evidence, comparison outcomes, and proof-image references.
+- [x] Add automated tests and desktop/mobile validation covering evidence capture, outcome gating, onboarding requirements, access boundaries, and seeded demo workflows.
+- [x] Update the owner operating guide and temporary test-environment reference with the revised verification and onboarding process.

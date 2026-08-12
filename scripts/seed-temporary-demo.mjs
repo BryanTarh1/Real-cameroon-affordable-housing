@@ -7,6 +7,7 @@ const DEMO_DOMAIN = "@test.ahc.local";
 const PASSWORDS = {
   seeker: "Seeker#2026!",
   agent: "Agent#2026!",
+  owner: "Owner#2026!",
   moderator: "Moderator#2026!",
   admin: "Admin#2026!",
 };
@@ -70,6 +71,13 @@ async function main() {
       role: "user",
       password: PASSWORDS.agent,
     });
+    const ownerId = await insertUser(connection, {
+      openId: "demo_owner_ahc_2026",
+      name: "DEMO Owner Applicant — AHC Test",
+      email: `owner${DEMO_DOMAIN}`,
+      role: "user",
+      password: PASSWORDS.owner,
+    });
     const seekerId = await insertUser(connection, {
       openId: "demo_seeker_ahc_2026",
       name: "DEMO Seeker — AHC Test",
@@ -85,6 +93,14 @@ async function main() {
     await connection.execute(
       "INSERT INTO `moderator_profiles` (`userId`, `displayName`, `cityCoverage`, `status`, `createdByUserId`) VALUES (?, ?, 'Yaoundé & Douala', 'active', ?)",
       [moderatorId, "DEMO Field Moderator — AHC Test", adminId],
+    );
+    await connection.execute(
+      "INSERT INTO `onboarding_applications` (`userId`, `applicantType`, `status`, `governmentIdUrl`, `workProofUrl`, `reviewNote`, `reviewedByUserId`, `reviewedAt`) VALUES (?, 'agent', 'approved', ?, ?, 'TEST DATA: agent identity and proof-of-work reviewed and approved.', ?, NOW())",
+      [agentId, "/manus-storage/ahc-test-evidence-exterior_345e18db.png", "/manus-storage/ahc-test-evidence-living-room_b47fb09f.png", adminId],
+    );
+    await connection.execute(
+      "INSERT INTO `onboarding_applications` (`userId`, `applicantType`, `status`, `governmentIdUrl`, `landTitleUrl`, `occupancyRightUrl`, `supportingDocumentUrl`, `reviewNote`) VALUES (?, 'owner', 'submitted', ?, ?, ?, ?, 'TEST DATA: awaiting Admin review of stronger owner document package.')",
+      [ownerId, "/manus-storage/ahc-test-evidence-exterior_345e18db.png", "/manus-storage/ahc-test-owner-land-title-preview_a6c75f83.png", "/manus-storage/ahc-test-evidence-living-room_b47fb09f.png", "/manus-storage/ahc-test-evidence-bathroom_bafa9958.png"],
     );
     await connection.execute(
       "INSERT INTO `platform_settings` (`id`, `agentAccessFeeXaf`, `listingPassFeeXaf`, `featuredPinFeeXaf`, `physicalVerificationFeeXaf`, `fieldModeratorShareBps`, `updatedByUserId`) VALUES (1, 3000, 1000, 3000, 7500, 8000, ?) ON DUPLICATE KEY UPDATE `updatedByUserId` = VALUES(`updatedByUserId`)",
@@ -157,6 +173,17 @@ async function main() {
       [publishedId, agentId, moderatorId, addDays(30)],
     );
     const verificationOrderId = verificationResult.insertId;
+    const verificationEvidence = [
+      ["exterior", "/manus-storage/ahc-test-evidence-exterior_345e18db.png", "matches", "TEST DATA: exterior landmark orientation and facade match the public listing images."],
+      ["interior", "/manus-storage/ahc-test-evidence-living-room_b47fb09f.png", "matches", "TEST DATA: living room layout and stated two-bedroom configuration observed during the visit."],
+      ["bathroom", "/manus-storage/ahc-test-evidence-bathroom_bafa9958.png", "partially_matches", "TEST DATA: bathroom is usable; tile finish differs slightly from the earlier listing photo and was recorded."],
+    ];
+    for (const [kind, mediaUrl, listingMatch, observation] of verificationEvidence) {
+      await connection.execute(
+        "INSERT INTO `verification_evidence` (`verificationOrderId`, `capturedByUserId`, `kind`, `mediaUrl`, `listingMatch`, `observation`) VALUES (?, ?, ?, ?, ?, ?)",
+        [verificationOrderId, moderatorId, kind, mediaUrl, listingMatch, observation],
+      );
+    }
     await connection.execute(
       "INSERT INTO `verification_events` (`verificationOrderId`, `listingId`, `action`, `fromStatus`, `toStatus`, `reason`, `actorUserId`, `assignedModeratorUserId`) VALUES (?, ?, 'assigned', 'paid', 'scheduled', 'TEST DATA: field visit assigned.', ?, ?)",
       [verificationOrderId, publishedId, moderatorId, moderatorId],
@@ -182,6 +209,7 @@ async function main() {
     console.table([
       { role: "Seeker", email: `seeker${DEMO_DOMAIN}`, password: PASSWORDS.seeker },
       { role: "Agent", email: `agent${DEMO_DOMAIN}`, password: PASSWORDS.agent },
+      { role: "Owner applicant", email: `owner${DEMO_DOMAIN}`, password: PASSWORDS.owner },
       { role: "Field Moderator", email: `moderator${DEMO_DOMAIN}`, password: PASSWORDS.moderator },
       { role: "Admin", email: `admin${DEMO_DOMAIN}`, password: PASSWORDS.admin },
     ]);

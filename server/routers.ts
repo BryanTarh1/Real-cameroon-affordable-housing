@@ -30,6 +30,7 @@ import {
   listFreshPublicListings,
   listOperationsPaymentQueue,
   listOperationsReviewQueue,
+  listOperationsVerificationEvidence,
   listOperationsVerificationQueue,
   listReviewHistory,
   claimVerificationOrder,
@@ -71,6 +72,13 @@ const localAccountSchema = z.object({
   name: z.string().trim().min(2).max(100),
   email: z.string().trim().email().max(320),
   password: z.string().min(10).max(128),
+  onboarding: z.object({
+    applicantType: z.enum(["agent", "owner"]), governmentIdUrl: z.string().url(), workProofUrl: z.string().url().optional(),
+    landTitleUrl: z.string().url().optional(), occupancyRightUrl: z.string().url().optional(), supportingDocumentUrl: z.string().url().optional(),
+  }).superRefine((value, ctx) => {
+    if (value.applicantType === "agent" && !value.workProofUrl) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Agents must provide identity and proof of work." });
+    if (value.applicantType === "owner" && (!value.landTitleUrl || !value.occupancyRightUrl || !value.supportingDocumentUrl)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Owners must provide identity, land title, occupancy right, and supporting property document." });
+  }).optional(),
 });
 
 const localLoginSchema = z.object({
@@ -94,6 +102,7 @@ export const appRouter = router({
           name: input.name,
           email,
           passwordHash: await hashLocalPassword(input.password),
+          onboarding: input.onboarding,
         });
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(AHC_LOCAL_SESSION_COOKIE, await createLocalSessionToken(user), {
@@ -207,6 +216,7 @@ export const appRouter = router({
       .query(({ input }) => listReviewHistory(input.listingId)),
     paymentQueue: moderatorProcedure.query(() => listOperationsPaymentQueue()),
     verificationQueue: moderatorProcedure.query(() => listOperationsVerificationQueue()),
+    verificationEvidenceHistory: moderatorProcedure.query(() => listOperationsVerificationEvidence()),
     assignReview: moderatorProcedure.input(z.object({ listingId: z.string().min(4).max(32), moderatorUserId: z.number().int().positive() }))
       .mutation(({ ctx, input }) => assignListingReview(ensureUserId(ctx.user?.id), input.listingId, input.moderatorUserId)),
     decideReview: moderatorProcedure.input(z.object({
@@ -222,7 +232,8 @@ export const appRouter = router({
     decideVerification: moderatorProcedure.input(z.object({
       verificationOrderId: z.number().int().positive(), decision: z.enum(["passed", "failed"]),
       evidenceNote: z.string().trim().min(12).max(1_200),
-    })).mutation(({ ctx, input }) => decideVerificationOrder(ensureUserId(ctx.user?.id), input.verificationOrderId, input.decision, input.evidenceNote)),
+      evidence: z.array(z.object({ kind: z.enum(["exterior", "interior", "bathroom", "document", "other"]), mediaUrl: z.string().url(), listingMatch: z.enum(["matches", "partially_matches", "does_not_match"]), observation: z.string().trim().min(8).max(1_200) })).min(2),
+    })).mutation(({ ctx, input }) => decideVerificationOrder(ensureUserId(ctx.user?.id), input.verificationOrderId, input.decision, input.evidenceNote, input.evidence)),
     myVerificationCommissions: moderatorProcedure.query(({ ctx }) => listFieldModeratorCommissions(ensureUserId(ctx.user?.id))),
     archiveFreshnessGuard: adminProcedure.mutation(() => archiveStaleListings()),
   }),

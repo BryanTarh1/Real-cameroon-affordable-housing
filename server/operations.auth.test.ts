@@ -40,4 +40,12 @@ describe("AHC moderator operations authorization", () => {
       }),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
+
+  it("prevents an ordinary agent from reading private field-verification proof", async () => {
+    const caller = appRouter.createCaller(createAgentContext());
+
+    await expect(caller.operations.verificationEvidenceHistory()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
 });

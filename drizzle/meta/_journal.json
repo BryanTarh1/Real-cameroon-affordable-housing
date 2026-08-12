@@ -50,6 +50,13 @@
       "when": 1786539986072,
       "tag": "0006_long_freak",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1786550116200,
+      "tag": "0007_flawless_scrambler",
+      "breakpoints": true
     }
   ]
 }

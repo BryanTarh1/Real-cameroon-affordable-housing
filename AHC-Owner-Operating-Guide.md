@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Affordable Housing Cameroon (AHC) is a **public rental-search marketplace with protected staff workspaces**. Seekers may search freely, then create or use a free AHC account only when opening a property detail. Agents sign in before beginning the paid listing journey. Field Moderators sign in before their work begins. An Admin governs pricing, staff authority, account safety, and audit records.
+Affordable Housing Cameroon (AHC) is a **public rental-search marketplace with protected staff workspaces**. Seekers may search freely, then create or use a free AHC account only when opening a property detail. Supply-side applicants sign in before beginning the paid listing journey and submit an onboarding proof package appropriate to whether they are an Agent or an Owner. Field Moderators sign in before their work begins. An Admin governs pricing, staff authority, account safety, and audit records.
 
 > **Important after the clean reset:** historic listings, orders, credentials, moderator profiles, and operational records were removed. The currently signed-in owner account is retained as the bootstrap Admin for private staff assignment. A newly created local AHC account always begins as an ordinary **user** account; it never self-assigns a staff role.
 
@@ -50,7 +50,7 @@ Agents now use an AHC-owned account. **A Manus account is not required.** The ag
 | Step | Agent action | Result |
 |---|---|---|
 | 1 | Open `/agent`. | The paid agent workspace opens directly. |
-| 2 | Choose **Create account** and enter name, email, and password. | AHC creates a local agent account with the ordinary `user` role. It cannot grant Admin or Moderator privileges. |
+| 2 | Choose **Create account**, select **Agent**, and enter name, email, password, government-ID URL, and proof-of-work URL. | AHC creates a local account with the ordinary `user` role and records the Agent onboarding application. It cannot grant Owner, Admin, or Moderator privileges. |
 | 3 | Sign in and complete the profile. | Add the public agent name, optional agency name, and WhatsApp telephone number. |
 | 4 | Create an **Agent Access** order. | The launch configuration is 3,000 XAF for 30 days and includes one Listing Pass. |
 | 5 | Pay using AHC's official instructions and submit the MTN MoMo or Orange Money transaction reference. | The order stays inactive until authorised operations staff reconcile the evidence. A typed reference alone changes nothing. |
@@ -59,6 +59,20 @@ Agents now use an AHC-owned account. **A Manus account is not required.** The ag
 | 8 | Monitor the decision. | A moderator may approve and publish, request correction, or reject. A rejection restores the relevant listing credit. |
 | 9 | Reconfirm published availability every 14 days. | Reconfirmation keeps a live listing fresh; inactive Agent Access prevents reconfirmation. |
 | 10 | Optionally request a featured pin or physical verification after publication. | Both requests require the applicable paid order and staff reconciliation. A verification badge appears only after a passed field visit. |
+
+### Supply-side onboarding: Agent and Owner requirements
+
+An account is not a substitute for proof of authority to market a property. AHC therefore records a structured onboarding application when a supply-side person registers. **No document URL is exposed in public listing cards, maps, property detail, WhatsApp links, or public search.** These records are for authorised operational review only.
+
+| Applicant type | Required onboarding proof package | Operational meaning |
+|---|---|---|
+| Agent | Government-ID document and proof of work | Establishes the person’s identity and a basic basis to operate as an Agent. |
+| Owner | Government-ID document, land title, occupancy-right document, and supporting property document | Establishes a stronger property-rights package because the applicant represents themselves as the Owner. |
+| Seeker | No documents | A Seeker can create a free account only to open a property detail; that account conveys no supply-side or staff authority. |
+
+The application status is recorded as **submitted**, **approved**, **changes requested**, or **rejected**. The status is an operating-review record, not a public badge and not a staff role. Every self-service registration remains `user`; only an existing Admin can grant `moderator` or `admin` authority through **Trusted staff authority** in `/admin`.
+
+> **Temporary test account only:** use `owner@test.ahc.local` with password `Owner#2026!` at `/agent` to inspect the pending Owner application. This non-production account and its synthetic document preview must be removed before accepting real users.
 
 ## 3. What happens after an agent submits a listing
 
@@ -100,6 +114,8 @@ Once the owner assigns an existing AHC account the `moderator` role, that person
 | Listing review | Open an under-review listing, inspect the agent identity, move-in-cost declaration, landmark-only location, availability, and compliance information. Assign it to yourself if needed, then approve and publish, request corrections, or reject with a reason. |
 | Physical verification | Claim a paid request, arrange the visit, record factual field evidence without exact compound coordinates, then mark the visit **passed** or **failed**. Only a passed outcome applies the time-limited verification badge. |
 
+For **every** passed or failed physical outcome, the Field Moderator must submit at least **two proof-image URLs**, including **one exterior comparison image**. Each proof item must identify its evidence kind, record a factual observation, and state whether it **matches**, **partially matches**, or **does not match** the submitted listing pictures and details. The Operations screen keeps the passed/failed controls unavailable until this threshold is met. The backend independently rejects an outcome that lacks two items or an exterior image. Proof documents and evidence are restricted to authorised staff workflows and must never be copied into the public property page.
+
 The Field Moderator can also see a personal commission ledger for passed physical visits. The launch configuration allocates **80% to the Field Moderator and 20% to AHC** for each passed paid verification. These entries are immutable operational records; actual payout evidence should be retained separately.
 
 ## 5. Where the Admin page is and how it works
@@ -127,7 +143,7 @@ The public marketplace and agent registration are ready to use immediately. The 
 | Priority | Owner action | Why it matters |
 |---|---|---|
 | 1 | Use the retained owner Admin account to open `/admin`. | This is the private bootstrap account for staff authority. Keep it private and protect its access. |
-| 2 | Ask each trusted Field Moderator or additional Admin to first create a normal AHC account. | Public registration creates a `user`, never a staff role. |
+| 2 | Ask each trusted Field Moderator or additional Admin to first create a normal AHC account. If a person is applying as an Agent or Owner, require the appropriate onboarding proof package as well. | Public registration creates a `user`, never a staff role. |
 | 3 | In `/admin`, open **Trusted staff authority** and select the staff member's account. | Assign `moderator` for field work or `admin` for the limited people who should govern the platform. The change is audited. |
 | 4 | Give Field Moderators the public **For moderators** entry or `/operations`; give additional Admins `/admin` privately. | The Field Moderator route shows its own AHC sign-in panel. The Admin route stays absent from public navigation. |
 | 5 | Set the official MTN MoMo and Orange Money collection instructions before inviting agents. | Agents need legitimate payment details to settle orders and submit references. |
@@ -147,5 +163,7 @@ AHC local accounts use their own signed session and password protection. Seekers
 | Where is the Admin page? | On the protected **Admin page: `/admin`**. It is a separate workspace screen in the same website, not mixed into public pages. |
 | Can ordinary users see these pages? | They can see the **Field Moderator sign-in entry**, but never Operations controls. They cannot see an Admin link in public navigation. The server blocks all privileged API calls unless the user has the required role. |
 | Can a new agent become Admin or Moderator through registration? | No. Local registration creates only an ordinary agent account. Staff roles must be provisioned intentionally. |
+| Can a person become an Owner simply by choosing Owner during registration? | No. Choosing Owner creates an ordinary local account plus a submitted Owner onboarding application. Owner documentation is reviewed operationally and does not grant a staff role. |
+| What proof is required before a physical-verification outcome? | At least two proof images, including one exterior image, with a factual observation and a listing-match assessment for each item. The requirement applies to both passed and failed outcomes. |
 | Why use the same domain? | One domain and codebase reduce maintenance and preserve one audit trail. Security comes from strict backend role checks, not from running a second public website. |
 | How do we add staff after the reset? | Each person first creates a normal AHC account. The retained owner Admin then opens `/admin` privately and uses **Trusted staff authority** to assign Moderator or Admin access. |
