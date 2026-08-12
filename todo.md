@@ -165,3 +165,7 @@
 - [x] Verify backend role enforcement rejects unauthenticated and unauthorized Admin and Moderator API calls with the appropriate access-control error.
 - [x] Verify direct navigation and refresh behavior for public, Admin, and Operations routes under the SPA server fallback.
 - [x] Apply and test any route, navigation, or access-control hardening identified by the architecture review; no corrective change was required because the existing controls meet the reviewed requirements.
+
+## Owner operating guide
+
+- [x] Prepare a step-by-step owner guide for renters, agents, Field Moderators, and Admins, including protected-route access and post-reset account setup.
