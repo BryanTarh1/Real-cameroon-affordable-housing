@@ -94,3 +94,9 @@
 - [x] Implement WhatsApp deep-link contact flow.
 - [x] Add agent subscription, featured pin, and physical verification surfaces.
 - [x] Test and deliver the new downloadable website file set after the database is received.
+
+## Local source package
+
+- [x] Prepare a clean AHC source archive for local development without secrets or installed dependencies.
+- [x] Add a Windows/macOS/Linux setup guide covering Node.js, MySQL, migrations, and development commands.
+- [x] Inspect the archive contents and deliver the downloadable package.
