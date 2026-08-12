@@ -185,6 +185,45 @@ export async function setUserBan(actorUserId: number, targetUserId: number, isBa
   return { success: true };
 }
 
+/** Assign operational authority only from an existing Admin session; public AHC registration always remains role=user. */
+export async function setUserRole(actorUserId: number, targetUserId: number, role: "user" | "moderator" | "admin") {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  if (actorUserId === targetUserId) throw new Error("Administrators cannot change their own role.");
+  const target = (await db.select({ id: users.id, openId: users.openId, name: users.name, email: users.email, role: users.role })
+    .from(users).where(eq(users.id, targetUserId)).limit(1))[0];
+  if (!target) throw new Error("User not found.");
+  if (target.openId === ENV.ownerOpenId && role !== "admin") throw new Error("The designated platform owner cannot be demoted.");
+  if (target.role === role) return { success: true, role };
+
+  await db.transaction(async (tx) => {
+    await tx.update(users).set({ role }).where(eq(users.id, targetUserId));
+    const moderatorProfile = (await tx.select({ id: moderatorProfiles.id }).from(moderatorProfiles)
+      .where(eq(moderatorProfiles.userId, targetUserId)).limit(1))[0];
+    if (role === "moderator") {
+      if (moderatorProfile) {
+        await tx.update(moderatorProfiles).set({ status: "active" }).where(eq(moderatorProfiles.id, moderatorProfile.id));
+      } else {
+        await tx.insert(moderatorProfiles).values({
+          userId: targetUserId,
+          displayName: target.name ?? target.email ?? `Field Moderator #${targetUserId}`,
+          createdByUserId: actorUserId,
+          status: "active",
+        });
+      }
+    } else if (moderatorProfile) {
+      await tx.update(moderatorProfiles).set({ status: "suspended" }).where(eq(moderatorProfiles.id, moderatorProfile.id));
+    }
+    await tx.insert(adminAuditEvents).values({
+      action: "role_changed",
+      actorUserId,
+      targetUserId,
+      details: `Role changed from ${target.role} to ${role}.`,
+    });
+  });
+  return { success: true, role };
+}
+
 export async function getAdminCashFlowAudit() {
   const db = await getDb();
   if (!db) return { confirmedRevenueXaf: 0, physicalVerificationRevenueXaf: 0, platformCommissionAccruedXaf: 0, fieldModeratorCommissionAccruedXaf: 0, orders: [] as Array<{ type: string; amountXaf: number }> };

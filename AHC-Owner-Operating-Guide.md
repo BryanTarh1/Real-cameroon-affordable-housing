@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Affordable Housing Cameroon (AHC) is a **public rental-search marketplace with protected staff workspaces**. Renters can search and contact agents without an account. Agents create their own AHC account to submit paid listings. Field Moderators verify properties and approve publication. An Admin governs pricing, account safety, and audit records.
+Affordable Housing Cameroon (AHC) is a **public rental-search marketplace with protected staff workspaces**. Seekers may search freely, then create or use a free AHC account only when opening a property detail. Agents sign in before beginning the paid listing journey. Field Moderators sign in before their work begins. An Admin governs pricing, staff authority, account safety, and audit records.
 
-> **Important after the clean reset:** all former accounts and operational records were intentionally removed. The website is ready for a fresh start, but there is currently **no active Admin or Field Moderator account**. A newly created local AHC account is an **agent account**, not a staff account.
+> **Important after the clean reset:** historic listings, orders, credentials, moderator profiles, and operational records were removed. The currently signed-in owner account is retained as the bootstrap Admin for private staff assignment. A newly created local AHC account always begins as an ordinary **user** account; it never self-assigns a staff role.
 
 ## Where each person goes
 
@@ -12,10 +12,10 @@ The following pages are separate application routes. They share one AHC domain a
 
 | Person | Page to open | Who can use it | What they can do |
 |---|---|---|---|
-| Renter | `/` | Anyone | Search fresh homes, compare the full upfront cost, inspect an approximate landmark area, and start a WhatsApp conversation with an agent. |
+| Seeker | `/` | Anyone may search; an AHC account is required only when opening a property detail | Search fresh homes and compare headline move-in costs before sign-in; after sign-in, view the full detail and use its WhatsApp contact option. |
 | Agent | `/agent` | Anyone can register; only signed-in agents can manage inventory | Create an AHC account, pay for access, submit listings, track reviews, reconfirm availability, and request paid services. |
-| Field Moderator | `/operations` | Designated `moderator` or `admin` staff only | Reconcile payments, review listings, inspect homes, issue or deny physical-verification badges, and view their own commission entries. |
-| Admin | `/admin` | Designated `admin` staff only | Set launch prices and the commission split, audit confirmed cash flow, review commission records, and suspend or reinstate accounts. |
+| Field Moderator | `/operations` | Anyone can reach the sign-in page; only designated `moderator` or `admin` staff can enter Operations | Sign in with an AHC account, then reconcile payments, review listings, inspect homes, issue or deny physical-verification badges, and view their own commission entries. |
+| Admin | `/admin` | Designated `admin` staff only | Set launch prices and the commission split, assign trusted staff roles, audit confirmed cash flow, review commission records, and suspend or reinstate accounts. |
 
 For the published site, add the route to the end of the domain, for example:
 
@@ -25,20 +25,21 @@ https://affordableho-8aahm5dj.manus.space/operations
 https://affordableho-8aahm5dj.manus.space/admin
 ```
 
-The **Admin page is a distinct, standalone page at `/admin`**. It is deliberately not presented in the public menu. The Field Moderator page is likewise a standalone page at `/operations`. Keeping them as protected routes in the same application avoids duplicate hosting and keeps one authoritative audit trail; strict server-side role checks, rather than a hidden URL, provide the actual security.
+The **Admin page is a distinct, standalone page at `/admin`**. It is deliberately not presented in the public menu and should be shared only with the owner and carefully chosen Admins. The Field Moderator route is also standalone at `/operations`, but AHC visibly offers a **Field Moderator sign-in** entry from the public site. Keeping both workspaces in the same application avoids duplicate hosting and keeps one authoritative audit trail; strict server-side role checks, rather than a hidden URL, provide the actual security.
 
 ## 1. What a renter can do
 
-Renters do not need an account and do not pay AHC to search or begin first contact. The public marketplace is intentionally centred on the amount required before moving in—not simply the monthly rent.
+Seekers do not pay AHC to search. They can browse fresh homes, filters, headline move-in costs, and approximate landmark areas without an account. A free AHC seeker account is required only when they choose to open a specific home's detail.
 
 | Step | Renter action | What AHC shows or enforces |
 |---|---|---|
 | 1 | Open the home page. | The marketplace opens at the public route (`/`). |
 | 2 | Enter a neighbourhood or landmark, choose Yaoundé or Douala, and set a maximum move-in budget. | Search prioritises **Total Move-In Cash Required**. |
-| 3 | Open a listing card. | The listing shows itemised cost context, freshness, and an approximate landmark location. |
-| 4 | Read the map and landmark information. | Pins use a **200–500 metre radius**, never a compound door location. |
-| 5 | Start a WhatsApp conversation. | AHC opens a pre-filled WhatsApp link to the published agent; there is no in-app chat paywall. |
-| 6 | Arrange a safe visit and decide independently. | AHC does not collect renter payments or guarantee a transaction. |
+| 3 | Select a listing card or map pin. | AHC opens a **Seeker access** prompt rather than the property detail. |
+| 4 | Sign in or create a free AHC seeker account. | The account is an ordinary `user` account; no Manus account is required and it creates no staff authority. |
+| 5 | Read the complete listing detail. | The detail shows the itemised costs, freshness information, and approximate landmark area. Pins use a **200–500 metre radius**, never a compound door location. |
+| 6 | Start a WhatsApp conversation. | AHC opens a pre-filled WhatsApp link to the published agent; there is no in-app chat paywall. |
+| 7 | Arrange a safe visit and decide independently. | AHC does not collect renter payments or guarantee a transaction. |
 
 Only listings that remain available are intended to stay visible. Agents must reconfirm published availability every **14 days**; stale inventory is automatically removed from public search.
 
@@ -89,9 +90,9 @@ The person who physically checks a house uses:
 
 > **Field Moderator workspace: `/operations`**
 
-This page is a **separate staff workspace**, not a public page. It is intentionally absent from the renter and agent navigation. If an ordinary visitor or agent types the URL, the application does not render moderator controls and returns the visitor to the public marketplace. The server also rejects protected Operations API requests unless the session is a `moderator` or `admin`.
+This page is a **separate staff workspace**. The public site includes a visible **For moderators** entry and Field Moderator sign-in call to action, but it never renders Operations controls to an ordinary visitor. An unauthenticated person who reaches `/operations` sees the Field Moderator sign-in screen. A signed-in ordinary user sees a clear message to ask the owner to assign the Field Moderator role. The server rejects protected Operations API requests unless the session is a `moderator` or `admin`.
 
-Once a designated Field Moderator signs in through the existing staff-authentication path, the Operations page has three queues.
+Once the owner assigns an existing AHC account the `moderator` role, that person signs in through the AHC Field Moderator screen and the Operations page has three queues.
 
 | Queue | Step-by-step Field Moderator workflow |
 |---|---|
@@ -109,7 +110,7 @@ The platform owner or designated manager uses:
 
 This too is a standalone, protected page—not an element mixed into the public marketplace. It is restricted to the `admin` role. An agent, renter, or moderator cannot see the Admin controls or call the privileged Admin APIs; the server returns an access-control error for those requests.
 
-Once an authorised Admin signs in through the staff-authentication path, the Admin workspace provides the following controls.
+Once an authorised Admin signs in through the protected Admin route, the Admin workspace provides the following controls.
 
 | Admin area | Step-by-step use |
 |---|---|
@@ -117,6 +118,7 @@ Once an authorised Admin signs in through the staff-authentication path, the Adm
 | Cash-flow audit | Review totals for confirmed manual payments, physical-verification revenue, Field Moderator accruals, and AHC's verification share. This is an audit view, not a bank-settlement engine. |
 | Commission ledger | Inspect every immutable allocation created from a passed paid physical verification, including the listing, moderator, gross amount, Field Moderator share, AHC share, status, and timestamp. |
 | Account protection | Review account records and suspend or reinstate non-Admin accounts with a written reason. Admin accounts cannot be suspended from this page. |
+| Trusted staff authority | Select an existing AHC account and deliberately assign **Seeker / Agent**, **Field Moderator**, or **Admin**. The server accepts this only from an Admin session, creates or activates the required Moderator profile, and writes an immutable audit event. An Admin cannot change their own role from this screen. |
 
 ## 6. What must be done now, after the reset
 
@@ -124,26 +126,26 @@ The public marketplace and agent registration are ready to use immediately. The 
 
 | Priority | Owner action | Why it matters |
 |---|---|---|
-| 1 | Decide who will be the first AHC Admin. | This person will govern pricing, account protection, and audit records. |
-| 2 | Provision that person as a trusted staff identity with the `admin` role. | A local agent registration cannot become an Admin by itself. |
-| 3 | Decide who will conduct field checks in Yaoundé and Douala. | Each person needs a trusted staff identity with the `moderator` role. |
-| 4 | Give each staff member the relevant protected route. | Admin: `/admin`; Field Moderator: `/operations`. |
+| 1 | Use the retained owner Admin account to open `/admin`. | This is the private bootstrap account for staff authority. Keep it private and protect its access. |
+| 2 | Ask each trusted Field Moderator or additional Admin to first create a normal AHC account. | Public registration creates a `user`, never a staff role. |
+| 3 | In `/admin`, open **Trusted staff authority** and select the staff member's account. | Assign `moderator` for field work or `admin` for the limited people who should govern the platform. The change is audited. |
+| 4 | Give Field Moderators the public **For moderators** entry or `/operations`; give additional Admins `/admin` privately. | The Field Moderator route shows its own AHC sign-in panel. The Admin route stays absent from public navigation. |
 | 5 | Set the official MTN MoMo and Orange Money collection instructions before inviting agents. | Agents need legitimate payment details to settle orders and submit references. |
-| 6 | Test one complete listing lifecycle. | Confirm payment → submit listing → review → publish → WhatsApp contact → reconfirm. |
+| 6 | Test one complete listing lifecycle. | Confirm payment → submit listing → review → publish → seeker account → WhatsApp contact → reconfirm. |
 
 ## Security boundary in plain language
 
 The routes are intentionally discoverable only to authorised staff, but the route name is **not** the security feature. The server verifies the role associated with every protected request. Therefore, knowing `/admin` or `/operations` does not grant a renter or agent any ability to read financial data, confirm payments, approve a listing, issue a badge, alter settings, or manage accounts.
 
-AHC local agent accounts use their own signed session and password protection. The local agent path is separate from the staff authentication path, and local agents always begin with the ordinary `user` role.
+AHC local accounts use their own signed session and password protection. Seekers and agents may self-register, but every public registration begins with the ordinary `user` role. Staff authority is assigned only through the Admin-only trusted-role control. The Admin route is not a public navigation item.
 
 ## Quick answers
 
 | Question | Answer |
 |---|---|
-| Where is the person who confirms whether a house is real? | On the protected **Field Moderator page: `/operations`**. They claim paid field visits, record evidence, and decide passed or failed. |
+| Where is the person who confirms whether a house is real? | The website visibly offers **For moderators**. That link leads to the protected **Field Moderator page: `/operations`**, where a trusted Moderator signs in and then claims paid field visits, records evidence, and decides passed or failed. |
 | Where is the Admin page? | On the protected **Admin page: `/admin`**. It is a separate workspace screen in the same website, not mixed into public pages. |
-| Can ordinary users see these pages? | No. Public navigation omits them. Unauthorised direct visits return to the marketplace, and the server blocks the associated APIs. |
+| Can ordinary users see these pages? | They can see the **Field Moderator sign-in entry**, but never Operations controls. They cannot see an Admin link in public navigation. The server blocks all privileged API calls unless the user has the required role. |
 | Can a new agent become Admin or Moderator through registration? | No. Local registration creates only an ordinary agent account. Staff roles must be provisioned intentionally. |
 | Why use the same domain? | One domain and codebase reduce maintenance and preserve one audit trail. Security comes from strict backend role checks, not from running a second public website. |
-| Why are there no staff records today? | The approved full reset removed all accounts and operational data. Staff identities must now be re-established deliberately. |
+| How do we add staff after the reset? | Each person first creates a normal AHC account. The retained owner Admin then opens `/admin` privately and uses **Trusted staff authority** to assign Moderator or Admin access. |

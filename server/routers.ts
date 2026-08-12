@@ -38,6 +38,7 @@ import {
   recordLocalLoginFailure,
   submitPaymentReference,
   setUserBan,
+  setUserRole,
   updatePlatformSettings,
   upsertAgentProfile,
 } from "./db";
@@ -238,6 +239,8 @@ export const appRouter = router({
     users: adminProcedure.query(() => listAdminUsers()),
     setUserBan: adminProcedure.input(z.object({ userId: z.number().int().positive(), isBanned: z.boolean(), reason: z.string().trim().min(8).max(800) }))
       .mutation(({ ctx, input }) => setUserBan(ensureUserId(ctx.user?.id), input.userId, input.isBanned, input.reason)),
+    setUserRole: adminProcedure.input(z.object({ userId: z.number().int().positive(), role: z.enum(["user", "moderator", "admin"]) }))
+      .mutation(({ ctx, input }) => setUserRole(ensureUserId(ctx.user?.id), input.userId, input.role)),
     cashFlowAudit: adminProcedure.query(() => getAdminCashFlowAudit()),
     commissionLedger: adminProcedure.query(() => listAdminCommissionLedger()),
     paymentQueue: adminProcedure.query(() => listOperationsPaymentQueue()),

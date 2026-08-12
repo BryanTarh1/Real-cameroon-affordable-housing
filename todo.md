@@ -169,3 +169,12 @@
 ## Owner operating guide
 
 - [x] Prepare a step-by-step owner guide for renters, agents, Field Moderators, and Admins, including protected-route access and post-reset account setup.
+
+## Role-specific access flow
+
+- [x] Let seekers browse public search without signing in and require an AHC account only when they open a property detail.
+- [x] Add a visible Field Moderator entry point on the public website that requires sign-in before opening the protected Operations workspace.
+- [x] Keep Agent entry and sign-in available from the beginning of the paid listing journey.
+- [x] Keep the Admin route out of public navigation and allow Admin authority only through intentional trusted role assignment.
+- [x] Add automated coverage for seeker detail gating, moderator entry behavior, and unchanged Admin role restrictions.
+- [x] Validate the revised role-specific entry points on desktop and mobile and update the owner guide.

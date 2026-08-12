@@ -12,6 +12,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Admin from "./pages/Admin";
+import ModeratorAccess from "./pages/ModeratorAccess";
 import Operations from "./pages/Operations";
 
 function ProtectedWorkspaceRoute({ allowedRoles, children }: { allowedRoles: readonly string[]; children: React.ReactNode }) {
@@ -37,7 +38,9 @@ function AdminRoute() {
 }
 
 function OperationsRoute() {
-  return <ProtectedWorkspaceRoute allowedRoles={["admin", "moderator"]}><Operations /></ProtectedWorkspaceRoute>;
+  const { user, loading } = useAuth();
+  if (loading) return <main className="operations-page" aria-busy="true" />;
+  return canAccessWorkspace(user?.role, ["admin", "moderator"]) ? <Operations /> : <ModeratorAccess />;
 }
 
 function AgentOnboardingRoute() {

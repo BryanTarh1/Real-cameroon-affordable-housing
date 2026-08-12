@@ -11,6 +11,7 @@ vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => auth.state }));
 vi.mock("./pages/Home", () => ({ default: () => "Public marketplace" }));
 vi.mock("./pages/Admin", () => ({ default: () => "Admin management controls" }));
 vi.mock("./pages/Operations", () => ({ default: () => "Field Moderator operations" }));
+vi.mock("./pages/ModeratorAccess", () => ({ default: () => "Field Moderator sign in" }));
 vi.mock("./contexts/ThemeContext", () => ({ ThemeProvider: ({ children }: { children: unknown }) => children }));
 vi.mock("./components/ErrorBoundary", () => ({ default: ({ children }: { children: unknown }) => children }));
 vi.mock("@/components/ui/tooltip", () => ({ TooltipProvider: ({ children }: { children: unknown }) => children }));
@@ -49,9 +50,14 @@ describe("protected workspace routes", () => {
     expect(screen.queryByText("Public marketplace")).toBeNull();
   });
 
-  it("redirects plain users from Operations while allowing moderators and administrators", async () => {
+  it("shows a Field Moderator sign-in entry for non-staff while allowing moderators and administrators", async () => {
+    renderAt("/operations", null);
+    expect(screen.getByText("Field Moderator sign in")).toBeTruthy();
+    expect(screen.queryByText("Field Moderator operations")).toBeNull();
+
+    cleanup();
     renderAt("/operations", "user");
-    await waitFor(() => expect(screen.getByText("Public marketplace")).toBeTruthy());
+    expect(screen.getByText("Field Moderator sign in")).toBeTruthy();
     expect(screen.queryByText("Field Moderator operations")).toBeNull();
 
     cleanup();
