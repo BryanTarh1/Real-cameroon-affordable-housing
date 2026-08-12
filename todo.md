@@ -89,7 +89,8 @@
 - [x] Replace the blueprint marketplace direction with the lightweight AHC stack and flows.
 - [x] Implement itemized move-in cost calculation and primary display.
 - [x] Implement approximate 200–500 m map coordinates and Leaflet markers.
-- [x] Implement 14-day `last_reconfirmed` freshness archival logic.
+- [x] Implement the protected 14-day `last_reconfirmed` archival handler and database logic.
+- [ ] Deploy the site and create the production Heartbeat job that invokes the archival handler daily.
 - [x] Implement WhatsApp deep-link contact flow.
 - [x] Add agent subscription, featured pin, and physical verification surfaces.
 - [x] Test and deliver the new downloadable website file set after the database is received.
