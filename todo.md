@@ -359,3 +359,15 @@
 - [x] Correct the verified-video data association or detail-rendering path while preserving the protected evidence boundary.
 - [x] Add regression coverage and validate that a signed-in Seeker can view the approved Walk-Thru and return to full listing details.
 - [x] Checkpoint the repair and resume the guided Seeker acceptance step with the owner.
+
+## Complete non-production account roster
+
+- [x] Verify every current named non-production account, credential, assigned role, access state, and test purpose against the reusable fixture source and database.
+- [x] Deliver the complete role-by-role non-production credential reference with the correct entry route and a test-only security warning.
+
+## Visible session logout and account switching
+
+- [x] Audit every authenticated public and protected navigation shell for a visible AHC logout action and confirm the existing server-side session termination path.
+- [x] Add a clear accessible logout control to the marketplace, Agent, Field Moderator, Admin, and owner acceptance entry points.
+- [x] Add regression coverage and validate that logout clears the local session, returns the user to a safe public or sign-in boundary, and allows a different role to sign in.
+- [x] Checkpoint the logout repair and resume the owner-led role acceptance walkthrough.

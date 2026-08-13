@@ -6,7 +6,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { canAccessWorkspace } from "@/lib/workspaceAccess";
 import NotFound from "@/pages/NotFound";
-import { Route, Router as WouterRouter, Switch, useRoute } from "wouter";
+import { LogOut } from "lucide-react";
+import { toast } from "sonner";
+import { Route, Router as WouterRouter, Switch, useLocation, useRoute } from "wouter";
 import React, { useCallback, useEffect, useState } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeToggle } from "./components/ThemeToggle";
@@ -110,6 +112,32 @@ function Router() {
   );
 }
 
+/** Keeps local-session termination visible across every authenticated AHC route. */
+function SessionControl() {
+  const { user, loading, logout } = useAuth();
+  const [, navigate] = useLocation();
+
+  if (loading || !user) return null;
+
+  const signOut = async () => {
+    try {
+      await logout();
+      navigate("/");
+      toast.success("Signed out of AHC", { description: "You can now sign in with a different test role." });
+    } catch {
+      toast.error("We could not complete the sign-out", { description: "Please refresh and try again." });
+    }
+  };
+
+  return <div className="fixed right-3 top-3 z-[70] flex items-center gap-2 rounded-full border border-white/20 bg-[#132c34]/95 px-2 py-1.5 text-white shadow-lg backdrop-blur sm:right-16" aria-label="Active AHC session">
+    <span className="hidden max-w-36 truncate px-1 text-xs font-medium sm:inline">{user.name || user.email}</span>
+    <button type="button" className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[#132c34] transition hover:bg-[#f7f3e9] focus:outline-none focus:ring-2 focus:ring-[#d78a1d] focus:ring-offset-2 focus:ring-offset-[#132c34]" onClick={signOut} aria-label="Sign out of Affordable Housing Cameroon">
+      <LogOut size={14} aria-hidden="true" />
+      <span>Sign out</span>
+    </button>
+  </div>;
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -119,6 +147,7 @@ export default function App() {
           <ThemeToggle />
           <CommissionLedgerCsvExport />
           <WouterRouter hook={useAhcHashLocation}>
+            <SessionControl />
             <Router />
           </WouterRouter>
         </TooltipProvider>

@@ -1,11 +1,20 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement } from "react";
 
-const auth = vi.hoisted(() => ({
-  state: { user: null as null | { role: string }, loading: false, isAuthenticated: false },
-}));
+const auth = vi.hoisted(() => {
+  const logout = vi.fn();
+  return {
+    logout,
+    state: {
+      user: null as null | { role: string; name?: string; email?: string },
+      loading: false,
+      isAuthenticated: false,
+      logout,
+    },
+  };
+});
 
 vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => auth.state }));
 vi.mock("./pages/Home", () => ({ default: () => "Public marketplace" }));
@@ -20,6 +29,7 @@ vi.mock("./components/ErrorBoundary", () => ({ default: ({ children }: { childre
 vi.mock("./components/CommissionLedgerCsvExport", () => ({ CommissionLedgerCsvExport: () => null }));
 vi.mock("@/components/ui/tooltip", () => ({ TooltipProvider: ({ children }: { children: unknown }) => children }));
 vi.mock("@/components/ui/sonner", () => ({ Toaster: () => null }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 import App from "./App";
 
@@ -27,16 +37,20 @@ function renderAt(path: string, role: string | null) {
   window.location.hash = `#${path}`;
   window.dispatchEvent(new HashChangeEvent("hashchange"));
   auth.state = {
-    user: role ? { role } : null,
+    user: role ? { role, name: `Test ${role}`, email: `${role}@test.ahc.local` } : null,
     loading: false,
     isAuthenticated: Boolean(role),
+    logout: auth.logout,
   };
   return render(createElement(App));
 }
 
 describe("protected workspace routes", () => {
   afterEach(cleanup);
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    auth.logout.mockResolvedValue(undefined);
+  });
 
   it("shows an Admin sign-in boundary for anonymous and ordinary users without rendering management controls", async () => {
     renderAt("/admin", null);
@@ -106,5 +120,16 @@ describe("protected workspace routes", () => {
     cleanup();
     renderAt("/operations/batches", "admin");
     expect(screen.getByText("Field Moderator route board")).toBeTruthy();
+  });
+
+  it("shows sign out only for an explicit AHC session and returns to the public hash route", async () => {
+    renderAt("/", null);
+    expect(screen.queryByRole("button", { name: "Sign out of Affordable Housing Cameroon" })).toBeNull();
+
+    cleanup();
+    renderAt("/admin", "admin");
+    fireEvent.click(screen.getByRole("button", { name: "Sign out of Affordable Housing Cameroon" }));
+    await waitFor(() => expect(auth.logout).toHaveBeenCalledTimes(1));
+    expect(window.location.hash).toBe("#/");
   });
 });
