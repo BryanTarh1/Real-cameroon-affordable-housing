@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { ApproximateMap, type MapListing } from "@/components/ApproximateMap";
 import { trpc } from "@/lib/trpc";
+import { daysUntilRefresh } from "@/lib/listingFreshness";
 import { resolveListingDetailAccess } from "@/lib/roleAccess";
 import { publicWalkthroughForDetail } from "@/lib/publicWalkthrough";
 import { AgentAccountPanel } from "@/pages/AgentAccountPanel";
@@ -37,11 +38,6 @@ type Listing = MapListing & {
     firstMonthUtilities: number;
   };
 };
-
-function daysUntilRefresh(value: Date | string) {
-  const expiry = new Date(value).getTime() + 14 * 86_400_000;
-  return Math.max(0, Math.ceil((expiry - Date.now()) / 86_400_000));
-}
 
 function CostBreakdown({ listing }: { listing: Listing }) {
   const rows = [

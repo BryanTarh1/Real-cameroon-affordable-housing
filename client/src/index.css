@@ -2,6 +2,8 @@
 @import "leaflet/dist/leaflet.css";
 @import "tailwindcss";
 
+.agent-list-freshness{display:flex;align-items:center;gap:5px;margin:8px 0 0;color:var(--teal)}.agent-list-freshness svg{flex:none}.agent-list .agent-list-freshness span{margin:0;color:inherit;font-size:10px;font-weight:800;line-height:1.4;text-transform:none}
+
 :root { --ink:#132c34; --deep:#0e242c; --paper:#f7f3e9; --cream:#fffdf7; --ochre:#d78a1d; --line:#d8d0c1; --muted:#697278; --teal:#1b5060; --danger:#a64b37; font-family:Manrope, sans-serif; color:var(--ink); background:var(--paper); }
 .dark { --ink:#edf3ef; --deep:#07171d; --paper:#10232a; --cream:#17313a; --line:#3a5157; --muted:#b2c0be; --teal:#8fced0; --danger:#ff9b86; color-scheme:dark; }
 .dark .topbar,.dark .search-panel,.dark .listing-card,.dark .listing-modal,.dark .drawer-backdrop>aside,.dark .agent-drawer{background:var(--cream)}.dark input,.dark select,.dark textarea{background:#0d2027!important;color:var(--ink)!important}.dark .listing-total,.dark .tier-bar,.dark .tier-grid>div,.dark .agent-cta{background:#27404a}.dark .freshness-callout{background:#18343b;color:var(--ink)}.theme-toggle{position:fixed;right:18px;bottom:18px;z-index:90;display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--cream);color:var(--ink);padding:10px 12px;font-size:11px;font-weight:800;box-shadow:0 6px 20px rgba(0,0,0,.18)}.theme-toggle:focus-visible{outline:3px solid var(--ochre);outline-offset:3px}

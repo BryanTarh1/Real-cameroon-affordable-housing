@@ -371,3 +371,10 @@
 - [x] Add a clear accessible logout control to the marketplace, Agent, Field Moderator, Admin, and owner acceptance entry points.
 - [x] Add regression coverage and validate that logout clears the local session, returns the user to a safe public or sign-in boundary, and allows a different role to sign in.
 - [x] Checkpoint the logout repair and resume the owner-led role acceptance walkthrough.
+
+## Agent listing freshness visibility
+
+- [x] Inspect the Agent listing query and card renderer for the current last-reconfirmed data available to the interface.
+- [x] Add a read-only last-reconfirmed date and 14-day days-remaining freshness indicator to each Agent listing card without changing listing state.
+- [x] Add regression coverage and validate the freshness status on desktop and mobile Agent cards.
+- [x] Checkpoint the freshness-display improvement and resume the Ebot Agent acceptance step.
