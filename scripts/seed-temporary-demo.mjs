@@ -213,6 +213,12 @@ async function main() {
         [verificationOrderId, moderatorId, kind, mediaUrl, listingMatch, observation],
       );
     }
+    // Fixture-only media: the interface must label this generated clip as non-production.
+    // It exists solely to verify the signed-in Seeker video-to-detail experience.
+    await connection.execute(
+      "INSERT INTO `listing_walkthrough_videos` (`listingId`, `verificationOrderId`, `capturedByUserId`, `storageKey`, `mediaUrl`, `durationSeconds`, `orientation`, `listingMatch`, `status`, `publishedAt`) VALUES (?, ?, ?, ?, ?, 16, 'vertical', 'matches', 'published', NOW())",
+      [publishedId, verificationOrderId, moderatorId, "non-production/ahc-non-production-test-walkthrough_1d9e7c1b.mp4", "/manus-storage/ahc-non-production-test-walkthrough_1d9e7c1b.mp4"],
+    );
     await connection.execute(
       "INSERT INTO `verification_events` (`verificationOrderId`, `listingId`, `action`, `fromStatus`, `toStatus`, `reason`, `actorUserId`, `assignedModeratorUserId`) VALUES (?, ?, 'assigned', 'paid', 'scheduled', 'TEST DATA: field visit assigned.', ?, ?)",
       [verificationOrderId, publishedId, moderatorId, moderatorId],
@@ -253,6 +259,15 @@ async function main() {
         "INSERT INTO `listing_neighborhood_assessments` (`listingId`, `verificationOrderId`, `assessedByUserId`, `waterAccess`, `powerReliability`, `roadAccess`, `taxiWalkMinutes`, `junctionName`, `junctionMinutes`, `observationNote`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [listingId, visitId, moderatorId, waterAccess, powerReliability, roadAccess, taxiWalkMinutes, junctionName, junctionMinutes, observationNote],
       );
+      // The default-budget Jouvence card is the first guided Seeker test home.
+      // Reuse only this explicitly labelled fixture clip so the acceptance test
+      // never represents generated media as live moderator evidence.
+      if (listingId === jouvenceId) {
+        await connection.execute(
+          "INSERT INTO `listing_walkthrough_videos` (`listingId`, `verificationOrderId`, `capturedByUserId`, `storageKey`, `mediaUrl`, `durationSeconds`, `orientation`, `listingMatch`, `status`, `publishedAt`) VALUES (?, ?, ?, ?, ?, 16, 'vertical', 'matches', 'published', NOW())",
+          [listingId, visitId, moderatorId, "non-production/ahc-non-production-test-walkthrough_1d9e7c1b.mp4", "/manus-storage/ahc-non-production-test-walkthrough_1d9e7c1b.mp4"],
+        );
+      }
     }
     await connection.execute(
       "INSERT INTO `admin_audit_events` (`action`, `actorUserId`, `targetUserId`, `details`) VALUES ('role_changed', ?, ?, 'TEST DATA: temporary Field Moderator authority assigned.')",
@@ -273,7 +288,7 @@ async function main() {
       { actor: "Robinson", role: "Field Moderator", purpose: "Evidence and Operations-only test", email: `moderator${DEMO_DOMAIN}`, password: PASSWORDS.moderator },
       { actor: "Bryan", role: "Admin", purpose: "Role governance and protected Admin test", email: `admin${DEMO_DOMAIN}`, password: PASSWORDS.admin },
     ]);
-    console.log("Temporary AHC test data created. Delete users ending in @test.ahc.local to remove it.");
+    console.log("Temporary AHC test data created. The default Jouvence and Bastos fixtures include a clearly labelled non-production 16-second Walk-Thru test clip. Delete users ending in @test.ahc.local to remove it.");
   } catch (error) {
     await connection.rollback();
     throw error;

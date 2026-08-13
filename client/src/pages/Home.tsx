@@ -3,13 +3,14 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { ApproximateMap, type MapListing } from "@/components/ApproximateMap";
 import { trpc } from "@/lib/trpc";
 import { resolveListingDetailAccess } from "@/lib/roleAccess";
+import { publicWalkthroughForDetail } from "@/lib/publicWalkthrough";
 import { AgentAccountPanel } from "@/pages/AgentAccountPanel";
 import { PaidAgentPortal } from "@/pages/PaidAgentPortal";
 import { PremiumWalkthroughRail } from "@/components/PremiumWalkthroughRail";
 import { NonProductionWalkthroughDemo } from "@/components/NonProductionWalkthroughDemo";
 import { SeekerMatchAlerts } from "@/components/SeekerMatchAlerts";
 import { SeekerAppointmentHistory, ViewingAppointmentRequest } from "@/components/ViewingAppointmentConcierge";
-import { BadgeCheck, Building2, CircleAlert, Clock3, MapPinned, Menu, MessageCircle, ShieldCheck, Sparkles, X } from "lucide-react";
+import { BadgeCheck, Building2, CircleAlert, Clock3, MapPinned, Menu, MessageCircle, ShieldCheck, Sparkles, Video, X } from "lucide-react";
 import { toast } from "sonner";
 import "./launch-refinements.css";
 
@@ -61,6 +62,7 @@ function ListingCard({ listing, onOpen }: { listing: Listing; onOpen: () => void
     {listing.trust.guaranteedTotalCash && <div className="guarantee-seal"><ShieldCheck size={15} /><span><b>Guaranteed Total Cash</b><small>No upheld price or unofficial-fee dispute on record.</small></span></div>}
     {listing.neighborhoodEssentials && <div className="listing-essentials"><span>{listing.neighborhoodEssentials.roadAccess === "tarred_to_gate" ? "Tarred to gate" : listing.neighborhoodEssentials.roadAccess === "dirt_track_to_gate" ? "Dirt-track approach" : "Road assessed"}</span>{listing.neighborhoodEssentials.junctionName && <span>{listing.neighborhoodEssentials.junctionMinutes ?? "?"} min to {listing.neighborhoodEssentials.junctionName}</span>}</div>}
     {listing.trust.badges.length > 0 && <div className="listing-badges">{listing.trust.badges.map(badge => <span key={badge.code}><BadgeCheck size={12} /> {badge.label}</span>)}</div>}
+    {publicWalkthroughForDetail(listing.walkthrough) && <div className="listing-walkthrough-available"><Video size={14} /><span>{listing.title.startsWith("TEST DATA") ? "Test Walk-Thru available" : "Approved Walk-Thru available"}</span></div>}
     <div className="listing-split"><span>Monthly rent <b>{formatXaf(listing.costs.monthlyRent)}</b></span><span><MapPinned size={14} /> {listing.map.radiusM}m landmark area</span></div>
     <div className="listing-trust-row"><span className={listing.verificationStatus === "physical_verified" ? "trust-positive" : "trust-neutral"}>{listing.verificationStatus === "physical_verified" ? <BadgeCheck size={15} /> : <Clock3 size={15} />}{listing.verificationStatus === "physical_verified" ? "Physical verification" : "Availability reconfirmed"}</span><span>Refreshes in {days} day{days === 1 ? "" : "s"}</span></div>
     <button className="card-action" onClick={onOpen}>View every cost <span>→</span></button>
@@ -69,6 +71,8 @@ function ListingCard({ listing, onOpen }: { listing: Listing; onOpen: () => void
 
 function ListingDetail({ listing, onClose }: { listing: Listing; onClose: () => void }) {
   const utils = trpc.useUtils();
+  const walkthrough = publicWalkthroughForDetail(listing.walkthrough);
+  const isNonProductionFixture = listing.title.startsWith("TEST DATA");
   const reportMutation = trpc.marketplace.report.useMutation({ onSuccess: result => toast.success("Report received", { description: result.automaticSafetyAction ? "This listing has been placed on a safety hold for Admin review." : "AHC operations will review the reported terms." }) });
   const [reporting, setReporting] = useState(false);
   const [note, setNote] = useState("");
@@ -88,6 +92,10 @@ function ListingDetail({ listing, onClose }: { listing: Listing; onClose: () => 
     <p className="modal-landmark"><MapPinned size={16} /> Near {listing.landmark} · the public pin shows an approximate {listing.map.radiusM}m landmark area, never the compound door.</p>
     <div className="total-panel"><span>Total Move-In Cash Required</span><strong>{formatXaf(listing.costs.totalMoveInCashRequired)}</strong><p>This is the cash the agent declared you need before moving in. Ask for written receipts and inspect the home before paying.</p></div>
     <CostBreakdown listing={listing} />
+    {walkthrough && <section className="listing-walkthrough" aria-labelledby={`walkthrough-${listing.id}`}>
+      <div className="listing-walkthrough-copy"><span><Video size={15} /> AHC / {isNonProductionFixture ? "non-production Walk-Thru test" : "approved Walk-Thru"}</span><h3 id={`walkthrough-${listing.id}`}>{isNonProductionFixture ? "Test the full-detail video experience." : "See the verified home flow before arranging a visit."}</h3><p>{isNonProductionFixture ? `This ${walkthrough.durationSeconds}-second generated test clip is attached only to demonstrate the non-production Seeker video flow. It is not evidence of a real home, field visit, or availability.` : `This ${walkthrough.durationSeconds}-second vertical clip was recorded during a passed Field Moderator visit. It is a public viewing aid, not the private proof package or an exact-address disclosure.`}</p></div>
+      <div className="premium-video-frame listing-modal-walkthrough"><video src={walkthrough.url} controls playsInline preload="metadata" aria-label={`${isNonProductionFixture ? "Non-production test" : "Approved"} Walk-Thru video for ${listing.title}`} /><span className="video-proof">{isNonProductionFixture ? <CircleAlert size={14} /> : <BadgeCheck size={14} />}{isNonProductionFixture ? ` Test Walk-Thru · non-production · ${walkthrough.durationSeconds}s` : ` Moderator Walk-Thru · ${walkthrough.durationSeconds}s`}</span></div>
+    </section>}
     <div className="listing-disclosures"><div><b>What “paid listing” means</b><span>The agent paid for Agent Access and a Listing Pass before the listing entered moderator review. It is not a guarantee that the home, price, or agent is risk-free.</span></div><div><b>AHC does not hold your rent or deposit</b><span>AHC is not an escrow, rent-collection, or deposit-holding service. Do not send tenancy money to AHC or to anyone claiming to collect it for AHC.</span></div><div><b>Protect your visit</b><span>Do not send a deposit before you inspect the home, agree terms in writing, and receive a receipt. AHC never asks seekers to pay an Agent or Owner a platform fee; report any unofficial AHC-fee demand here.</span></div></div>
     <div className="freshness-callout"><ShieldCheck size={18} /><div><b>{listing.verificationStatus === "physical_verified" ? "Physical verification badge" : "Freshness check"}</b><span>Last reconfirmed {new Date(listing.lastReconfirmed).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}. This listing leaves public search after 14 days without agent reconfirmation.</span></div></div>
     <ViewingAppointmentRequest listing={listing} />

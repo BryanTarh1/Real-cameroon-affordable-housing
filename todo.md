@@ -352,3 +352,10 @@
 - [x] Include explicit privacy, payment, evidence, and safety-boundary checks with a clear action to take when an expected result does not occur.
 - [x] Validate the walkthrough content against the current fixtures and protected-route rules on desktop and mobile.
 - [x] Update the owner-facing operating materials, checkpoint the walkthrough, and guide the owner through the first complete pass.
+
+## Signed-in Seeker Walk-Thru video repair
+
+- [x] Trace why an eligible listing’s Walk-Thru video is absent from the signed-in Seeker property-detail view.
+- [x] Correct the verified-video data association or detail-rendering path while preserving the protected evidence boundary.
+- [x] Add regression coverage and validate that a signed-in Seeker can view the approved Walk-Thru and return to full listing details.
+- [x] Checkpoint the repair and resume the guided Seeker acceptance step with the owner.

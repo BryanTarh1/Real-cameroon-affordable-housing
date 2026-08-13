@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BadgeCheck, Droplets, MapPin, Route, ShieldCheck, Video, Zap } from "lucide-react";
+import { BadgeCheck, CircleAlert, Droplets, MapPin, Route, ShieldCheck, Video, Zap } from "lucide-react";
 import type { MapListing } from "@/components/ApproximateMap";
 import "./premium-walkthrough.css";
 
@@ -50,7 +50,7 @@ export function PremiumWalkthroughRail({ listings, onOpen }: { listings: Premium
       {premiumListings.map(listing => <article className="premium-video-card" key={listing.id}>
         <div className="premium-video-frame">
           <video src={listing.walkthrough!.url} controls muted playsInline preload="metadata" onPlay={() => setVideoReadyListingId(listing.id)} aria-label={`Walk-through of ${listing.title}`} />
-          <span className="video-proof"><BadgeCheck size={14} /> Moderator walk-through · {listing.walkthrough!.durationSeconds}s</span>
+          <span className="video-proof">{listing.title.startsWith("TEST DATA") ? <CircleAlert size={14} /> : <BadgeCheck size={14} />}{listing.title.startsWith("TEST DATA") ? ` Test Walk-Thru · non-production · ${listing.walkthrough!.durationSeconds}s` : ` Moderator walk-through · ${listing.walkthrough!.durationSeconds}s`}</span>
           {listing.trust.guaranteedTotalCash && <span className="cash-guarantee"><ShieldCheck size={14} /> Guaranteed Total Cash</span>}
         </div>
         <div className="premium-card-copy">
