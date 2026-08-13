@@ -264,6 +264,13 @@
 - [ ] Add automated tests for disabled-provider safety, template delivery, webhook verification, signature rejection, delivery transitions, and responsiveness eligibility.
 - [ ] Update configuration and owner documentation with the exact Meta Business setup, template approval, webhook registration, and privacy obligations.
 
+## Non-custodial payment safety
+
+- [x] Audit public, Agent, moderator, and payment-order interfaces for language or flows that could imply AHC holds rent, deposits, or third-party settlement funds.
+- [x] Add prominent non-custodial payment disclosures and guardrails to relevant AHC workflows.
+- [x] Define the required approval gate for any future partner-mediated payment capability and prohibit arbitrary custom escrow handling.
+- [x] Add regression coverage and owner operating guidance for payment-custody boundaries.
+
 ## Provider-independent premium refinement
 
 - [ ] Keep live Meta WhatsApp alert delivery and Responsive Host evaluation disabled until the owner completes Meta account verification and provides approved credentials.

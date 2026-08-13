@@ -43,6 +43,13 @@ describe("AHC payment reconciliation and listing-credit API guards", () => {
     expect(database.submitPaymentReference).toHaveBeenCalledWith(agent.id, "PAY-ACCESS-62", "mtn_momo", "MOMO-TEST-981");
   });
 
+  it("rejects arbitrary tenancy-money order types so the platform cannot become an escrow or rent-collection flow", async () => {
+    const caller = callerFor(agent);
+
+    await expect(caller.agent.createPaymentOrder({ type: "tenant_deposit" as never })).rejects.toThrow();
+    expect(database.createPaymentOrder).not.toHaveBeenCalled();
+  });
+
   it("only accepts a moderator reconciliation decision with a recorded note", async () => {
     vi.mocked(database.reconcilePaymentOrder).mockResolvedValue({ status: "confirmed" } as never);
 
