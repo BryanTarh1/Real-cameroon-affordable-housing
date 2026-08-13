@@ -14,6 +14,7 @@ import {
   clearLocalLoginFailures,
   createSeekerMatchAlertPreference,
   createLocalAgentAccount,
+  createOwnerOnboardingApplication,
   createViewingAppointment,
   createPaymentOrder,
   createListing,
@@ -25,6 +26,7 @@ import {
   getAdminCashFlowAudit,
   getAgentPaidStatus,
   getAgentProfile,
+  getOwnerOnboardingApplication,
   getLocalCredentialByEmail,
   getPlatformSettings,
   getPublicListingContact,
@@ -48,6 +50,7 @@ import {
   listSeekerViewingAppointments,
   listAgentViewingAppointments,
   listAdminViewingAppointments,
+  listOwnerOnboardingApplications,
   claimVerificationOrder,
   claimVerificationAudit,
   completeVerificationAudit,
@@ -55,6 +58,7 @@ import {
   reconcilePaymentOrder,
   recordLocalLoginFailure,
   submitPaymentReference,
+  reviewOwnerOnboardingApplication,
   setUserBan,
   setUserRole,
   revokeSeekerMatchAlertPreference,
@@ -82,6 +86,13 @@ const costsSchema = z.object({
   agencyFee: z.number().int().min(0),
   serviceFee: z.number().int().min(0),
   firstMonthUtilities: z.number().int().min(0),
+});
+
+const ownerOnboardingSchema = z.object({
+  governmentIdUrl: z.string().url(),
+  landTitleUrl: z.string().url(),
+  occupancyRightUrl: z.string().url(),
+  supportingDocumentUrl: z.string().url(),
 });
 
 const listingSubmissionSchema = z.object({
@@ -235,14 +246,18 @@ export const appRouter = router({
   }),
 
   agent: router({
-    profile: protectedProcedure.query(({ ctx }) => getAgentProfile(ensureUserId(ctx.user?.id))),
+    profile: protectedProcedure.query(async ({ ctx }) => (await getAgentProfile(ensureUserId(ctx.user?.id))) ?? null),
+    ownerApplication: protectedProcedure.query(async ({ ctx }) => (await getOwnerOnboardingApplication(ensureUserId(ctx.user?.id))) ?? null),
+    applyAsOwner: protectedProcedure.input(ownerOnboardingSchema).mutation(({ ctx, input }) => createOwnerOnboardingApplication({ userId: ensureUserId(ctx.user?.id), ...input })),
     setupProfile: protectedProcedure.input(z.object({
       publicName: z.string().trim().min(2).max(100), agencyName: z.string().trim().max(120).optional(),
       whatsappPhone: z.string().trim().min(8).max(30),
-    })).mutation(({ ctx, input }) => upsertAgentProfile({
-      userId: ensureUserId(ctx.user?.id), publicName: input.publicName, agencyName: input.agencyName || undefined,
-      whatsappPhone: normalizeCameroonWhatsAppPhone(input.whatsappPhone),
-    })),
+    })).mutation(async ({ ctx, input }) => {
+      const userId = ensureUserId(ctx.user?.id);
+      const ownerApplication = await getOwnerOnboardingApplication(userId);
+      if (ownerApplication && ownerApplication.status !== "approved") throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Your Direct Owner application is under review. Wait for the Owner decision before setting a commercial profile." });
+      return upsertAgentProfile({ userId, publicName: input.publicName, agencyName: input.agencyName || undefined, whatsappPhone: normalizeCameroonWhatsAppPhone(input.whatsappPhone) });
+    }),
     listings: protectedProcedure.query(({ ctx }) => listAgentListings(ensureUserId(ctx.user?.id))),
     paidStatus: protectedProcedure.query(({ ctx }) => getAgentPaidStatus(ensureUserId(ctx.user?.id))),
     paymentOrders: protectedProcedure.query(({ ctx }) => listAgentPaymentOrders(ensureUserId(ctx.user?.id))),
@@ -263,12 +278,17 @@ export const appRouter = router({
       const profile = await getAgentProfile(userId);
       if (!profile) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Create your agent profile before submitting a listing." });
       const point = createApproximatePoint(input.landmarkLatitude, input.landmarkLongitude, input.mapRadiusM);
-      const id = await createListing({
-        agentUserId: userId, agentNameSnapshot: profile.publicName, title: input.title, city: input.city,
-        neighborhood: input.neighborhood, landmark: input.landmark, propertyType: input.propertyType,
-        householdFit: input.householdFit, availableFrom: input.availableFrom, publicLatitude: point.latitude,
-        publicLongitude: point.longitude, mapRadiusM: point.radiusM, costs: input.costs,
-      });
+      let id: string;
+      try {
+        id = await createListing({
+          agentUserId: userId, agentNameSnapshot: profile.publicName, title: input.title, city: input.city,
+          neighborhood: input.neighborhood, landmark: input.landmark, propertyType: input.propertyType,
+          householdFit: input.householdFit, availableFrom: input.availableFrom, publicLatitude: point.latitude,
+          publicLongitude: point.longitude, mapRadiusM: point.radiusM, costs: input.costs,
+        });
+      } catch (error) {
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: error instanceof Error ? error.message : "Listing eligibility could not be confirmed." });
+      }
       return { id, status: "under_review" as const };
     }),
     reconfirm: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
@@ -364,6 +384,12 @@ export const appRouter = router({
       fieldModeratorShareBps: z.number().int().min(0).max(10_000),
     })).mutation(({ ctx, input }) => updatePlatformSettings(ensureUserId(ctx.user?.id), input)),
     users: adminProcedure.query(() => listAdminUsers()),
+    ownerApplications: adminProcedure.query(() => listOwnerOnboardingApplications()),
+    reviewOwnerApplication: adminProcedure.input(z.object({
+      applicationId: z.number().int().positive(),
+      decision: z.enum(["approved", "changes_requested", "rejected"]),
+      reviewNote: z.string().trim().min(12).max(1_200),
+    })).mutation(({ ctx, input }) => reviewOwnerOnboardingApplication({ adminUserId: ensureUserId(ctx.user?.id), ...input })),
     setUserBan: adminProcedure.input(z.object({ userId: z.number().int().positive(), isBanned: z.boolean(), reason: z.string().trim().min(8).max(800) }))
       .mutation(({ ctx, input }) => setUserBan(ensureUserId(ctx.user?.id), input.userId, input.isBanned, input.reason)),
     setUserRole: adminProcedure.input(z.object({ userId: z.number().int().positive(), role: z.enum(["user", "moderator", "admin"]) }))

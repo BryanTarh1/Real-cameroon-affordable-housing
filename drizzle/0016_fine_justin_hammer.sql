@@ -1,0 +1,2 @@
+ALTER TABLE `admin_audit_events` MODIFY COLUMN `action` enum('settings_updated','user_banned','user_unbanned','role_changed','onboarding_reviewed') NOT NULL;--> statement-breakpoint
+ALTER TABLE `listings` ADD `supplyCapacity` enum('agent_representative','direct_owner') DEFAULT 'agent_representative' NOT NULL;

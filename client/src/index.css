@@ -3,6 +3,7 @@
 @import "tailwindcss";
 
 .agent-list-freshness{display:flex;align-items:center;gap:5px;margin:8px 0 0;color:var(--teal)}.agent-list-freshness svg{flex:none}.agent-list .agent-list-freshness span{margin:0;color:inherit;font-size:10px;font-weight:800;line-height:1.4;text-transform:none}
+.owner-status{border-left:4px solid var(--ochre)}.owner-status-approved{border-left-color:var(--teal)}.owner-document-checks,.owner-review-documents,.owner-review-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.owner-document-checks span{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:800;color:var(--teal)}.owner-review-documents a{font-size:10px}.owner-review-actions{justify-content:flex-end}.owner-review-actions button{min-width:132px}
 
 :root { --ink:#132c34; --deep:#0e242c; --paper:#f7f3e9; --cream:#fffdf7; --ochre:#d78a1d; --line:#d8d0c1; --muted:#697278; --teal:#1b5060; --danger:#a64b37; font-family:Manrope, sans-serif; color:var(--ink); background:var(--paper); }
 .dark { --ink:#edf3ef; --deep:#07171d; --paper:#10232a; --cream:#17313a; --line:#3a5157; --muted:#b2c0be; --teal:#8fced0; --danger:#ff9b86; color-scheme:dark; }

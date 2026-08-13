@@ -123,6 +123,64 @@ export async function createLocalAgentAccount(input: {
   });
 }
 
+export async function getOwnerOnboardingApplication(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return (await db.select().from(onboardingApplications)
+    .where(and(eq(onboardingApplications.userId, userId), eq(onboardingApplications.applicantType, "owner")))
+    .orderBy(desc(onboardingApplications.createdAt)).limit(1))[0];
+}
+
+export async function createOwnerOnboardingApplication(input: {
+  userId: number;
+  governmentIdUrl: string;
+  landTitleUrl: string;
+  occupancyRightUrl: string;
+  supportingDocumentUrl: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const activeApplication = await getOwnerOnboardingApplication(input.userId);
+  if (activeApplication?.status === "approved") throw new Error("Your Direct Owner capacity is already approved.");
+  if (activeApplication?.status === "submitted") throw new Error("Your Direct Owner evidence is already waiting for Admin review.");
+  await db.insert(onboardingApplications).values({ ...input, applicantType: "owner", status: "submitted" });
+  return getOwnerOnboardingApplication(input.userId);
+}
+
+export async function listOwnerOnboardingApplications() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: onboardingApplications.id, userId: onboardingApplications.userId, status: onboardingApplications.status,
+    governmentIdUrl: onboardingApplications.governmentIdUrl, landTitleUrl: onboardingApplications.landTitleUrl,
+    occupancyRightUrl: onboardingApplications.occupancyRightUrl, supportingDocumentUrl: onboardingApplications.supportingDocumentUrl,
+    reviewNote: onboardingApplications.reviewNote, reviewedAt: onboardingApplications.reviewedAt,
+    createdAt: onboardingApplications.createdAt, applicantName: users.name, applicantEmail: users.email,
+  }).from(onboardingApplications).innerJoin(users, eq(users.id, onboardingApplications.userId))
+    .where(eq(onboardingApplications.applicantType, "owner")).orderBy(desc(onboardingApplications.createdAt));
+}
+
+export async function reviewOwnerOnboardingApplication(input: {
+  adminUserId: number;
+  applicationId: number;
+  decision: "approved" | "changes_requested" | "rejected";
+  reviewNote: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async (tx) => {
+    const application = (await tx.select().from(onboardingApplications)
+      .where(and(eq(onboardingApplications.id, input.applicationId), eq(onboardingApplications.applicantType, "owner"))).limit(1))[0];
+    if (!application) throw new Error("Owner application was not found.");
+    if (!["submitted", "changes_requested"].includes(application.status)) throw new Error("This Owner application already has a final review decision.");
+    const reviewedAt = new Date();
+    await tx.update(onboardingApplications).set({ status: input.decision, reviewNote: input.reviewNote, reviewedByUserId: input.adminUserId, reviewedAt })
+      .where(eq(onboardingApplications.id, application.id));
+    await tx.insert(adminAuditEvents).values({ action: "onboarding_reviewed", actorUserId: input.adminUserId, targetUserId: application.userId, details: `Direct Owner application #${application.id}: ${input.decision}. ${input.reviewNote}` });
+    return { id: application.id, status: input.decision, reviewedAt };
+  });
+}
+
 export async function getLocalCredentialByEmail(email: string) {
   const db = await getDb();
   if (!db) return undefined;
@@ -413,7 +471,7 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
     roadAccess: listingNeighborhoodAssessments.roadAccess, taxiWalkMinutes: listingNeighborhoodAssessments.taxiWalkMinutes,
     junctionName: listingNeighborhoodAssessments.junctionName, junctionMinutes: listingNeighborhoodAssessments.junctionMinutes,
     assessedAt: listingNeighborhoodAssessments.assessedAt,
-    isVerifiedDirectOwner: sql<number>`EXISTS (SELECT 1 FROM onboarding_applications owner_application WHERE owner_application.userId = ${listings.agentUserId} AND owner_application.applicantType = 'owner' AND owner_application.status = 'approved')`,
+    isVerifiedDirectOwner: sql<number>`(${listings.supplyCapacity} = 'direct_owner' AND EXISTS (SELECT 1 FROM onboarding_applications owner_application WHERE owner_application.userId = ${listings.agentUserId} AND owner_application.applicantType = 'owner' AND owner_application.status = 'approved'))`,
     hasOpenPricingConcern: sql<number>`EXISTS (SELECT 1 FROM reports pricing_report WHERE pricing_report.listingId = ${listings.id} AND pricing_report.status = 'open' AND pricing_report.reason IN ('inaccurate_cost', 'unofficial_fee'))`,
   }).from(listings)
     .innerJoin(listingCosts, eq(listingCosts.listingId, listings.id))
@@ -689,6 +747,15 @@ export async function createListing(input: CreateListingInput) {
   const id = `AHC-${nanoid(10).toUpperCase()}`;
   await db.transaction(async (tx) => {
     const agent = (await tx.select().from(agentProfiles).where(eq(agentProfiles.userId, input.agentUserId)).limit(1))[0];
+    const ownerApplication = (await tx.select().from(onboardingApplications)
+      .where(and(eq(onboardingApplications.userId, input.agentUserId), eq(onboardingApplications.applicantType, "owner")))
+      .orderBy(desc(onboardingApplications.createdAt)).limit(1))[0];
+    if (ownerApplication && ownerApplication.status !== "approved") {
+      throw new Error("Direct Owner evidence must be approved before submitting listings after an Owner declaration.");
+    }
+    if (ownerApplication?.status === "approved" && input.costs.agencyFee > 0) {
+      throw new Error("Verified Direct Owner listings cannot include an agency fee. Use the representative Agent path when an agency fee applies.");
+    }
     const now = new Date();
     const access = agent && getAgentAccessState(agent.subscriptionStatus, agent.subscriptionExpiresAt, now);
     if (!access?.active) {
@@ -707,7 +774,7 @@ export async function createListing(input: CreateListingInput) {
     await tx.insert(listings).values({
       id, title: input.title, city: input.city, neighborhood: input.neighborhood, landmark: input.landmark,
       propertyType: input.propertyType, householdFit: input.householdFit ?? null, availableFrom: new Date(input.availableFrom),
-      status: "under_review", agentUserId: input.agentUserId, agentNameSnapshot: input.agentNameSnapshot,
+      status: "under_review", supplyCapacity: ownerApplication?.status === "approved" ? "direct_owner" : "agent_representative", agentUserId: input.agentUserId, agentNameSnapshot: input.agentNameSnapshot,
       publicLatitude: String(input.publicLatitude), publicLongitude: String(input.publicLongitude), mapRadiusM: input.mapRadiusM,
     });
     await tx.insert(listingCosts).values({ listingId: id, ...input.costs });
@@ -725,7 +792,7 @@ export async function listAgentListings(userId: number) {
   const db = await getDb();
   if (!db) return [];
   const rows = await db.select({
-    id: listings.id, title: listings.title, city: listings.city, neighborhood: listings.neighborhood,
+    id: listings.id, title: listings.title, city: listings.city, neighborhood: listings.neighborhood, supplyCapacity: listings.supplyCapacity,
     status: listings.status, lastReconfirmed: listings.lastReconfirmed, verificationStatus: listings.verificationStatus,
     isFeatured: listings.isFeatured, featuredUntil: listings.featuredUntil, monthlyRent: listingCosts.monthlyRent,
     advanceMonths: listingCosts.advanceMonths, securityDeposit: listingCosts.securityDeposit, agencyFee: listingCosts.agencyFee,

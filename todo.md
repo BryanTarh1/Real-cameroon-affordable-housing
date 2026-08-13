@@ -385,3 +385,11 @@
 - [x] Repair any verified password, fixture, or login-path regression while preserving Ebot’s paid access and listing credits.
 - [x] Verify an Ebot local sign-in reaches the Agent workspace and confirms the expected paid-Agent state.
 - [x] Checkpoint the credential repair and resume the Agent acceptance walkthrough with the verified sign-in details.
+
+## Owner onboarding and Agent-path boundary
+
+- [x] Inspect why the Owner-applicant fixture does not present a discoverable Owner document area and trace current server-side listing eligibility rules.
+- [x] Define the correct Owner-versus-Agent classification, declaration, and evidence requirements without falsely assuming every Agent is an Owner.
+- [x] Add a discoverable Owner onboarding path and enforce server-side restrictions that prevent a declared Owner from publishing through the lighter Agent evidence path.
+- [x] Add regression coverage for Owner evidence requirements, Agent-path bypass prevention, and Owner-applicant workspace visibility.
+- [x] Update the acceptance walkthrough, validate the role boundary, checkpoint the correction, and resume the owner-led test.

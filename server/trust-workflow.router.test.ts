@@ -5,6 +5,13 @@ vi.mock("./db", async importOriginal => {
   return {
     ...actual,
     createLocalAgentAccount: vi.fn(),
+    createOwnerOnboardingApplication: vi.fn(),
+    getOwnerOnboardingApplication: vi.fn(),
+    getAgentProfile: vi.fn(),
+    upsertAgentProfile: vi.fn(),
+    createListing: vi.fn(),
+    listOwnerOnboardingApplications: vi.fn(),
+    reviewOwnerOnboardingApplication: vi.fn(),
   };
 });
 
@@ -37,6 +44,14 @@ const testUser = {
 function publicCaller() {
   return appRouter.createCaller({
     user: null,
+    req: { protocol: "https", headers: {} },
+    res: { cookie: vi.fn() },
+  } as unknown as TrpcContext);
+}
+
+function protectedCaller(role: "user" | "admin" = "user") {
+  return appRouter.createCaller({
+    user: { ...testUser, role },
     req: { protocol: "https", headers: {} },
     res: { cookie: vi.fn() },
   } as unknown as TrpcContext);
@@ -107,6 +122,55 @@ describe("AHC trust-workflow validation", () => {
         occupancyRightUrl: "https://example.com/occupancy-right.png",
         supportingDocumentUrl: "https://example.com/property-support.png",
       },
+    });
+  });
+
+  it("lets a signed-in supplier submit a complete Direct Owner evidence package for protected review", async () => {
+    vi.mocked(database.createOwnerOnboardingApplication).mockResolvedValue({ id: 73, status: "submitted" } as never);
+    const api = protectedCaller();
+    await expect(api.agent.applyAsOwner({
+      governmentIdUrl: "https://example.com/government-id.png",
+      landTitleUrl: "https://example.com/land-title.png",
+      occupancyRightUrl: "https://example.com/occupancy-right.png",
+      supportingDocumentUrl: "https://example.com/property-support.png",
+    })).resolves.toMatchObject({ status: "submitted" });
+    expect(database.createOwnerOnboardingApplication).toHaveBeenCalledWith({
+      userId: testUser.id,
+      governmentIdUrl: "https://example.com/government-id.png",
+      landTitleUrl: "https://example.com/land-title.png",
+      occupancyRightUrl: "https://example.com/occupancy-right.png",
+      supportingDocumentUrl: "https://example.com/property-support.png",
+    });
+  });
+
+  it("returns explicit empty workspace values instead of crashing a signed-in user without an Agent or Owner record", async () => {
+    const api = protectedCaller();
+
+    await expect(api.agent.profile()).resolves.toBeNull();
+    await expect(api.agent.ownerApplication()).resolves.toBeNull();
+  });
+
+  it("prevents a pending Direct Owner declaration from reopening the lighter Agent profile path", async () => {
+    vi.mocked(database.getOwnerOnboardingApplication).mockResolvedValue({ status: "submitted" } as never);
+    const api = protectedCaller();
+    await expect(api.agent.setupProfile({ publicName: "Pending Owner", whatsappPhone: "+237690000000" }))
+      .rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    expect(database.upsertAgentProfile).not.toHaveBeenCalled();
+  });
+
+  it("keeps Owner evidence review inside the Admin boundary", async () => {
+    const userApi = protectedCaller();
+    await expect(userApi.admin.ownerApplications()).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    vi.mocked(database.reviewOwnerOnboardingApplication).mockResolvedValue({ id: 73, status: "approved" } as never);
+    const adminApi = protectedCaller("admin");
+    await expect(adminApi.admin.reviewOwnerApplication({ applicationId: 73, decision: "approved", reviewNote: "Identity, property right, title, and supporting evidence were reviewed together." }))
+      .resolves.toMatchObject({ status: "approved" });
+    expect(database.reviewOwnerOnboardingApplication).toHaveBeenCalledWith({
+      adminUserId: testUser.id,
+      applicationId: 73,
+      decision: "approved",
+      reviewNote: "Identity, property right, title, and supporting evidence were reviewed together.",
     });
   });
 

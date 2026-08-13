@@ -63,7 +63,7 @@ const roles: WalkthroughRole[] = [
     purpose: "Test the deliberate boundaries that prevent public registration from creating paid access, owner recognition, or staff authority.",
     signIn: "Use the labelled Owner-applicant and pending-payment Agent fixtures separately; both sign in through the Agent entry.",
     steps: [
-      { id: "owner-docs", task: "Review the Owner application requirements and document-upload steps.", expected: "Owner onboarding requests identity, land-title, occupancy-right, and supporting-property evidence beyond the Agent work-proof package." },
+      { id: "owner-docs", task: "Sign in as the Owner applicant and review the dedicated Direct Owner evidence-status panel.", expected: "The workspace shows that the submitted identity, land-title, occupancy-right, and supporting-property evidence is under protected Admin review. The lighter Agent profile and listing-submission paths are not available while that Owner declaration is pending." },
       { id: "pending-agent", task: "Sign in as the pending-payment Agent and attempt to reach a paid listing action.", expected: "The interface clearly explains the pending-payment or no-credit boundary rather than granting listing publication or reconfirmation." },
       { id: "no-self-role", task: "Confirm neither user can select Moderator or Admin authority from public onboarding.", expected: "Public registration creates no staff role. Only a trusted Admin can deliberately assign staff authority." },
     ],
@@ -87,6 +87,7 @@ const roles: WalkthroughRole[] = [
     signIn: "Sign in at the private Admin route with the labelled Admin test account.",
     steps: [
       { id: "admin-entry", task: "Open the Admin workspace and verify that a signed-out or wrong-role browser sees only a sign-in or assignment boundary.", expected: "Only an explicitly signed-in Admin can load governance controls and related private data.", href: "#/admin", hrefLabel: "Open Admin" },
+      { id: "admin-owner-review", task: "Inspect the Direct Owner evidence review queue before reviewing commercial settings. Do not approve, request changes, or open private document links unless you intend to alter the test fixture.", expected: "Only Admin can see the protected document references and record an audited decision. Approval grants future-listing Direct Owner capacity only; it does not relabel an existing representative-Agent listing or bypass ordinary moderator review." },
       { id: "admin-settings", task: "Inspect commercial settings, cash-flow audit, and the commission ledger. Do not save a change unless you intend to alter the test fixture.", expected: "Commercial values are governed and audit-oriented; the cash-flow screen does not function as rent, deposit, or escrow custody." },
       { id: "admin-trust", task: "Inspect trust reports, fair-review signals, safety holds, and the WhatsApp lead audit.", expected: "A lead event shows only a tracked contact intent. A safety hold is an investigation trigger, not automatic proof of misconduct." },
       { id: "admin-roles", task: "Review the account-protection and role-assignment controls without promoting or banning a real account.", expected: "Only Admin can change roles or bans, and role assignment is never exposed through public sign-up." },

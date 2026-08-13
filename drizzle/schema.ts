@@ -109,7 +109,7 @@ export const platformSettings = mysqlTable("platform_settings", {
 /** Immutable record of administrator actions affecting trust, access, or commercial rules. */
 export const adminAuditEvents = mysqlTable("admin_audit_events", {
   id: int("id").autoincrement().primaryKey(),
-  action: mysqlEnum("action", ["settings_updated", "user_banned", "user_unbanned", "role_changed"]).notNull(),
+  action: mysqlEnum("action", ["settings_updated", "user_banned", "user_unbanned", "role_changed", "onboarding_reviewed"]).notNull(),
   actorUserId: int("actorUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
   targetUserId: int("targetUserId").references(() => users.id, { onDelete: "set null" }),
   details: text("details").notNull(),
@@ -131,6 +131,7 @@ export const listings = mysqlTable("listings", {
   householdFit: varchar("householdFit", { length: 80 }),
   availableFrom: date("availableFrom").notNull(),
   status: mysqlEnum("status", ["draft", "under_review", "changes_requested", "rejected", "published", "needs_reconfirmation", "suspended", "archived"]).default("under_review").notNull(),
+  supplyCapacity: mysqlEnum("supplyCapacity", ["agent_representative", "direct_owner"]).default("agent_representative").notNull(),
   agentUserId: int("agentUserId").references(() => users.id, { onDelete: "set null" }),
   agentNameSnapshot: varchar("agentNameSnapshot", { length: 100 }).notNull(),
   lastReconfirmed: timestamp("lastReconfirmed").defaultNow().notNull(),
