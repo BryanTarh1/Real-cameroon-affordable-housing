@@ -8,6 +8,7 @@ vi.mock("./db", async importOriginal => {
     getLocalCredentialByEmail: vi.fn(),
     recordLocalLoginFailure: vi.fn(),
     clearLocalLoginFailures: vi.fn(),
+    upgradeLocalCredentialPasswordHash: vi.fn(),
   };
 });
 
@@ -15,8 +16,9 @@ vi.mock("./_core/localAuth", async importOriginal => {
   const actual = await importOriginal<typeof import("./_core/localAuth")>();
   return {
     ...actual,
-    hashLocalPassword: vi.fn().mockResolvedValue("scrypt$test$hash"),
+    hashLocalPassword: vi.fn().mockResolvedValue("$2b$12$bcrypttesthash"),
     verifyLocalPassword: vi.fn(),
+    isLegacyScryptPasswordHash: vi.fn().mockReturnValue(false),
     createLocalSessionToken: vi.fn().mockResolvedValue("ahc-local-token"),
   };
 });
@@ -56,7 +58,7 @@ describe("AHC-owned local agent authentication", () => {
     vi.mocked(database.createLocalAgentAccount).mockResolvedValue(localAgent as never);
     const { caller: api, cookies } = caller();
     await expect(api.auth.registerLocalAgent({ name: "Local Agent", email: "AGENT@EXAMPLE.COM", password: "strong-password" })).resolves.toMatchObject({ id: localAgent.id, loginMethod: "ahc_local" });
-    expect(database.createLocalAgentAccount).toHaveBeenCalledWith({ name: "Local Agent", email: "agent@example.com", passwordHash: "scrypt$test$hash" });
+    expect(database.createLocalAgentAccount).toHaveBeenCalledWith({ name: "Local Agent", email: "agent@example.com", passwordHash: "$2b$12$bcrypttesthash" });
     expect(cookies).toEqual([expect.objectContaining({ name: AHC_LOCAL_SESSION_COOKIE, value: "ahc-local-token", options: expect.objectContaining({ httpOnly: true, secure: true, maxAge: 2_592_000_000 }) })]);
   });
 
@@ -69,7 +71,7 @@ describe("AHC-owned local agent authentication", () => {
   });
 
   it("rejects a banned agent even when their password is correct", async () => {
-    vi.mocked(database.getLocalCredentialByEmail).mockResolvedValue({ credential: { passwordHash: "scrypt$test$hash", lockedUntil: null }, user: { ...localAgent, isBanned: true } } as never);
+    vi.mocked(database.getLocalCredentialByEmail).mockResolvedValue({ credential: { passwordHash: "$2b$12$bcrypttesthash", lockedUntil: null }, user: { ...localAgent, isBanned: true } } as never);
     vi.mocked(localAuth.verifyLocalPassword).mockResolvedValue(true);
     const { caller: api, cookies } = caller();
     await expect(api.auth.loginLocalAgent({ email: localAgent.email, password: "strong-password" })).rejects.toMatchObject({ code: "FORBIDDEN" });
@@ -78,11 +80,22 @@ describe("AHC-owned local agent authentication", () => {
   });
 
   it("signs in an active local agent and resets earlier failed-attempt state", async () => {
-    vi.mocked(database.getLocalCredentialByEmail).mockResolvedValue({ credential: { passwordHash: "scrypt$test$hash", lockedUntil: null }, user: localAgent } as never);
+    vi.mocked(database.getLocalCredentialByEmail).mockResolvedValue({ credential: { passwordHash: "$2b$12$bcrypttesthash", lockedUntil: null }, user: localAgent } as never);
     vi.mocked(localAuth.verifyLocalPassword).mockResolvedValue(true);
     const { caller: api, cookies } = caller();
     await expect(api.auth.loginLocalAgent({ email: localAgent.email, password: "strong-password" })).resolves.toMatchObject({ id: localAgent.id });
     expect(database.clearLocalLoginFailures).toHaveBeenCalledWith(localAgent.id);
+    expect(cookies[0]).toMatchObject({ name: AHC_LOCAL_SESSION_COOKIE, value: "ahc-local-token" });
+  });
+
+  it("upgrades a verified legacy scrypt credential to bcrypt before issuing the AHC JWT", async () => {
+    vi.mocked(database.getLocalCredentialByEmail).mockResolvedValue({ credential: { passwordHash: "scrypt$legacy$hash", lockedUntil: null }, user: localAgent } as never);
+    vi.mocked(localAuth.verifyLocalPassword).mockResolvedValue(true);
+    vi.mocked(localAuth.isLegacyScryptPasswordHash).mockReturnValue(true);
+    const { caller: api, cookies } = caller();
+
+    await expect(api.auth.loginLocalAgent({ email: localAgent.email, password: "strong-password" })).resolves.toMatchObject({ id: localAgent.id });
+    expect(database.upgradeLocalCredentialPasswordHash).toHaveBeenCalledWith(localAgent.id, "$2b$12$bcrypttesthash");
     expect(cookies[0]).toMatchObject({ name: AHC_LOCAL_SESSION_COOKIE, value: "ahc-local-token" });
   });
 

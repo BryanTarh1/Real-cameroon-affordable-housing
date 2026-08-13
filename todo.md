@@ -294,3 +294,20 @@
 - [x] Add accountable appointment histories for the seeker and Agent, plus Moderator/Admin oversight limited to operationally necessary data.
 - [x] Add abuse controls for duplicate requests, stale listings, suspended accounts, inappropriate transitions, and time-window validation.
 - [x] Add regression tests, responsive checks, and operating-guide instructions for the viewing appointment workflow.
+
+## Refreshed trust and operating guide
+
+- [x] Refresh the AHC risk-response operating guide with the completed premium video, appointment, non-custodial settlement, and geographic-batching safeguards.
+- [x] Add deterministic diagrams for non-custodial settlement boundaries, verification/audit/payout assurance, and privacy-preserving route batching.
+- [x] Regenerate and visually review the revised Word operating guide for readable diagram placement and coherent controls.
+
+## Explicit role authentication and access reference
+
+- [x] Audit local JWT/session restoration, logout, and route guards to identify why protected workspaces can appear available without an explicit sign-in action.
+- [x] Require an explicit valid Agent session before the paid Agent workspace renders or any Agent action is queried.
+- [x] Require an explicit valid Field Moderator or Admin session before Operations controls and Field Moderator route batching render or query data.
+- [x] Require an explicit valid Admin session before the Admin workspace renders or queries data.
+- [x] Preserve anonymous public browsing while requiring a seeker account for property details, reports, WhatsApp lead tracking, match alerts, and viewing requests.
+- [x] Ensure all protected backend procedures remain role-authorized independently of frontend route guards and clear local sessions on logout.
+- [x] Add authentication regression tests and desktop/mobile protected-route checks for signed-out, wrong-role, and valid-role states.
+- [x] Create a clear web document describing every platform role, provision path, authentication method, permissions, session boundary, and prohibited access.

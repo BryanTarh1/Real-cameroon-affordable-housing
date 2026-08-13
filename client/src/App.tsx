@@ -14,30 +14,24 @@ import { CommissionLedgerCsvExport } from "./components/CommissionLedgerCsvExpor
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Admin from "./pages/Admin";
+import AdminAccess from "./pages/AdminAccess";
 import ModeratorAccess from "./pages/ModeratorAccess";
 import Operations from "./pages/Operations";
 import OperationsBatches from "./pages/OperationsBatches";
 
-function ProtectedWorkspaceRoute({ allowedRoles, children }: { allowedRoles: readonly string[]; children: React.ReactNode }) {
+function AuthenticatedWorkspace({ allowedRoles, children, accessPanel }: { allowedRoles: readonly string[]; children: React.ReactNode; accessPanel: React.ReactNode }) {
   const { user, loading } = useAuth();
-  const [, setLocation] = useLocation();
   const isAllowed = canAccessWorkspace(user?.role, allowedRoles);
-
-  useEffect(() => {
-    if (!loading && !isAllowed) {
-      setLocation("/", { replace: true });
-    }
-  }, [isAllowed, loading, setLocation]);
 
   if (loading) {
     return <main className="operations-page" aria-busy="true" />;
   }
 
-  return isAllowed ? <>{children}</> : null;
+  return isAllowed ? <>{children}</> : <>{accessPanel}</>;
 }
 
 function AdminRoute() {
-  return <ProtectedWorkspaceRoute allowedRoles={["admin"]}><Admin /></ProtectedWorkspaceRoute>;
+  return <AuthenticatedWorkspace allowedRoles={["admin"]} accessPanel={<AdminAccess />}><Admin /></AuthenticatedWorkspace>;
 }
 
 function OperationsRoute() {
@@ -47,7 +41,7 @@ function OperationsRoute() {
 }
 
 function OperationsBatchesRoute() {
-  return <ProtectedWorkspaceRoute allowedRoles={["admin", "moderator"]}><OperationsBatches /></ProtectedWorkspaceRoute>;
+  return <AuthenticatedWorkspace allowedRoles={["admin", "moderator"]} accessPanel={<ModeratorAccess />}><OperationsBatches /></AuthenticatedWorkspace>;
 }
 
 function AgentOnboardingRoute() {

@@ -10,6 +10,7 @@ const auth = vi.hoisted(() => ({
 vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => auth.state }));
 vi.mock("./pages/Home", () => ({ default: () => "Public marketplace" }));
 vi.mock("./pages/Admin", () => ({ default: () => "Admin management controls" }));
+vi.mock("./pages/AdminAccess", () => ({ default: () => "Admin sign in" }));
 vi.mock("./pages/Operations", () => ({ default: () => "Field Moderator operations" }));
 vi.mock("./pages/OperationsBatches", () => ({ default: () => "Field Moderator route board" }));
 vi.mock("./pages/ModeratorAccess", () => ({ default: () => "Field Moderator sign in" }));
@@ -35,14 +36,14 @@ describe("protected workspace routes", () => {
   afterEach(cleanup);
   beforeEach(() => vi.clearAllMocks());
 
-  it("redirects anonymous and ordinary users away from Admin without rendering management controls", async () => {
+  it("shows an Admin sign-in boundary for anonymous and ordinary users without rendering management controls", async () => {
     renderAt("/admin", null);
-    await waitFor(() => expect(screen.getByText("Public marketplace")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Admin sign in")).toBeTruthy());
     expect(screen.queryByText("Admin management controls")).toBeNull();
 
     cleanup();
     renderAt("/admin", "user");
-    await waitFor(() => expect(screen.getByText("Public marketplace")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Admin sign in")).toBeTruthy());
     expect(screen.queryByText("Admin management controls")).toBeNull();
   });
 
@@ -73,12 +74,12 @@ describe("protected workspace routes", () => {
 
   it("restricts the geographic route board to Field Moderators and administrators", async () => {
     renderAt("/operations/batches", null);
-    await waitFor(() => expect(screen.getByText("Public marketplace")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Field Moderator sign in")).toBeTruthy());
     expect(screen.queryByText("Field Moderator route board")).toBeNull();
 
     cleanup();
     renderAt("/operations/batches", "user");
-    await waitFor(() => expect(screen.getByText("Public marketplace")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Field Moderator sign in")).toBeTruthy());
     expect(screen.queryByText("Field Moderator route board")).toBeNull();
 
     cleanup();

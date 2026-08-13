@@ -3,7 +3,7 @@ import { createHmac } from "node:crypto";
 import { z } from "zod";
 import { AHC_LOCAL_SESSION_COOKIE, AHC_LOCAL_SESSION_MAX_AGE_MS, COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
-import { createLocalSessionToken, hashLocalPassword, verifyLocalPassword } from "./_core/localAuth";
+import { createLocalSessionToken, hashLocalPassword, isLegacyScryptPasswordHash, verifyLocalPassword } from "./_core/localAuth";
 import { ENV } from "./_core/env";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, moderatorProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -63,6 +63,7 @@ import {
   recordViewingAppointmentOutcome,
   updatePlatformSettings,
   upsertAgentProfile,
+  upgradeLocalCredentialPasswordHash,
 } from "./db";
 import { createApproximatePoint, createWhatsAppListingLink, normalizeCameroonWhatsAppPhone, type PaidOfferType } from "../shared/ahc";
 
@@ -173,6 +174,9 @@ export const appRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "This account has been suspended. Contact AHC support." });
       }
       await clearLocalLoginFailures(account.user.id);
+      if (isLegacyScryptPasswordHash(account.credential.passwordHash)) {
+        await upgradeLocalCredentialPasswordHash(account.user.id, await hashLocalPassword(input.password));
+      }
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.cookie(AHC_LOCAL_SESSION_COOKIE, await createLocalSessionToken(account.user), {
         ...cookieOptions,

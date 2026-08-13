@@ -11,9 +11,10 @@ const user = { id: 92, role: "user" as const, openId: "local_92", email: "agent@
 describe("AHC local session primitives", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("hashes passwords with a unique salt and verifies them in constant-time-compatible form", async () => {
+  it("hashes new passwords with bcrypt and verifies correct and incorrect credentials", async () => {
     const first = await hashLocalPassword("correct horse battery staple");
     const second = await hashLocalPassword("correct horse battery staple");
+    expect(first).toMatch(/^\$2[aby]\$12\$/);
     expect(first).not.toBe(second);
     await expect(verifyLocalPassword("correct horse battery staple", first)).resolves.toBe(true);
     await expect(verifyLocalPassword("wrong password", first)).resolves.toBe(false);

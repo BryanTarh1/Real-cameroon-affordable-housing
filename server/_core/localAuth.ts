@@ -1,5 +1,6 @@
 import { timingSafeEqual, randomBytes, scrypt as scryptCallback } from "node:crypto";
 import { promisify } from "node:util";
+import { compare, hash } from "bcryptjs";
 import type { Request } from "express";
 import { parse } from "cookie";
 import { SignJWT, jwtVerify } from "jose";
@@ -10,23 +11,30 @@ import { ENV } from "./env";
 
 const scrypt = promisify(scryptCallback);
 const SCRYPT_KEY_LENGTH = 64;
+const BCRYPT_COST = 12;
 
 function localSessionSecret() {
   return new TextEncoder().encode(`${ENV.cookieSecret}:ahc-local-session:v1`);
 }
 
 export async function hashLocalPassword(password: string) {
-  const salt = randomBytes(16).toString("base64url");
-  const derived = await scrypt(password, salt, SCRYPT_KEY_LENGTH) as Buffer;
-  return `scrypt$${salt}$${derived.toString("base64url")}`;
+  return hash(password, BCRYPT_COST);
 }
 
+/** Verifies bcrypt hashes and permits one-time sign-in migration from legacy scrypt hashes. */
 export async function verifyLocalPassword(password: string, encodedHash: string) {
+  if (encodedHash.startsWith("$2a$") || encodedHash.startsWith("$2b$") || encodedHash.startsWith("$2y$")) {
+    return compare(password, encodedHash);
+  }
   const [algorithm, salt, expected] = encodedHash.split("$");
   if (algorithm !== "scrypt" || !salt || !expected) return false;
   const derived = await scrypt(password, salt, SCRYPT_KEY_LENGTH) as Buffer;
   const expectedBuffer = Buffer.from(expected, "base64url");
   return expectedBuffer.length === derived.length && timingSafeEqual(expectedBuffer, derived);
+}
+
+export function isLegacyScryptPasswordHash(encodedHash: string) {
+  return encodedHash.startsWith("scrypt$");
 }
 
 export async function createLocalSessionToken(user: Pick<User, "id" | "role">) {

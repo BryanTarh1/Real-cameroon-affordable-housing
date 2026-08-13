@@ -155,6 +155,13 @@ export async function clearLocalLoginFailures(userId: number) {
   });
 }
 
+/** Updates a verified legacy credential in place after successful sign-in. */
+export async function upgradeLocalCredentialPasswordHash(userId: number, passwordHash: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.update(localCredentials).set({ passwordHash }).where(eq(localCredentials.userId, userId));
+}
+
 const DEFAULT_PLATFORM_SETTINGS = { id: 1, agentAccessFeeXaf: 3_000, listingPassFeeXaf: 1_000, featuredPinFeeXaf: 3_000, physicalVerificationFeeXaf: 7_500, fieldModeratorShareBps: DEFAULT_FIELD_MODERATOR_SHARE_BPS };
 
 export async function getPlatformSettings() {
