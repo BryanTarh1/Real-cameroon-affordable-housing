@@ -178,7 +178,7 @@ export const appRouter = router({
     })),
     report: protectedProcedure.input(z.object({
       listingId: z.string().min(4).max(32),
-      reason: z.enum(["inaccurate_cost", "unavailable", "misleading_details", "other"]),
+      reason: z.enum(["inaccurate_cost", "unavailable", "misleading_details", "unofficial_fee", "other"]),
       note: z.string().trim().min(10).max(800),
     })).mutation(({ ctx, input }) => createListingReport(ensureUserId(ctx.user?.id), input.listingId, input.reason, input.note, getReportNetworkFingerprint(ctx.req))),
   }),
@@ -244,7 +244,7 @@ export const appRouter = router({
     })).mutation(({ ctx, input }) => decideListingReview(ensureUserId(ctx.user?.id), input.listingId, input.decision, input.reason)),
     reconcilePayment: moderatorProcedure.input(z.object({
       orderId: z.string().min(6).max(32), decision: z.enum(["confirmed", "rejected"]),
-      note: z.string().trim().min(6).max(800),
+      note: z.string().trim().min(12, "Record a short reconciliation note for the official payment audit.").max(800),
     })).mutation(({ ctx, input }) => reconcilePaymentOrder(ensureUserId(ctx.user?.id), input.orderId, input.decision, input.note)),
     claimVerification: moderatorProcedure.input(z.object({ verificationOrderId: z.number().int().positive() }))
       .mutation(({ ctx, input }) => claimVerificationOrder(ensureUserId(ctx.user?.id), input.verificationOrderId)),

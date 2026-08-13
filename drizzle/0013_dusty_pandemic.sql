@@ -1,0 +1,1 @@
+ALTER TABLE `reports` MODIFY COLUMN `reason` enum('inaccurate_cost','unavailable','misleading_details','unofficial_fee','other') NOT NULL DEFAULT 'other';

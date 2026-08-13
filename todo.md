@@ -65,7 +65,7 @@
 ## Second venture assessment integration
 
 - [ ] Add the 7/10 venture-readiness assessment as an internal strategic evaluation, not a guaranteed score.
-- [ ] Add the off-platform settlement loophole and monetary/digital-receipt countermeasures.
+- [x] Add the off-platform settlement loophole and monetary/digital-receipt countermeasures.
 - [x] Add moderator-agent collusion risk, random second-verifier audits, and payout-hold logic.
 - [ ] Add licensed payment-partner requirement and prohibit custom escrow custody.
 - [ ] Add geographic batching to improve moderator unit economics and reduce churn.

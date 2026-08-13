@@ -201,6 +201,9 @@ export const paymentOrders = mysqlTable("payment_orders", {
   reconciledAt: timestamp("reconciledAt"),
   reconciledByUserId: int("reconciledByUserId").references(() => users.id, { onDelete: "set null" }),
   reconciliationNote: text("reconciliationNote"),
+  /** Issued only after staff reconciliation; it is the canonical AHC fee receipt identifier. */
+  officialReceiptCode: varchar("officialReceiptCode", { length: 48 }).unique(),
+  receiptIssuedAt: timestamp("receiptIssuedAt"),
   expiresAt: timestamp("expiresAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -321,7 +324,7 @@ export const reports = mysqlTable("reports", {
   reporterUserId: int("reporterUserId").references(() => users.id, { onDelete: "set null" }),
   /** Keyed server-side fingerprint for clustered-report review; raw IP addresses are never retained. */
   reporterNetworkFingerprint: varchar("reporterNetworkFingerprint", { length: 96 }),
-  reason: mysqlEnum("reason", ["inaccurate_cost", "unavailable", "misleading_details", "other"]).default("other").notNull(),
+  reason: mysqlEnum("reason", ["inaccurate_cost", "unavailable", "misleading_details", "unofficial_fee", "other"]).default("other").notNull(),
   note: text("note").notNull(),
   status: mysqlEnum("status", ["open", "resolved"]).default("open").notNull(),
   filedAt: timestamp("filedAt").defaultNow().notNull(),

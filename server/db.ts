@@ -499,7 +499,7 @@ export async function createPromotionRequest(userId: number, listingId: string) 
   return createPaymentOrder(userId, "featured_pin", listingId);
 }
 
-export type ListingReportReason = "inaccurate_cost" | "unavailable" | "misleading_details" | "other";
+export type ListingReportReason = "inaccurate_cost" | "unavailable" | "misleading_details" | "unofficial_fee" | "other";
 
 export function shouldApplyListingSafetyHold(reason: ListingReportReason, matchingOpenReportCount: number) {
   return (reason === "inaccurate_cost" || reason === "unavailable") && matchingOpenReportCount >= 3;
@@ -656,6 +656,7 @@ export async function listAgentPaymentOrders(userId: number) {
     id: paymentOrders.id, listingId: paymentOrders.listingId, type: paymentOrders.type, status: paymentOrders.status,
     amountXaf: paymentOrders.amountXaf, provider: paymentOrders.provider, providerReference: paymentOrders.providerReference,
     createdAt: paymentOrders.createdAt, expiresAt: paymentOrders.expiresAt, reconciliationNote: paymentOrders.reconciliationNote,
+    officialReceiptCode: paymentOrders.officialReceiptCode, receiptIssuedAt: paymentOrders.receiptIssuedAt,
   }).from(paymentOrders).where(eq(paymentOrders.userId, userId)).orderBy(desc(paymentOrders.createdAt));
 }
 
@@ -699,8 +700,12 @@ export async function reconcilePaymentOrder(operatorUserId: number, orderId: str
     const order = (await tx.select().from(paymentOrders).where(eq(paymentOrders.id, orderId)).limit(1))[0];
     if (!order || order.status !== "reference_submitted") throw new Error("Only submitted payment references can be reconciled.");
     const now = new Date();
+    const officialReceiptCode = decision === "confirmed"
+      ? `AHC-${now.getUTCFullYear()}-${order.id.slice(-8)}`
+      : null;
     await tx.update(paymentOrders).set({
       status: decision, reconciledAt: now, reconciledByUserId: operatorUserId, reconciliationNote: note,
+      ...(officialReceiptCode ? { officialReceiptCode, receiptIssuedAt: now } : {}),
     }).where(eq(paymentOrders.id, orderId));
     if (decision === "rejected") return { status: "rejected" as const };
 
@@ -727,7 +732,7 @@ export async function reconcilePaymentOrder(operatorUserId: number, orderId: str
         providerReference: order.providerReference,
       });
     }
-    return { status: "confirmed" as const };
+    return { status: "confirmed" as const, officialReceiptCode };
   });
 }
 
