@@ -344,3 +344,11 @@
 ## Hash-route internal navigation correction
 
 - [x] Convert remaining public and protected internal navigation links and route-sensitive controls to hash-route-safe forms, then validate staff-route entry and Admin-only controls.
+
+## Guided role-by-role acceptance walkthrough
+
+- [x] Map the current non-production roles, credentials, routes, fixture states, and safe test order for a live owner-led acceptance exercise.
+- [x] Build an in-site guided acceptance checklist that teaches anonymous visitor, Seeker, Agent, Owner applicant, Field Moderator, and Admin workflows while recording expected outcomes.
+- [x] Include explicit privacy, payment, evidence, and safety-boundary checks with a clear action to take when an expected result does not occur.
+- [x] Validate the walkthrough content against the current fixtures and protected-route rules on desktop and mobile.
+- [x] Update the owner-facing operating materials, checkpoint the walkthrough, and guide the owner through the first complete pass.

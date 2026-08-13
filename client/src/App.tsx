@@ -18,6 +18,7 @@ import AdminAccess from "./pages/AdminAccess";
 import ModeratorAccess from "./pages/ModeratorAccess";
 import Operations from "./pages/Operations";
 import OperationsBatches from "./pages/OperationsBatches";
+import AcceptanceWalkthrough from "./pages/AcceptanceWalkthrough";
 
 function AuthenticatedWorkspace({ allowedRoles, children, accessPanel }: { allowedRoles: readonly string[]; children: React.ReactNode; accessPanel: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -42,6 +43,10 @@ function OperationsRoute() {
 
 function OperationsBatchesRoute() {
   return <AuthenticatedWorkspace allowedRoles={["admin", "moderator"]} accessPanel={<ModeratorAccess />}><OperationsBatches /></AuthenticatedWorkspace>;
+}
+
+function AcceptanceWalkthroughRoute() {
+  return <AuthenticatedWorkspace allowedRoles={["admin"]} accessPanel={<AdminAccess />}><AcceptanceWalkthrough /></AuthenticatedWorkspace>;
 }
 
 function AgentOnboardingRoute() {
@@ -98,6 +103,7 @@ function Router() {
       <Route path="/admin" component={AdminRoute} />
       <Route path="/operations" component={OperationsRoute} />
       <Route path="/operations/batches" component={OperationsBatchesRoute} />
+      <Route path="/acceptance" component={AcceptanceWalkthroughRoute} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

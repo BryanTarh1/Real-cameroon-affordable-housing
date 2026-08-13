@@ -13,6 +13,7 @@ vi.mock("./pages/Admin", () => ({ default: () => "Admin management controls" }))
 vi.mock("./pages/AdminAccess", () => ({ default: () => "Admin sign in" }));
 vi.mock("./pages/Operations", () => ({ default: () => "Field Moderator operations" }));
 vi.mock("./pages/OperationsBatches", () => ({ default: () => "Field Moderator route board" }));
+vi.mock("./pages/AcceptanceWalkthrough", () => ({ default: () => "Owner acceptance walkthrough" }));
 vi.mock("./pages/ModeratorAccess", () => ({ default: () => "Field Moderator sign in" }));
 vi.mock("./contexts/ThemeContext", () => ({ ThemeProvider: ({ children }: { children: unknown }) => children, useTheme: () => ({ theme: "light", toggleTheme: vi.fn(), switchable: true }) }));
 vi.mock("./components/ErrorBoundary", () => ({ default: ({ children }: { children: unknown }) => children }));
@@ -52,6 +53,21 @@ describe("protected workspace routes", () => {
     renderAt("/admin", "admin");
     expect(screen.getByText("Admin management controls")).toBeTruthy();
     expect(screen.queryByText("Public marketplace")).toBeNull();
+  });
+
+  it("keeps the owner acceptance walkthrough behind the explicit Admin session boundary", async () => {
+    renderAt("/acceptance", null);
+    await waitFor(() => expect(screen.getByText("Admin sign in")).toBeTruthy());
+    expect(screen.queryByText("Owner acceptance walkthrough")).toBeNull();
+
+    cleanup();
+    renderAt("/acceptance", "user");
+    await waitFor(() => expect(screen.getByText("Admin sign in")).toBeTruthy());
+    expect(screen.queryByText("Owner acceptance walkthrough")).toBeNull();
+
+    cleanup();
+    renderAt("/acceptance", "admin");
+    expect(screen.getByText("Owner acceptance walkthrough")).toBeTruthy();
   });
 
   it("shows a Field Moderator sign-in entry for non-staff while allowing moderators and administrators", async () => {

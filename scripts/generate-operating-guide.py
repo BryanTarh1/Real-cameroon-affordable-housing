@@ -154,8 +154,10 @@ def build_document():
         ["/agent", "Signed-in ordinary user with the relevant supply status", "Agent sign-in or registration appears before paid workspace controls."],
         ["/operations and /operations/batches", "Field Moderator or Administrator", "A Field Moderator sign-in-only panel appears for visitors and ordinary accounts."],
         ["/admin", "Administrator only", "An Admin sign-in-only panel appears for visitors, seekers, Agents, and Moderators."],
+        ["/acceptance", "Administrator only", "An owner-led role-by-role acceptance exercise appears only after an explicit Admin sign-in."],
     ])
     add_body(doc, "The frontend boundary prevents unnecessary workspace rendering, but the server is the enforcement point. Protected procedures independently check the AHC local session and required role. Preview state, a remembered page, or knowledge of a URL does not unlock a workspace.")
+    add_callout(doc, "Owner acceptance walkthrough.", "After signing in as an Administrator, open /#/acceptance or use the Admin workspace link. The in-site exercise teaches a safe, ordered check of Anonymous Visitor, Seeker, Paid Agent, Owner applicant, Field Moderator, and Admin workflows. It stores only completion checkmarks in the current browser; it does not store passwords, change platform data, or replace server audit records.")
 
     add_heading(doc, "4. Seeker workflow")
     add_body(doc, "A seeker begins on the public marketplace. They can filter available Yaoundé and Douala homes by city, neighbourhood text, maximum Total Move-In Cash Required, and physical-verification status. Cards show the total cost, monthly rent as supporting context, landmark-radius map scope, approved public badges, neighbourhood essentials, and relative freshness without exposing private evidence.")
