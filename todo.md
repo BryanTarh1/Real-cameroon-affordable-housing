@@ -378,3 +378,10 @@
 - [x] Add a read-only last-reconfirmed date and 14-day days-remaining freshness indicator to each Agent listing card without changing listing state.
 - [x] Add regression coverage and validate the freshness status on desktop and mobile Agent cards.
 - [x] Checkpoint the freshness-display improvement and resume the Ebot Agent acceptance step.
+
+## Ebot paid-Agent credential regression
+
+- [x] Compare the documented Ebot local credentials with the currently seeded paid-Agent fixture and sign-in flow.
+- [x] Repair any verified password, fixture, or login-path regression while preserving Ebot’s paid access and listing credits.
+- [x] Verify an Ebot local sign-in reaches the Agent workspace and confirms the expected paid-Agent state.
+- [x] Checkpoint the credential repair and resume the Agent acceptance walkthrough with the verified sign-in details.
