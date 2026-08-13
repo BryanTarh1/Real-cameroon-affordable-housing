@@ -23,7 +23,8 @@ vi.mock("@/components/ui/sonner", () => ({ Toaster: () => null }));
 import App from "./App";
 
 function renderAt(path: string, role: string | null) {
-  window.history.pushState({}, "", path);
+  window.location.hash = `#${path}`;
+  window.dispatchEvent(new HashChangeEvent("hashchange"));
   auth.state = {
     user: role ? { role } : null,
     loading: false,

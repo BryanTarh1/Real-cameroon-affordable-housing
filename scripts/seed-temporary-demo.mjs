@@ -5,6 +5,7 @@ const DEMO_DOMAIN = "@test.ahc.local";
 const PASSWORDS = {
   seeker: "Seeker#2026!",
   agentPaid: "Agent#2026!",
+  agentSecondPaid: "AgentDouala#2026!",
   agentPending: "AgentPending#2026!",
   owner: "Owner#2026!",
   moderator: "Moderator#2026!",
@@ -49,42 +50,49 @@ async function main() {
 
     const adminId = await insertUser(connection, {
       openId: "demo_admin_ahc_2026",
-      name: "DEMO Admin — AHC Test",
+      name: "Bryan — DEMO Admin",
       email: `admin${DEMO_DOMAIN}`,
       role: "admin",
       password: PASSWORDS.admin,
     });
     const moderatorId = await insertUser(connection, {
       openId: "demo_moderator_ahc_2026",
-      name: "DEMO Field Moderator — AHC Test",
+      name: "Robinson — DEMO Field Moderator",
       email: `moderator${DEMO_DOMAIN}`,
       role: "moderator",
       password: PASSWORDS.moderator,
     });
     const agentId = await insertUser(connection, {
       openId: "demo_agent_ahc_2026",
-      name: "DEMO Paid Agent — AHC Test",
+      name: "Ebot — DEMO Paid Agent",
       email: `agent${DEMO_DOMAIN}`,
       role: "user",
       password: PASSWORDS.agentPaid,
     });
+    const secondPaidAgentId = await insertUser(connection, {
+      openId: "demo_agent_douala_ahc_2026",
+      name: "Mireille — DEMO Douala Agent",
+      email: `agent-douala${DEMO_DOMAIN}`,
+      role: "user",
+      password: PASSWORDS.agentSecondPaid,
+    });
     const pendingAgentId = await insertUser(connection, {
       openId: "demo_agent_pending_ahc_2026",
-      name: "DEMO Pending Agent — AHC Test",
+      name: "Nadege — DEMO Pending-payment Agent",
       email: `agent-pending${DEMO_DOMAIN}`,
       role: "user",
       password: PASSWORDS.agentPending,
     });
     const ownerId = await insertUser(connection, {
       openId: "demo_owner_ahc_2026",
-      name: "DEMO Owner Applicant — AHC Test",
+      name: "Ateh — DEMO Owner Applicant",
       email: `owner${DEMO_DOMAIN}`,
       role: "user",
       password: PASSWORDS.owner,
     });
     const seekerId = await insertUser(connection, {
       openId: "demo_seeker_ahc_2026",
-      name: "DEMO Seeker — AHC Test",
+      name: "Tarh — DEMO Seeker",
       email: `seeker${DEMO_DOMAIN}`,
       role: "user",
       password: PASSWORDS.seeker,
@@ -92,15 +100,19 @@ async function main() {
 
     await connection.execute(
       "INSERT INTO `agent_profiles` (`userId`, `publicName`, `agencyName`, `whatsappPhone`, `subscriptionTier`, `subscriptionStatus`, `subscriptionExpiresAt`) VALUES (?, ?, ?, ?, 'growth', 'active', ?)",
-      [agentId, "DEMO Paid Agent — AHC Test", "DEMO Test Realty", "237690000001", addDays(30)],
+      [agentId, "Ebot — DEMO Paid Agent", "DEMO Test Realty Yaoundé", "237690000001", addDays(30)],
+    );
+    await connection.execute(
+      "INSERT INTO `agent_profiles` (`userId`, `publicName`, `agencyName`, `whatsappPhone`, `subscriptionTier`, `subscriptionStatus`, `subscriptionExpiresAt`) VALUES (?, ?, ?, ?, 'agency', 'active', ?)",
+      [secondPaidAgentId, "Mireille — DEMO Douala Agent", "DEMO Coastal Homes", "237690000007", addDays(60)],
     );
     await connection.execute(
       "INSERT INTO `agent_profiles` (`userId`, `publicName`, `agencyName`, `whatsappPhone`, `subscriptionTier`, `subscriptionStatus`) VALUES (?, ?, ?, ?, 'access', 'pending_payment')",
-      [pendingAgentId, "DEMO Pending Agent — AHC Test", "DEMO Test Realty", "237690000006"],
+      [pendingAgentId, "Nadege — DEMO Pending-payment Agent", "DEMO Test Realty", "237690000006"],
     );
     await connection.execute(
       "INSERT INTO `moderator_profiles` (`userId`, `displayName`, `cityCoverage`, `status`, `createdByUserId`) VALUES (?, ?, 'Yaoundé & Douala', 'active', ?)",
-      [moderatorId, "DEMO Field Moderator — AHC Test", adminId],
+      [moderatorId, "Robinson — DEMO Field Moderator", adminId],
     );
     await connection.execute(
       "INSERT INTO `onboarding_applications` (`userId`, `applicantType`, `status`, `governmentIdUrl`, `workProofUrl`, `reviewNote`, `reviewedByUserId`, `reviewedAt`) VALUES (?, 'agent', 'approved', ?, ?, 'TEST DATA: agent identity and proof-of-work reviewed and approved.', ?, NOW())",
@@ -116,25 +128,34 @@ async function main() {
     );
 
     const publishedId = "demo-published-bastos";
+    const jouvenceId = "demo-published-jouvence";
+    const mvanId = "demo-published-mvan";
+    const bonamoussadiId = "demo-published-bonamoussadi";
+    const akwaId = "demo-published-akwa";
+    const makepeId = "demo-published-makepe";
     const reviewId = "demo-review-biyemassi";
     const changesId = "demo-changes-bonapriso";
     const listingRows = [
-      [publishedId, "TEST DATA — Verified 2-bedroom near Bastos landmark", "Yaoundé", "Bastos", "Approx. 300 m from Bastos roundabout", "Apartment", "Small family", "published", agentId, "DEMO Paid Agent — AHC Test", "physical_verified", "3.8669", "11.5174", 300, 1, addDays(14), addDays(30), "TEST DATA: passed field verification", adminId],
-      [reviewId, "TEST DATA — 1-bedroom awaiting moderation in Biyem-Assi", "Yaoundé", "Biyem-Assi", "Approx. 250 m from Carrefour Biyem-Assi", "Studio", "Single professional", "under_review", agentId, "DEMO Paid Agent — AHC Test", "remote_checked", "3.8424", "11.5001", 250, 0, null, null, "TEST DATA: waiting for first publication review", null],
-      [changesId, "TEST DATA — Family home needing correction in Bonapriso", "Douala", "Bonapriso", "Approx. 400 m from Avenue de Gaulle", "House", "Family", "changes_requested", agentId, "DEMO Paid Agent — AHC Test", "unverified", "4.0413", "9.6985", 400, 0, null, null, "TEST DATA: clarify the advance-month cost before approval", moderatorId],
+      [publishedId, "TEST DATA — Verified 2-bedroom near Bastos landmark", "Yaoundé", "Bastos", "Approx. 300 m from Bastos roundabout", "Apartment", 2, "Small family", "published", agentId, "Ebot — DEMO Paid Agent", "physical_verified", "3.8669", "11.5174", 300, 1, addDays(14), addDays(30), "TEST DATA: passed field verification", adminId, [85000, 3, 85000, 85000, 15000, 10000]],
+      [jouvenceId, "TEST DATA — Compact 1-bedroom near Jouvence junction", "Yaoundé", "Jouvence", "Approx. 350 m from Jouvence junction", "Apartment", 1, "Single professional", "published", agentId, "Ebot — DEMO Paid Agent", "physical_verified", "3.8708", "11.5102", 350, 0, addDays(14), null, "TEST DATA: verified public cost record", moderatorId, [65000, 2, 65000, 40000, 5000, 7500]],
+      [mvanId, "TEST DATA — 3-bedroom family home near Mvan market", "Yaoundé", "Mvan", "Approx. 450 m from Mvan market", "House", 3, "Family", "published", agentId, "Ebot — DEMO Paid Agent", "remote_checked", "3.8129", "11.5238", 450, 0, null, null, "TEST DATA: remote review passed; field verification not purchased", moderatorId, [110000, 4, 110000, 100000, 10000, 15000]],
+      [bonamoussadiId, "TEST DATA — 2-bedroom close to Bonamoussadi landmark", "Douala", "Bonamoussadi", "Approx. 300 m from Rond-point Maetur", "Apartment", 2, "Couple or small family", "published", secondPaidAgentId, "Mireille — DEMO Douala Agent", "physical_verified", "4.0735", "9.7605", 300, 1, addDays(14), addDays(21), "TEST DATA: passed field verification", moderatorId, [95000, 3, 95000, 75000, 10000, 12000]],
+      [akwaId, "TEST DATA — City studio near Akwa landmark", "Douala", "Akwa", "Approx. 250 m from Place du Gouvernement", "Studio", 0, "Single professional", "published", secondPaidAgentId, "Mireille — DEMO Douala Agent", "remote_checked", "4.0511", "9.7080", 250, 0, null, null, "TEST DATA: remote review passed; field verification not purchased", moderatorId, [55000, 2, 55000, 30000, 5000, 8000]],
+      [makepeId, "TEST DATA — 2-bedroom near Makepe landmark", "Douala", "Makepe", "Approx. 400 m from Makepe Palace junction", "Apartment", 2, "Small family", "published", secondPaidAgentId, "Mireille — DEMO Douala Agent", "physical_verified", "4.0933", "9.7444", 400, 0, addDays(14), null, "TEST DATA: passed field verification", moderatorId, [80000, 3, 80000, 60000, 7500, 10000]],
+      [reviewId, "TEST DATA — 1-bedroom awaiting moderation in Biyem-Assi", "Yaoundé", "Biyem-Assi", "Approx. 250 m from Carrefour Biyem-Assi", "Studio", 1, "Single professional", "under_review", agentId, "Ebot — DEMO Paid Agent", "remote_checked", "3.8424", "11.5001", 250, 0, null, null, "TEST DATA: waiting for first publication review", null, [50000, 2, 50000, 50000, 5000, 5000]],
+      [changesId, "TEST DATA — Family home needing correction in Bonapriso", "Douala", "Bonapriso", "Approx. 400 m from Avenue de Gaulle", "House", 4, "Family", "changes_requested", secondPaidAgentId, "Mireille — DEMO Douala Agent", "unverified", "4.0413", "9.6985", 400, 0, null, null, "TEST DATA: clarify the advance-month cost before approval", moderatorId, [150000, 6, 150000, 150000, 25000, 15000]],
     ];
     for (const row of listingRows) {
-      const [id, title, city, neighborhood, landmark, propertyType, householdFit, status, agentUserId, agentNameSnapshot, verificationStatus, latitude, longitude, mapRadiusM, isFeatured, verificationExpiresAt, featuredUntil, reviewSummary, reviewedByUserId] = row;
+      const [id, title, city, neighborhood, landmark, propertyType, bedrooms, householdFit, status, agentUserId, agentNameSnapshot, verificationStatus, latitude, longitude, mapRadiusM, isFeatured, verificationExpiresAt, featuredUntil, reviewSummary, reviewedByUserId, costs] = row;
       await connection.execute(
-        "INSERT INTO `listings` (`id`, `title`, `city`, `neighborhood`, `landmark`, `propertyType`, `householdFit`, `availableFrom`, `status`, `agentUserId`, `agentNameSnapshot`, `lastReconfirmed`, `freshnessWindowDays`, `publicLatitude`, `publicLongitude`, `mapRadiusM`, `isFeatured`, `featuredUntil`, `verificationStatus`, `verificationExpiresAt`, `photosCount`, `submittedAt`, `approvedAt`, `reviewedAt`, `reviewedByUserId`, `reviewSummary`) VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE(), ?, ?, ?, NOW(), 14, ?, ?, ?, ?, ?, ?, ?, 4, NOW(), IF(? = 'published', NOW(), NULL), IF(? IN ('published','changes_requested'), NOW(), NULL), ?, ?)",
-        [id, title, city, neighborhood, landmark, propertyType, householdFit, status, agentUserId, agentNameSnapshot, latitude, longitude, mapRadiusM, isFeatured, featuredUntil, verificationStatus, verificationExpiresAt, status, status, reviewedByUserId, reviewSummary],
+        "INSERT INTO `listings` (`id`, `title`, `city`, `neighborhood`, `landmark`, `propertyType`, `bedrooms`, `householdFit`, `availableFrom`, `status`, `agentUserId`, `agentNameSnapshot`, `lastReconfirmed`, `freshnessWindowDays`, `publicLatitude`, `publicLongitude`, `mapRadiusM`, `isFeatured`, `featuredUntil`, `verificationStatus`, `verificationExpiresAt`, `photosCount`, `submittedAt`, `approvedAt`, `reviewedAt`, `reviewedByUserId`, `reviewSummary`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURDATE(), ?, ?, ?, NOW(), 14, ?, ?, ?, ?, ?, ?, ?, 4, NOW(), IF(? = 'published', NOW(), NULL), IF(? IN ('published','changes_requested'), NOW(), NULL), ?, ?)",
+        [id, title, city, neighborhood, landmark, propertyType, bedrooms, householdFit, status, agentUserId, agentNameSnapshot, latitude, longitude, mapRadiusM, isFeatured, featuredUntil, verificationStatus, verificationExpiresAt, status, status, reviewedByUserId, reviewSummary],
+      );
+      await connection.execute(
+        "INSERT INTO `listing_costs` (`listingId`, `monthlyRent`, `advanceMonths`, `securityDeposit`, `agencyFee`, `serviceFee`, `firstMonthUtilities`, `currency`) VALUES (?, ?, ?, ?, ?, ?, ?, 'XAF')",
+        [id, ...costs],
       );
     }
-
-    await connection.execute(
-      "INSERT INTO `listing_costs` (`listingId`, `monthlyRent`, `advanceMonths`, `securityDeposit`, `agencyFee`, `serviceFee`, `firstMonthUtilities`, `currency`) VALUES (?, 85000, 3, 85000, 85000, 15000, 10000, 'XAF'), (?, 50000, 2, 50000, 50000, 5000, 5000, 'XAF'), (?, 150000, 6, 150000, 150000, 25000, 15000, 'XAF')",
-      [publishedId, reviewId, changesId],
-    );
     await connection.execute(
       "INSERT INTO `listing_promotions` (`listingId`, `type`, `status`, `amountXaf`, `startsAt`, `endsAt`, `providerReference`) VALUES (?, 'featured_pin', 'active', 3000, NOW(), ?, 'TEST-PIN-2026-001')",
       [publishedId, addDays(14)],
@@ -204,6 +225,35 @@ async function main() {
       "INSERT INTO `field_verification_commissions` (`verificationOrderId`, `moderatorUserId`, `grossAmountXaf`, `fieldModeratorAmountXaf`, `platformAmountXaf`, `fieldModeratorShareBps`, `status`) VALUES (?, ?, 7500, 6000, 1500, 8000, 'accrued')",
       [verificationOrderId, moderatorId],
     );
+    const additionalVerifiedVisits = [
+      [jouvenceId, agentId, "water_storage_seen", "prepaid_meter_seen", "tarred_nearby", 4, "Jouvence junction", 3, "TEST DATA: water storage and a prepaid electricity meter were observed; tarred access is nearby."],
+      [bonamoussadiId, secondPaidAgentId, "borehole_on_site", "backup_seen", "tarred_to_gate", 2, "Rond-point Maetur", 3, "TEST DATA: borehole, backup supply, and tarred access were observed during the fixture visit."],
+      [makepeId, secondPaidAgentId, "public_network_observed", "local_outage_caution", "tarred_nearby", 5, "Makepe Palace junction", 4, "TEST DATA: public network was observed; the field record notes an outage caution rather than a reliability guarantee."],
+    ];
+    for (const [listingId, requestedByUserId, waterAccess, powerReliability, roadAccess, taxiWalkMinutes, junctionName, junctionMinutes, observationNote] of additionalVerifiedVisits) {
+      const [visitResult] = await connection.execute(
+        "INSERT INTO `verification_orders` (`listingId`, `requestedByUserId`, `assignedModeratorUserId`, `status`, `amountXaf`, `evidenceNote`, `verifiedAt`, `expiresAt`, `providerReference`) VALUES (?, ?, ?, 'passed', 7500, 'TEST DATA: field visit passed for non-production inventory.', NOW(), ?, ?)",
+        [listingId, requestedByUserId, moderatorId, addDays(30), `TEST-VERIFY-${listingId}`],
+      );
+      const visitId = visitResult.insertId;
+      for (const [kind, mediaUrl, listingMatch, observation] of [
+        ["exterior", "/manus-storage/ahc-test-evidence-exterior_345e18db.png", "matches", "TEST DATA: public landmark orientation and exterior evidence matched the fixture listing."],
+        ["interior", "/manus-storage/ahc-test-evidence-living-room_b47fb09f.png", "matches", "TEST DATA: observed interior layout matched the fixture listing summary."],
+      ]) {
+        await connection.execute(
+          "INSERT INTO `verification_evidence` (`verificationOrderId`, `capturedByUserId`, `kind`, `mediaUrl`, `listingMatch`, `observation`) VALUES (?, ?, ?, ?, ?, ?)",
+          [visitId, moderatorId, kind, mediaUrl, listingMatch, observation],
+        );
+      }
+      await connection.execute(
+        "INSERT INTO `verification_events` (`verificationOrderId`, `listingId`, `action`, `fromStatus`, `toStatus`, `reason`, `actorUserId`, `assignedModeratorUserId`) VALUES (?, ?, 'passed', 'scheduled', 'passed', 'TEST DATA: passed fixture visit.', ?, ?)",
+        [visitId, listingId, moderatorId, moderatorId],
+      );
+      await connection.execute(
+        "INSERT INTO `listing_neighborhood_assessments` (`listingId`, `verificationOrderId`, `assessedByUserId`, `waterAccess`, `powerReliability`, `roadAccess`, `taxiWalkMinutes`, `junctionName`, `junctionMinutes`, `observationNote`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [listingId, visitId, moderatorId, waterAccess, powerReliability, roadAccess, taxiWalkMinutes, junctionName, junctionMinutes, observationNote],
+      );
+    }
     await connection.execute(
       "INSERT INTO `admin_audit_events` (`action`, `actorUserId`, `targetUserId`, `details`) VALUES ('role_changed', ?, ?, 'TEST DATA: temporary Field Moderator authority assigned.')",
       [adminId, moderatorId],
@@ -215,12 +265,13 @@ async function main() {
 
     await connection.commit();
     console.table([
-      { role: "Seeker", email: `seeker${DEMO_DOMAIN}`, password: PASSWORDS.seeker },
-      { role: "Paid Agent", email: `agent${DEMO_DOMAIN}`, password: PASSWORDS.agentPaid },
-      { role: "Pending-payment Agent", email: `agent-pending${DEMO_DOMAIN}`, password: PASSWORDS.agentPending },
-      { role: "Owner applicant", email: `owner${DEMO_DOMAIN}`, password: PASSWORDS.owner },
-      { role: "Field Moderator", email: `moderator${DEMO_DOMAIN}`, password: PASSWORDS.moderator },
-      { role: "Admin", email: `admin${DEMO_DOMAIN}`, password: PASSWORDS.admin },
+      { actor: "Tarh", role: "Seeker", purpose: "Protected listing and lead-intent test", email: `seeker${DEMO_DOMAIN}`, password: PASSWORDS.seeker },
+      { actor: "Ebot", role: "Paid Agent", purpose: "Active Growth access and one listing credit", email: `agent${DEMO_DOMAIN}`, password: PASSWORDS.agentPaid },
+      { actor: "Mireille", role: "Paid Douala Agent", purpose: "Second active supply owner for varied inventory", email: `agent-douala${DEMO_DOMAIN}`, password: PASSWORDS.agentSecondPaid },
+      { actor: "Nadege", role: "Pending-payment Agent", purpose: "Payment gate and no-paid-access test", email: `agent-pending${DEMO_DOMAIN}`, password: PASSWORDS.agentPending },
+      { actor: "Ateh", role: "Owner applicant", purpose: "Stronger owner-document review test", email: `owner${DEMO_DOMAIN}`, password: PASSWORDS.owner },
+      { actor: "Robinson", role: "Field Moderator", purpose: "Evidence and Operations-only test", email: `moderator${DEMO_DOMAIN}`, password: PASSWORDS.moderator },
+      { actor: "Bryan", role: "Admin", purpose: "Role governance and protected Admin test", email: `admin${DEMO_DOMAIN}`, password: PASSWORDS.admin },
     ]);
     console.log("Temporary AHC test data created. Delete users ending in @test.ahc.local to remove it.");
   } catch (error) {

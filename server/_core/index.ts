@@ -11,8 +11,8 @@ import { serveStatic, setupVite } from "./vite";
 import { archiveStaleListingHandler } from "../listingFreshness";
 import { createWhatsAppLeadEvent, getPublicListingContact, registerWalkthroughVideo } from "../db";
 import { authenticateLocalRequest } from "./localAuth";
-import { sdk } from "./sdk";
 import { storagePut } from "../storage";
+import { isSocialPreviewBot, propertySpaRedirect } from "./sharedPropertyLink";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -37,10 +37,6 @@ function escapeMarkup(value: string) {
   return value.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character] ?? character));
 }
 
-function isSocialPreviewBot(userAgent: string) {
-  return /facebookexternalhit|facebot|whatsapp|twitterbot|linkedinbot|telegrambot|slackbot|discordbot|googlebot/i.test(userAgent);
-}
-
 async function startServer() {
   const app = express();
   const server = createServer(app);
@@ -52,14 +48,7 @@ async function startServer() {
   registerOAuthRoutes(app);
   app.post("/api/scheduled/archive-stale-listings", archiveStaleListingHandler);
   app.post("/api/operations/verification-orders/:verificationOrderId/walkthrough", express.raw({ type: ["video/mp4", "video/webm"], limit: "35mb" }), async (req, res) => {
-    let user = await authenticateLocalRequest(req);
-    if (!user) {
-      try {
-        user = await sdk.authenticateRequest(req);
-      } catch {
-        user = null;
-      }
-    }
+    const user = await authenticateLocalRequest(req);
     if (!user || user.isBanned) {
       res.status(401).json({ error: "Sign in as the assigned Field Moderator to upload walkthrough evidence." });
       return;
@@ -114,7 +103,10 @@ async function startServer() {
     res.type("image/svg+xml").send(`<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="#132c34"/><rect x="72" y="68" width="12" height="494" fill="#d78a1d"/><text x="124" y="150" fill="#f7f3e9" font-family="Arial, sans-serif" font-size="34" letter-spacing="3">AFFORDABLE HOUSING CAMEROON</text><text x="124" y="250" fill="#f7f3e9" font-family="Georgia, serif" font-size="58">${title}</text><text x="124" y="320" fill="#cbd7d4" font-family="Arial, sans-serif" font-size="32">${location} · approximate landmark area</text><text x="124" y="460" fill="#d78a1d" font-family="Arial, sans-serif" font-size="28" letter-spacing="2">TOTAL MOVE-IN CASH REQUIRED</text><text x="124" y="530" fill="#f7f3e9" font-family="Georgia, serif" font-size="64">${total} XAF</text></svg>`);
   });
   app.get("/property/:listingId", async (req, res, next) => {
-    if (!isSocialPreviewBot(req.get("user-agent") ?? "")) return next();
+    if (!isSocialPreviewBot(req.get("user-agent") ?? "")) {
+      res.redirect(302, propertySpaRedirect(req.params.listingId));
+      return;
+    }
     const listing = await getPublicListingContact(req.params.listingId);
     if (!listing) return next();
     const origin = `${req.protocol}://${req.get("host")}`;
@@ -125,14 +117,7 @@ async function startServer() {
     res.status(200).type("html").send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${escapeMarkup(title)} | AHC</title><meta name="description" content="${escapeMarkup(description)}"><meta property="og:type" content="website"><meta property="og:site_name" content="Affordable Housing Cameroon"><meta property="og:title" content="${escapeMarkup(title)}"><meta property="og:description" content="${escapeMarkup(description)}"><meta property="og:url" content="${escapeMarkup(propertyUrl)}"><meta property="og:image" content="${escapeMarkup(imageUrl)}"><meta name="twitter:card" content="summary_large_image"></head><body><p>Open <a href="${escapeMarkup(propertyUrl)}">this AHC property listing</a>.</p></body></html>`);
   });
   app.get("/api/listings/:listingId/whatsapp", async (req, res) => {
-    let user = await authenticateLocalRequest(req);
-    if (!user) {
-      try {
-        user = await sdk.authenticateRequest(req);
-      } catch {
-        user = null;
-      }
-    }
+    const user = await authenticateLocalRequest(req);
     if (!user) {
       res.status(401).type("text/plain").send("Please sign in to contact an Agent or Owner.");
       return;

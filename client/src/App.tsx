@@ -6,8 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { canAccessWorkspace } from "@/lib/workspaceAccess";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch, useLocation, useRoute } from "wouter";
-import React, { useEffect } from "react";
+import { Route, Router as WouterRouter, Switch, useRoute } from "wouter";
+import React, { useCallback, useEffect, useState } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { CommissionLedgerCsvExport } from "./components/CommissionLedgerCsvExport";
@@ -57,10 +57,42 @@ function SharedPropertyRoute() {
   return <Home directListingId={params?.listingId} />;
 }
 
+/**
+ * AHC’s public router uses URL fragments so a shared or refreshed public link
+ * does not depend on a hosting-provider history fallback. Keeping this tiny
+ * adapter local avoids the incompatible optional wouter hash-hook bundle that
+ * can initialise against a different React dispatcher in the development
+ * runtime.
+ */
+function currentHashPath() {
+  if (typeof window === "undefined") return "/";
+  const hash = window.location.hash.replace(/^#/, "");
+  return hash.startsWith("/") ? hash : "/";
+}
+
+function useAhcHashLocation(): [string, (to: string) => void] {
+  const [location, setLocation] = useState(currentHashPath);
+
+  useEffect(() => {
+    const onHashChange = () => setLocation(currentHashPath());
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
+  const navigate = useCallback((to: string) => {
+    const destination = to.startsWith("/") ? to : `/${to}`;
+    if (currentHashPath() === destination) return;
+    window.location.hash = destination;
+  }, []);
+
+  return [location, navigate];
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/" component={MarketplaceRoute} />
+      <Route path="/homes" component={MarketplaceRoute} />
       <Route path="/agent" component={AgentOnboardingRoute} />
       <Route path="/property/:listingId" component={SharedPropertyRoute} />
       <Route path="/admin" component={AdminRoute} />
@@ -80,7 +112,9 @@ export default function App() {
           <Toaster position="bottom-right" />
           <ThemeToggle />
           <CommissionLedgerCsvExport />
-          <Router />
+          <WouterRouter hook={useAhcHashLocation}>
+            <Router />
+          </WouterRouter>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

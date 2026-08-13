@@ -326,3 +326,17 @@
 - [x] Correct the identified fixture, input-normalisation, client-request, or authentication implementation mismatch without weakening access control.
 - [x] Add focused regression coverage and validate an actual browser-facing local sign-in for a paid Agent and a staff role.
 - [x] Checkpoint the sign-in repair and provide the verified credentials and route-specific test steps.
+
+## Marketplace discovery, link resilience, and operating guide
+
+- [x] Audit the current Walk-Thru video discovery rail, property detail routing, WhatsApp lead tracking, social metadata, and public-versus-private evidence boundaries.
+- [x] Rename the labelled non-production actors to Bryan, Robinson, Ebot, and Tarh while preserving distinct roles, passwords, and paid versus pending Agent states.
+- [x] Assign each additional required non-production actor a unique realistic name and document its defined role, access boundary, and fixture purpose.
+- [x] Expand the clearly labelled non-production database fixture with a realistic, varied set of fresh Yaoundé and Douala listings without fabricating reviews or testimonials.
+- [x] Add an accessible “View full home details” action to each eligible Walk-Thru video that opens the associated property flow.
+- [x] Ensure every eligible property detail includes a tracked “Chat on WhatsApp” path that records consented lead intent before the direct WhatsApp handoff.
+- [x] Make direct property links resilient to refresh and sharing, and ensure server-rendered social metadata contains only public listing information.
+- [x] Verify public cards expose only approved public trust signals and relative freshness while Field Moderator proof and audit records remain confined to protected staff routes and procedures.
+- [x] Add regression tests plus desktop and mobile validation for video detail navigation, tracked WhatsApp leads, link metadata, and staff-evidence privacy.
+- [x] Produce a detailed Word operating guide covering every user level, route, workflow, control, and platform functionality.
+- [x] Checkpoint the release and deliver the updated site and operating guide.
