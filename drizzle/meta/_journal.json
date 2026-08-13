@@ -64,6 +64,20 @@
       "when": 1786606703627,
       "tag": "0008_flat_obadiah_stane",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1786608337184,
+      "tag": "0009_sturdy_rictor",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1786608477381,
+      "tag": "0010_sticky_jetstream",
+      "breakpoints": true
     }
   ]
 }

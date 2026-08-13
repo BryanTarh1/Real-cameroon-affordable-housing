@@ -99,7 +99,12 @@ export default function Home({ startAgentOpen = false, directListingId }: { star
   const [listingAwaitingSignIn, setListingAwaitingSignIn] = useState<Listing | null>(null);
   const filters = useMemo(() => ({ city, search: search || undefined, maxMoveInCash, verification }), [city, search, maxMoveInCash, verification]);
   const results = trpc.marketplace.search.useQuery(filters);
+  const directResult = trpc.marketplace.search.useQuery(
+    { maxMoveInCash: 1_000_000 },
+    { enabled: Boolean(directListingId) },
+  );
   const listings = (results.data ?? []) as Listing[];
+  const directListings = (directResult.data ?? []) as Listing[];
   const openListing = (listing: Listing) => {
     if (resolveListingDetailAccess(isAuthenticated) === "detail") setSelected(listing);
     else setListingAwaitingSignIn(listing);
@@ -115,10 +120,10 @@ export default function Home({ startAgentOpen = false, directListingId }: { star
     }
   }, [isAuthenticated, listingAwaitingSignIn]);
   useEffect(() => {
-    if (!directListingId || !listings.length) return;
-    const sharedListing = listings.find(item => item.id === directListingId);
+    if (!directListingId || !directListings.length) return;
+    const sharedListing = directListings.find(item => item.id === directListingId);
     if (sharedListing) openListing(sharedListing);
-  }, [directListingId, listings, isAuthenticated]);
+  }, [directListingId, directListings, isAuthenticated]);
 
   return <div className="ahc-app"><header className="topbar"><a className="brand" href="#top"><span className="brand-emblem"><span /><span /><span /></span><span>Affordable Housing<br /><b>Cameroon</b></span></a><nav className={menuOpen ? "nav-links is-open" : "nav-links"}><a href="#homes" onClick={() => setMenuOpen(false)}>Find homes</a><a href="#trust" onClick={() => setMenuOpen(false)}>Why it’s safer</a><button onClick={() => { setAgentOpen(true); setMenuOpen(false); }}>For agents</button><a href="#moderators" onClick={() => setMenuOpen(false)}>For moderators</a></nav><button className="agent-top-cta" onClick={() => setAgentOpen(true)}>List a home <span>↗</span></button><button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle navigation">{menuOpen ? <X /> : <Menu />}</button></header>
     <main id="top"><aside className="atlas-index" aria-label="On this page"><span>AHC / ROUTE</span><a href="#homes"><b>01</b> Fresh homes</a><a href="#trust"><b>02</b> Trust design</a><a href="#agents"><b>03</b> Agent tools</a><a href="#moderators"><b>04</b> Field work</a></aside><section className="hero"><div className="hero-grid"><div className="hero-copy"><span className="section-overline light">Urban Cameroon / verified availability</span><h1>Know the <em>full cost</em><br />before you move.</h1><p>Fresh rental listings for Yaoundé and Douala. Every live home shows the cash needed to move in — not just rent.</p><div className="hero-proof"><span><ShieldCheck size={16} /> 14-day freshness rule</span><span><MapPinned size={16} /> Landmark-only maps</span></div></div><div className="search-panel"><span className="search-kicker">Start with the money you have</span><label>Where do you want to live?<input value={search} onChange={e => setSearch(e.target.value)} placeholder="Neighborhood or landmark" /></label><div className="two-fields"><label>City<select value={city} onChange={e => setCity(e.target.value)}><option>All cities</option><option>Yaoundé</option><option>Douala</option></select></label><label>Maximum move-in cash<select value={maxMoveInCash} onChange={e => setMaxMoveInCash(Number(e.target.value))}><option value={100000}>100,000 XAF</option><option value={200000}>200,000 XAF</option><option value={300000}>300,000 XAF</option><option value={500000}>500,000 XAF</option><option value={1000000}>Any amount</option></select></label></div><button className="button-primary full-width" onClick={() => document.getElementById("homes")?.scrollIntoView({ behavior: "smooth" })}>See fresh homes <span>↓</span></button><p className="search-foot"><CircleAlert size={14} /> You can search without an account. Sign in only when you open a property.</p></div></div></section>

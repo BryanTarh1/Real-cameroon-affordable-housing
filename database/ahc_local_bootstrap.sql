@@ -23,3 +23,5 @@ SOURCE drizzle/0005_complex_echo.sql;
 SOURCE drizzle/0006_long_freak.sql;
 SOURCE drizzle/0007_flawless_scrambler.sql;
 SOURCE drizzle/0008_flat_obadiah_stane.sql;
+SOURCE drizzle/0009_sturdy_rictor.sql;
+SOURCE drizzle/0010_sticky_jetstream.sql;

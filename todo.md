@@ -228,3 +228,11 @@
 - [x] Add an Admin review surface for cost reports and lead-event evidence without exposing personal data publicly.
 - [x] Document the complete risk-response analysis, current controls, limits, and operational procedures in a Word document.
 - [x] Add regression tests and responsive validation for the new reporting, lead-tracking, and Admin-review workflows.
+
+## Launch-control hardening
+
+- [x] Add Admin-facing reporting-account context and clustered-report warnings so automatic safety holds are investigated fairly before any permanent sanction.
+- [x] Require Admin evidence review before a Field Moderator commission record can move from held to payable.
+- [x] Add safe property-specific OpenGraph metadata for direct listing links without exposing exact locations, documents, evidence, or contact details.
+- [x] Add regression tests and responsive validation for report integrity, payout approval, and property-share metadata behavior.
+- [x] Update the risk-response operating guide and Word report with the new launch safeguards.

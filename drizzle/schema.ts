@@ -284,7 +284,11 @@ export const fieldVerificationCommissions = mysqlTable("field_verification_commi
   fieldModeratorAmountXaf: int("fieldModeratorAmountXaf").notNull(),
   platformAmountXaf: int("platformAmountXaf").notNull(),
   fieldModeratorShareBps: int("fieldModeratorShareBps").notNull(),
-  status: mysqlEnum("status", ["accrued", "paid", "voided"]).default("accrued").notNull(),
+  /** Held records are not payable until an Admin reviews the saved field evidence. */
+  status: mysqlEnum("status", ["held", "accrued", "paid", "voided"]).default("held").notNull(),
+  evidenceReviewedAt: timestamp("evidenceReviewedAt"),
+  evidenceReviewedByUserId: int("evidenceReviewedByUserId").references(() => users.id, { onDelete: "set null" }),
+  evidenceReviewNote: text("evidenceReviewNote"),
   paidAt: timestamp("paidAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => [index("field_verification_commissions_moderator_idx").on(table.moderatorUserId, table.status)]);
@@ -293,6 +297,8 @@ export const reports = mysqlTable("reports", {
   id: int("id").autoincrement().primaryKey(),
   listingId: varchar("listingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
   reporterUserId: int("reporterUserId").references(() => users.id, { onDelete: "set null" }),
+  /** Keyed server-side fingerprint for clustered-report review; raw IP addresses are never retained. */
+  reporterNetworkFingerprint: varchar("reporterNetworkFingerprint", { length: 96 }),
   reason: mysqlEnum("reason", ["inaccurate_cost", "unavailable", "misleading_details", "other"]).default("other").notNull(),
   note: text("note").notNull(),
   status: mysqlEnum("status", ["open", "resolved"]).default("open").notNull(),

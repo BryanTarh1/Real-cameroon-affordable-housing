@@ -56,6 +56,15 @@ describe("AHC moderator operations authorization", () => {
     await expect(caller.admin.leadEvents()).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
+  it("prevents an ordinary user from releasing a held Field Moderator commission", async () => {
+    const caller = appRouter.createCaller(createAgentContext());
+
+    await expect(caller.admin.approveHeldCommission({
+      commissionId: 1,
+      evidenceReviewNote: "The required exterior and interior evidence matches the listing details.",
+    })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("allows an authenticated seeker to request the tracked contact route rather than a raw WhatsApp URL", async () => {
     const caller = appRouter.createCaller(createAgentContext());
 

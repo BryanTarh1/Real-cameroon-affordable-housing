@@ -233,7 +233,8 @@ export async function getAdminCashFlowAudit() {
   const db = await getDb();
   if (!db) return { confirmedRevenueXaf: 0, physicalVerificationRevenueXaf: 0, platformCommissionAccruedXaf: 0, fieldModeratorCommissionAccruedXaf: 0, orders: [] as Array<{ type: string; amountXaf: number }> };
   const orders = await db.select({ type: paymentOrders.type, amountXaf: paymentOrders.amountXaf }).from(paymentOrders).where(eq(paymentOrders.status, "confirmed"));
-  const commissions = await db.select({ fieldModeratorAmountXaf: fieldVerificationCommissions.fieldModeratorAmountXaf, platformAmountXaf: fieldVerificationCommissions.platformAmountXaf }).from(fieldVerificationCommissions);
+  const commissions = await db.select({ fieldModeratorAmountXaf: fieldVerificationCommissions.fieldModeratorAmountXaf, platformAmountXaf: fieldVerificationCommissions.platformAmountXaf })
+    .from(fieldVerificationCommissions).where(sql`${fieldVerificationCommissions.status} IN ('accrued', 'paid')`);
   return { confirmedRevenueXaf: orders.reduce((sum, order) => sum + order.amountXaf, 0), physicalVerificationRevenueXaf: orders.filter(order => order.type === "physical_verification").reduce((sum, order) => sum + order.amountXaf, 0), platformCommissionAccruedXaf: commissions.reduce((sum, item) => sum + item.platformAmountXaf, 0), fieldModeratorCommissionAccruedXaf: commissions.reduce((sum, item) => sum + item.fieldModeratorAmountXaf, 0), orders };
 }
 
@@ -248,6 +249,8 @@ export async function listFieldModeratorCommissions(moderatorUserId: number) {
     platformAmountXaf: fieldVerificationCommissions.platformAmountXaf,
     fieldModeratorShareBps: fieldVerificationCommissions.fieldModeratorShareBps,
     status: fieldVerificationCommissions.status,
+    evidenceReviewedAt: fieldVerificationCommissions.evidenceReviewedAt,
+    evidenceReviewNote: fieldVerificationCommissions.evidenceReviewNote,
     paidAt: fieldVerificationCommissions.paidAt,
     createdAt: fieldVerificationCommissions.createdAt,
     listingId: verificationOrders.listingId,
@@ -268,9 +271,33 @@ export async function listAdminCommissionLedger() {
     platformAmountXaf: fieldVerificationCommissions.platformAmountXaf,
     fieldModeratorShareBps: fieldVerificationCommissions.fieldModeratorShareBps,
     status: fieldVerificationCommissions.status,
+    evidenceReviewedAt: fieldVerificationCommissions.evidenceReviewedAt,
+    evidenceReviewedByUserId: fieldVerificationCommissions.evidenceReviewedByUserId,
+    evidenceReviewNote: fieldVerificationCommissions.evidenceReviewNote,
     paidAt: fieldVerificationCommissions.paidAt,
     createdAt: fieldVerificationCommissions.createdAt,
   }).from(fieldVerificationCommissions).innerJoin(verificationOrders, eq(fieldVerificationCommissions.verificationOrderId, verificationOrders.id)).innerJoin(users, eq(fieldVerificationCommissions.moderatorUserId, users.id)).orderBy(desc(fieldVerificationCommissions.createdAt));
+}
+
+/** Releases a held Field Moderator allocation only after an Admin has reviewed its stored field evidence. */
+export async function approveHeldCommission(adminUserId: number, commissionId: number, evidenceReviewNote: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async (tx) => {
+    const commission = (await tx.select().from(fieldVerificationCommissions)
+      .where(eq(fieldVerificationCommissions.id, commissionId)).limit(1))[0];
+    if (!commission || commission.status !== "held") throw new Error("Only a held commission can be approved for payout.");
+    const evidence = await tx.select({ kind: verificationEvidence.kind }).from(verificationEvidence)
+      .where(eq(verificationEvidence.verificationOrderId, commission.verificationOrderId));
+    if (evidence.length < 2 || !evidence.some(item => item.kind === "exterior")) {
+      throw new Error("Cannot approve payout: the stored field visit does not meet AHC's minimum proof standard.");
+    }
+    await tx.update(fieldVerificationCommissions).set({
+      status: "accrued", evidenceReviewedAt: new Date(), evidenceReviewedByUserId: adminUserId,
+      evidenceReviewNote,
+    }).where(eq(fieldVerificationCommissions.id, commissionId));
+    return { success: true } as const;
+  });
 }
 
 /** Idempotent archival guard. The public read path invokes this as a safety net. */
@@ -479,7 +506,7 @@ export function shouldApplyListingSafetyHold(reason: ListingReportReason, matchi
  * responsible Agent's commercial access pending an Admin review. This is a
  * listing safety hold, not a final finding of misconduct.
  */
-export async function createListingReport(reporterUserId: number, listingId: string, reason: ListingReportReason, note: string) {
+export async function createListingReport(reporterUserId: number, listingId: string, reason: ListingReportReason, note: string, reporterNetworkFingerprint: string | null = null) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   return db.transaction(async (tx) => {
@@ -492,7 +519,7 @@ export async function createListingReport(reporterUserId: number, listingId: str
     )).limit(1))[0];
     if (existing) throw new Error("You have already reported this listing. AHC will review your existing report.");
 
-    await tx.insert(reports).values({ listingId, reporterUserId, reason, note });
+    await tx.insert(reports).values({ listingId, reporterUserId, reason, note, reporterNetworkFingerprint });
     const safetyReason = reason === "inaccurate_cost" || reason === "unavailable" ? reason : undefined;
     const matchingOpenReports = safetyReason ? await tx.select({ id: reports.id }).from(reports).where(and(
       eq(reports.listingId, listingId), eq(reports.reason, safetyReason), eq(reports.status, "open"),
@@ -536,12 +563,32 @@ export async function createWhatsAppLeadEvent(seekerUserId: number, listingId: s
 export async function listAdminTrustReports() {
   const db = await getDb();
   if (!db) return [];
-  return db.select({
+  const rows = await db.select({
     id: reports.id, listingId: reports.listingId, reason: reports.reason, note: reports.note,
     status: reports.status, filedAt: reports.filedAt, reporterUserId: reports.reporterUserId,
+    reporterNetworkFingerprint: reports.reporterNetworkFingerprint, reporterCreatedAt: users.createdAt,
     listingTitle: listings.title, listingStatus: listings.status, agentUserId: listings.agentUserId,
     agentName: listings.agentNameSnapshot,
-  }).from(reports).innerJoin(listings, eq(listings.id, reports.listingId)).orderBy(desc(reports.filedAt));
+  }).from(reports).innerJoin(listings, eq(listings.id, reports.listingId))
+    .leftJoin(users, eq(users.id, reports.reporterUserId)).orderBy(desc(reports.filedAt));
+  const networkCounts = new Map<string, number>();
+  rows.forEach(row => {
+    if (row.reporterNetworkFingerprint) networkCounts.set(row.reporterNetworkFingerprint, (networkCounts.get(row.reporterNetworkFingerprint) ?? 0) + 1);
+  });
+  const now = Date.now();
+  return rows.map(({ reporterNetworkFingerprint, reporterCreatedAt, ...row }) => {
+    const reporterAccountAgeDays = reporterCreatedAt ? Math.max(0, Math.floor((now - reporterCreatedAt.getTime()) / 86_400_000)) : null;
+    const networkPatternCount = reporterNetworkFingerprint ? networkCounts.get(reporterNetworkFingerprint) ?? 1 : 0;
+    return {
+      ...row,
+      reporterAccountAgeDays,
+      networkPatternCount,
+      integritySignals: {
+        recentAccount: reporterAccountAgeDays !== null && reporterAccountAgeDays < 7,
+        clusteredNetwork: networkPatternCount >= 2,
+      },
+    };
+  });
 }
 
 /** Private Admin audit data; deliberately excludes message content, phone numbers, IP addresses, and location. */
@@ -798,7 +845,7 @@ export async function decideVerificationOrder(operatorUserId: number, verificati
     if (decision === "passed") {
       const settings = await getPlatformSettings();
       const allocation = calculateFieldVerificationCommission(order.amountXaf, settings.fieldModeratorShareBps);
-      await tx.insert(fieldVerificationCommissions).values({ verificationOrderId, moderatorUserId: operatorUserId, ...allocation });
+      await tx.insert(fieldVerificationCommissions).values({ verificationOrderId, moderatorUserId: operatorUserId, ...allocation, status: "held" });
     }
     return { status: decision, expiresAt };
   });

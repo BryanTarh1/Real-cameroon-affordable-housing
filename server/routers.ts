@@ -1,12 +1,15 @@
 import { TRPCError } from "@trpc/server";
+import { createHmac } from "node:crypto";
 import { z } from "zod";
 import { AHC_LOCAL_SESSION_COOKIE, AHC_LOCAL_SESSION_MAX_AGE_MS, COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { createLocalSessionToken, hashLocalPassword, verifyLocalPassword } from "./_core/localAuth";
+import { ENV } from "./_core/env";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, moderatorProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import {
   assignListingReview,
+  approveHeldCommission,
   archiveStaleListings,
   clearLocalLoginFailures,
   createLocalAgentAccount,
@@ -47,6 +50,14 @@ import {
   upsertAgentProfile,
 } from "./db";
 import { createApproximatePoint, createWhatsAppListingLink, normalizeCameroonWhatsAppPhone, type PaidOfferType } from "../shared/ahc";
+
+/** Returns a keyed reporting-network signal for fairness review; raw network addresses are never stored. */
+function getReportNetworkFingerprint(request: { headers: { [key: string]: string | string[] | undefined }; socket: { remoteAddress?: string } }) {
+  if (!ENV.cookieSecret) return null;
+  const forwarded = request.headers["x-forwarded-for"];
+  const candidate = (Array.isArray(forwarded) ? forwarded[0] : forwarded ?? request.socket.remoteAddress ?? "").split(",")[0].trim();
+  return candidate ? createHmac("sha256", ENV.cookieSecret).update(candidate).digest("hex") : null;
+}
 
 const costsSchema = z.object({
   monthlyRent: z.number().int().min(1),
@@ -166,7 +177,7 @@ export const appRouter = router({
       listingId: z.string().min(4).max(32),
       reason: z.enum(["inaccurate_cost", "unavailable", "misleading_details", "other"]),
       note: z.string().trim().min(10).max(800),
-    })).mutation(({ ctx, input }) => createListingReport(ensureUserId(ctx.user?.id), input.listingId, input.reason, input.note)),
+    })).mutation(({ ctx, input }) => createListingReport(ensureUserId(ctx.user?.id), input.listingId, input.reason, input.note, getReportNetworkFingerprint(ctx.req))),
   }),
 
   agent: router({
@@ -258,6 +269,8 @@ export const appRouter = router({
       .mutation(({ ctx, input }) => setUserRole(ensureUserId(ctx.user?.id), input.userId, input.role)),
     cashFlowAudit: adminProcedure.query(() => getAdminCashFlowAudit()),
     commissionLedger: adminProcedure.query(() => listAdminCommissionLedger()),
+    approveHeldCommission: adminProcedure.input(z.object({ commissionId: z.number().int().positive(), evidenceReviewNote: z.string().trim().min(12).max(1_200) }))
+      .mutation(({ ctx, input }) => approveHeldCommission(ensureUserId(ctx.user?.id), input.commissionId, input.evidenceReviewNote)),
     trustReports: adminProcedure.query(() => listAdminTrustReports()),
     leadEvents: adminProcedure.query(() => listAdminLeadEvents()),
     paymentQueue: adminProcedure.query(() => listOperationsPaymentQueue()),
