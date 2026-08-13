@@ -14,6 +14,7 @@ import {
   clearLocalLoginFailures,
   createSeekerMatchAlertPreference,
   createLocalAgentAccount,
+  createViewingAppointment,
   createPaymentOrder,
   createListing,
   createListingReport,
@@ -43,6 +44,9 @@ import {
   listReviewHistory,
   listSeekerMatchAlertDeliveries,
   listSeekerMatchAlertPreferences,
+  listSeekerViewingAppointments,
+  listAgentViewingAppointments,
+  listAdminViewingAppointments,
   claimVerificationOrder,
   claimVerificationAudit,
   completeVerificationAudit,
@@ -53,6 +57,9 @@ import {
   setUserBan,
   setUserRole,
   revokeSeekerMatchAlertPreference,
+  respondToViewingAppointment,
+  cancelViewingAppointment,
+  recordViewingAppointmentOutcome,
   updatePlatformSettings,
   upsertAgentProfile,
 } from "./db";
@@ -105,6 +112,15 @@ const localAccountSchema = z.object({
 const localLoginSchema = z.object({
   email: z.string().trim().email().max(320),
   password: z.string().min(1).max(128),
+});
+
+const appointmentRequestSchema = z.object({
+  listingId: z.string().min(4).max(32),
+  requestedStart: z.coerce.date(),
+  requestedEnd: z.coerce.date(),
+  contactPreference: z.enum(["whatsapp", "phone"]),
+  privateContact: z.string().trim().min(8).max(20),
+  seekerNote: z.string().trim().min(4).max(500).optional(),
 });
 
 function ensureUserId(id: number | undefined): number {
@@ -202,6 +218,15 @@ export const appRouter = router({
       revoke: protectedProcedure.input(z.object({ preferenceId: z.number().int().positive() }))
         .mutation(({ ctx, input }) => revokeSeekerMatchAlertPreference(ensureUserId(ctx.user?.id), input.preferenceId)),
     }),
+    appointments: router({
+      mine: protectedProcedure.query(({ ctx }) => listSeekerViewingAppointments(ensureUserId(ctx.user?.id))),
+      request: protectedProcedure.input(appointmentRequestSchema).mutation(({ ctx, input }) => createViewingAppointment({
+        seekerUserId: ensureUserId(ctx.user?.id),
+        ...input,
+      })),
+      cancel: protectedProcedure.input(z.object({ appointmentId: z.number().int().positive(), note: z.string().trim().min(4).max(500).optional() }))
+        .mutation(({ ctx, input }) => cancelViewingAppointment({ userId: ensureUserId(ctx.user?.id), appointmentId: input.appointmentId, actor: "seeker", note: input.note })),
+    }),
   }),
 
   agent: router({
@@ -247,6 +272,21 @@ export const appRouter = router({
       .mutation(({ ctx, input }) => createPromotionRequest(ensureUserId(ctx.user?.id), input.listingId)),
     requestPhysicalVerification: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
       .mutation(({ ctx, input }) => createPaymentOrder(ensureUserId(ctx.user?.id), "physical_verification", input.listingId)),
+    viewingAppointments: router({
+      list: protectedProcedure.query(({ ctx }) => listAgentViewingAppointments(ensureUserId(ctx.user?.id))),
+      respond: protectedProcedure.input(z.object({
+        appointmentId: z.number().int().positive(),
+        decision: z.enum(["confirmed", "declined"]),
+        note: z.string().trim().min(4).max(500).optional(),
+      }).superRefine((value, issue) => {
+        if (value.decision === "declined" && !value.note) issue.addIssue({ code: z.ZodIssueCode.custom, message: "Record a brief reason when declining a viewing request." });
+      })).mutation(({ ctx, input }) => respondToViewingAppointment({ agentUserId: ensureUserId(ctx.user?.id), ...input })),
+      cancel: protectedProcedure.input(z.object({ appointmentId: z.number().int().positive(), note: z.string().trim().min(4).max(500).optional() }))
+        .mutation(({ ctx, input }) => cancelViewingAppointment({ userId: ensureUserId(ctx.user?.id), appointmentId: input.appointmentId, actor: "agent", note: input.note })),
+      recordOutcome: protectedProcedure.input(z.object({
+        appointmentId: z.number().int().positive(), outcome: z.enum(["completed", "no_show"]), note: z.string().trim().min(4).max(500).optional(),
+      })).mutation(({ ctx, input }) => recordViewingAppointmentOutcome({ agentUserId: ensureUserId(ctx.user?.id), ...input })),
+    }),
   }),
 
   operations: router({

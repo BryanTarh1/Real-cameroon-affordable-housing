@@ -185,3 +185,18 @@ AHC’s premium presentation is built on **field evidence, not styling alone**. 
 Do **not** activate live WhatsApp messages through personal accounts, browser automation, or an unapproved messaging gateway. The owner must select and configure an approved WhatsApp Business provider with an authorised business account, recipient opt-in, an approved utility template, secure access credentials, delivery-status webhook verification, opt-out handling, and a documented retention policy. The implementation is intentionally provider-ready but does not send messages until that controlled configuration is completed.
 
 > **Cost-protection rule:** AHC never asks a Seeker to pay a platform or dossier fee through an Agent. A legitimate AHC charge must be supported by an official AHC receipt code. Seekers should report a requested unofficial fee before paying it; staff must investigate the report fairly before any permanent account action.
+
+## 8. Premium viewing appointment concierge
+
+The **Viewing Appointment Concierge** is available only after a signed-in Seeker opens the detail of an eligible, live listing. It does not replace the existing WhatsApp contact route; instead, it provides a structured, accountable way to request a viewing before either side discloses precise access details.
+
+| Stage | Seeker action | Agent action | Privacy and safety boundary |
+|---|---|---|---|
+| Request | Choose a future start and end time, choose WhatsApp or phone as the contact preference, and provide one private contact detail. An optional note may clarify availability. | The request appears in the responsible Agent’s private concierge queue. | Only a live, physically verified, non-held listing may accept a request. The system rejects duplicate active requests, implausible time windows, and suspended-account activity. |
+| Review | Wait for a confirmed, declined, or cancelled state; cancel the request if plans change. | Confirm, decline with a brief reason, or cancel. | The Agent must not use the request to publish a Seeker’s contact data or send it to unrelated parties. Exact compound access instructions remain private until the Agent accepts the visit. |
+| Confirmed visit | See the agreed time in the private appointment history and coordinate safely with the assigned Agent. | Provide any necessary access instruction privately through the agreed contact method. | A confirmation is not a rental agreement, a payment instruction, or a waiver of the Seeker’s right to report hidden fees or misleading details. |
+| Outcome | The Seeker retains a private history of the request. | Record `completed` or `no show` after the scheduled visit. | Appointment events form an operational audit trail. They are not public ratings, reviews, or reputation scores. |
+
+The Agent queue is intentionally restricted to the Agent responsible for the listing. Field Moderators and Admins may access appointment data only where operational oversight is necessary; they should use the minimum information required and must not copy personal contacts into public notes, listing content, reports, or evidence files.
+
+> **Appointment payment rule:** AHC does not collect viewing fees through the concierge. A Seeker should not pay an Agent a platform or dossier charge to secure a time slot. Any request for an unofficial AHC fee should be reported from the property detail, with the ordinary fair-review safeguards applied.

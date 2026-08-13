@@ -1,0 +1,36 @@
+.appointment-concierge {
+  background: linear-gradient(135deg, rgba(19, 44, 52, .98), rgba(29, 62, 68, .96));
+  color: #f7f3e9;
+}
+
+.appointment-concierge h3,
+.appointment-concierge p { color: inherit; }
+
+.appointment-concierge .muted,
+.appointment-concierge small { color: rgba(247, 243, 233, .72); }
+
+.agent-appointment-list { display: grid; gap: .8rem; margin-top: 1rem; }
+
+.agent-appointment-list article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, .8fr);
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(247, 243, 233, .18);
+  background: rgba(255, 255, 255, .06);
+}
+
+.appointment-summary { display: grid; gap: .28rem; }
+.appointment-summary b { font-family: var(--font-serif, Georgia, serif); font-size: 1.04rem; }
+.appointment-summary strong { color: #f3b45b; font-size: .85rem; }
+.appointment-concierge .section-overline { color: #f3b45b; }
+
+.appointment-actions { display: grid; gap: .55rem; align-content: center; }
+.appointment-actions textarea { min-height: 68px; font-size: .85rem; }
+.appointment-actions > div { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; }
+.appointment-actions .button-secondary { background: #f7f3e9; color: #132c34; border-color: #f7f3e9; }
+.appointment-actions .text-button { color: #f3b45b; }
+
+@media (max-width: 680px) {
+  .agent-appointment-list article { grid-template-columns: 1fr; }
+}

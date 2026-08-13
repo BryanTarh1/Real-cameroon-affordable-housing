@@ -438,6 +438,48 @@ export const leadEvents = mysqlTable("lead_events", {
   index("lead_events_contact_idx").on(table.contactUserId, table.createdAt),
 ]);
 
+/**
+ * A private request to view a physically verified, live listing. Exact-property
+ * directions are deliberately absent: the Agent receives the seeker contact only
+ * after accepting the request, and meeting logistics remain off the public record.
+ */
+export const viewingAppointments = mysqlTable("viewing_appointments", {
+  id: int("id").autoincrement().primaryKey(),
+  listingId: varchar("listingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
+  seekerUserId: int("seekerUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  agentUserId: int("agentUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  requestedStart: timestamp("requestedStart").notNull(),
+  requestedEnd: timestamp("requestedEnd").notNull(),
+  contactPreference: mysqlEnum("contactPreference", ["whatsapp", "phone"]).default("whatsapp").notNull(),
+  privateContact: varchar("privateContact", { length: 20 }).notNull(),
+  seekerNote: text("seekerNote"),
+  agentNote: text("agentNote"),
+  status: mysqlEnum("status", ["requested", "confirmed", "declined", "cancelled", "completed", "no_show", "expired"]).default("requested").notNull(),
+  respondedAt: timestamp("respondedAt"),
+  cancelledAt: timestamp("cancelledAt"),
+  outcomeRecordedAt: timestamp("outcomeRecordedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  index("viewing_appointments_listing_idx").on(table.listingId, table.status, table.requestedStart),
+  index("viewing_appointments_seeker_idx").on(table.seekerUserId, table.status, table.requestedStart),
+  index("viewing_appointments_agent_idx").on(table.agentUserId, table.status, table.requestedStart),
+]);
+
+/** Immutable, role-attributed record of every permitted appointment state change. */
+export const viewingAppointmentEvents = mysqlTable("viewing_appointment_events", {
+  id: int("id").autoincrement().primaryKey(),
+  appointmentId: int("appointmentId").notNull().references(() => viewingAppointments.id, { onDelete: "cascade" }),
+  action: mysqlEnum("action", ["requested", "confirmed", "declined", "cancelled_by_seeker", "cancelled_by_agent", "completed", "no_show", "expired"]).notNull(),
+  fromStatus: varchar("fromStatus", { length: 32 }),
+  toStatus: varchar("toStatus", { length: 32 }).notNull(),
+  actorUserId: int("actorUserId").references(() => users.id, { onDelete: "set null" }),
+  note: text("note"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  index("viewing_appointment_events_idx").on(table.appointmentId, table.createdAt),
+]);
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Listing = typeof listings.$inferSelect;

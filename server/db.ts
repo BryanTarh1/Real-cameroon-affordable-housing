@@ -27,6 +27,8 @@ import {
   verificationEvidence,
   verificationAudits,
   verificationOrders,
+  viewingAppointmentEvents,
+  viewingAppointments,
 } from "../drizzle/schema";
 import { calculateFieldVerificationCommission, calculateTotalMoveInCash, createWhatsAppListingLink, DEFAULT_FIELD_MODERATOR_SHARE_BPS, FRESHNESS_WINDOW_DAYS, getAgentAccessState, getPaidOffer, type PaidOfferType } from "../shared/ahc";
 import { ENV } from "./_core/env";
@@ -428,6 +430,225 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
 export async function getPublicListingContact(listingId: string) {
   const items = await listFreshPublicListings();
   return items.find((item) => item.id === listingId) ?? null;
+}
+
+const APPOINTMENT_ACTIVE_STATUSES = new Set(["requested", "confirmed"]);
+const APPOINTMENT_CONTACT_VISIBLE_STATUSES = new Set(["confirmed", "completed", "no_show"]);
+
+function assertAppointmentWindow(requestedStart: Date, requestedEnd: Date, now = new Date()) {
+  const minimumStart = new Date(now.getTime() + 60 * 60 * 1000);
+  const maximumStart = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+  const durationMs = requestedEnd.getTime() - requestedStart.getTime();
+  if (requestedStart < minimumStart) throw new Error("Choose a viewing time at least one hour from now.");
+  if (requestedStart > maximumStart) throw new Error("Viewing requests must be within the next 14 days.");
+  if (durationMs < 30 * 60 * 1000 || durationMs > 2 * 60 * 60 * 1000) {
+    throw new Error("Choose a viewing window between 30 minutes and two hours.");
+  }
+}
+
+async function getAppointmentEligibleListing(listingId: string, now = new Date()) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const listing = (await db.select({
+    id: listings.id,
+    agentUserId: listings.agentUserId,
+    status: listings.status,
+    verificationStatus: listings.verificationStatus,
+    lastReconfirmed: listings.lastReconfirmed,
+  }).from(listings).where(eq(listings.id, listingId)).limit(1))[0];
+  const cutoff = new Date(now.getTime() - FRESHNESS_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  if (!listing || listing.status !== "published" || listing.verificationStatus !== "physical_verified" || listing.lastReconfirmed < cutoff || !listing.agentUserId) {
+    throw new Error("Viewing appointments are available only for fresh, physically verified live listings.");
+  }
+  return listing;
+}
+
+export async function createViewingAppointment(input: {
+  seekerUserId: number;
+  listingId: string;
+  requestedStart: Date;
+  requestedEnd: Date;
+  contactPreference: "whatsapp" | "phone";
+  privateContact: string;
+  seekerNote?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const now = new Date();
+  assertAppointmentWindow(input.requestedStart, input.requestedEnd, now);
+  const listing = await getAppointmentEligibleListing(input.listingId, now);
+  if (listing.agentUserId === input.seekerUserId) throw new Error("You cannot request a viewing for your own listing.");
+
+  return db.transaction(async (tx) => {
+    const seeker = (await tx.select({ isBanned: users.isBanned }).from(users).where(eq(users.id, input.seekerUserId)).limit(1))[0];
+    if (!seeker || seeker.isBanned) throw new Error("This account cannot request a viewing appointment.");
+    const existing = await tx.select({ id: viewingAppointments.id, status: viewingAppointments.status })
+      .from(viewingAppointments)
+      .where(and(eq(viewingAppointments.listingId, input.listingId), eq(viewingAppointments.seekerUserId, input.seekerUserId)));
+    if (existing.some(item => APPOINTMENT_ACTIVE_STATUSES.has(item.status))) {
+      throw new Error("You already have an active viewing request for this listing.");
+    }
+    await tx.insert(viewingAppointments).values({
+      listingId: input.listingId,
+      seekerUserId: input.seekerUserId,
+      agentUserId: listing.agentUserId!,
+      requestedStart: input.requestedStart,
+      requestedEnd: input.requestedEnd,
+      contactPreference: input.contactPreference,
+      privateContact: input.privateContact,
+      seekerNote: input.seekerNote || null,
+    });
+    const appointment = (await tx.select().from(viewingAppointments)
+      .where(and(eq(viewingAppointments.listingId, input.listingId), eq(viewingAppointments.seekerUserId, input.seekerUserId)))
+      .orderBy(desc(viewingAppointments.createdAt)).limit(1))[0];
+    if (!appointment) throw new Error("Unable to save the viewing request.");
+    await tx.insert(viewingAppointmentEvents).values({
+      appointmentId: appointment.id,
+      action: "requested",
+      toStatus: "requested",
+      actorUserId: input.seekerUserId,
+      note: input.seekerNote || null,
+    });
+    return { id: appointment.id, status: appointment.status, requestedStart: appointment.requestedStart, requestedEnd: appointment.requestedEnd };
+  });
+}
+
+function appointmentListingFields() {
+  return {
+    id: viewingAppointments.id,
+    listingId: viewingAppointments.listingId,
+    seekerUserId: viewingAppointments.seekerUserId,
+    agentUserId: viewingAppointments.agentUserId,
+    requestedStart: viewingAppointments.requestedStart,
+    requestedEnd: viewingAppointments.requestedEnd,
+    contactPreference: viewingAppointments.contactPreference,
+    privateContact: viewingAppointments.privateContact,
+    seekerNote: viewingAppointments.seekerNote,
+    agentNote: viewingAppointments.agentNote,
+    status: viewingAppointments.status,
+    respondedAt: viewingAppointments.respondedAt,
+    cancelledAt: viewingAppointments.cancelledAt,
+    outcomeRecordedAt: viewingAppointments.outcomeRecordedAt,
+    createdAt: viewingAppointments.createdAt,
+    listingTitle: listings.title,
+    city: listings.city,
+    neighborhood: listings.neighborhood,
+    landmark: listings.landmark,
+    seekerName: users.name,
+  };
+}
+
+export async function listSeekerViewingAppointments(seekerUserId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select(appointmentListingFields()).from(viewingAppointments)
+    .innerJoin(listings, eq(viewingAppointments.listingId, listings.id))
+    .innerJoin(users, eq(viewingAppointments.seekerUserId, users.id))
+    .where(eq(viewingAppointments.seekerUserId, seekerUserId)).orderBy(desc(viewingAppointments.requestedStart));
+  return rows.map(({ privateContact, seekerName, ...row }) => row);
+}
+
+export async function listAgentViewingAppointments(agentUserId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select(appointmentListingFields()).from(viewingAppointments)
+    .innerJoin(listings, eq(viewingAppointments.listingId, listings.id))
+    .innerJoin(users, eq(viewingAppointments.seekerUserId, users.id))
+    .where(eq(viewingAppointments.agentUserId, agentUserId)).orderBy(desc(viewingAppointments.requestedStart));
+  return rows.map(({ privateContact, ...row }) => ({
+    ...row,
+    seekerContact: APPOINTMENT_CONTACT_VISIBLE_STATUSES.has(row.status) ? privateContact : null,
+  }));
+}
+
+export async function respondToViewingAppointment(input: {
+  agentUserId: number;
+  appointmentId: number;
+  decision: "confirmed" | "declined";
+  note?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async (tx) => {
+    const appointment = (await tx.select().from(viewingAppointments).where(eq(viewingAppointments.id, input.appointmentId)).limit(1))[0];
+    if (!appointment || appointment.agentUserId !== input.agentUserId) throw new Error("Viewing appointment not found.");
+    if (appointment.status !== "requested") throw new Error("Only a new viewing request can be confirmed or declined.");
+    if (input.decision === "confirmed") await getAppointmentEligibleListing(appointment.listingId);
+    const now = new Date();
+    await tx.update(viewingAppointments).set({ status: input.decision, agentNote: input.note || null, respondedAt: now })
+      .where(eq(viewingAppointments.id, appointment.id));
+    await tx.insert(viewingAppointmentEvents).values({
+      appointmentId: appointment.id,
+      action: input.decision,
+      fromStatus: appointment.status,
+      toStatus: input.decision,
+      actorUserId: input.agentUserId,
+      note: input.note || null,
+    });
+    return { success: true, status: input.decision } as const;
+  });
+}
+
+export async function cancelViewingAppointment(input: { userId: number; appointmentId: number; actor: "seeker" | "agent"; note?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async (tx) => {
+    const appointment = (await tx.select().from(viewingAppointments).where(eq(viewingAppointments.id, input.appointmentId)).limit(1))[0];
+    const isOwner = input.actor === "seeker" ? appointment?.seekerUserId === input.userId : appointment?.agentUserId === input.userId;
+    if (!appointment || !isOwner) throw new Error("Viewing appointment not found.");
+    if (!APPOINTMENT_ACTIVE_STATUSES.has(appointment.status)) throw new Error("This viewing appointment can no longer be cancelled.");
+    if (appointment.requestedStart <= new Date()) throw new Error("A viewing that has already started cannot be cancelled here.");
+    const now = new Date();
+    await tx.update(viewingAppointments).set({ status: "cancelled", cancelledAt: now, agentNote: input.actor === "agent" ? (input.note || appointment.agentNote) : appointment.agentNote })
+      .where(eq(viewingAppointments.id, appointment.id));
+    await tx.insert(viewingAppointmentEvents).values({
+      appointmentId: appointment.id,
+      action: input.actor === "seeker" ? "cancelled_by_seeker" : "cancelled_by_agent",
+      fromStatus: appointment.status,
+      toStatus: "cancelled",
+      actorUserId: input.userId,
+      note: input.note || null,
+    });
+    return { success: true } as const;
+  });
+}
+
+export async function recordViewingAppointmentOutcome(input: { agentUserId: number; appointmentId: number; outcome: "completed" | "no_show"; note?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async (tx) => {
+    const appointment = (await tx.select().from(viewingAppointments).where(eq(viewingAppointments.id, input.appointmentId)).limit(1))[0];
+    if (!appointment || appointment.agentUserId !== input.agentUserId) throw new Error("Viewing appointment not found.");
+    if (appointment.status !== "confirmed") throw new Error("Only a confirmed viewing can receive an outcome.");
+    if (appointment.requestedStart > new Date()) throw new Error("A viewing outcome can be recorded only after the requested start time.");
+    const now = new Date();
+    await tx.update(viewingAppointments).set({ status: input.outcome, agentNote: input.note || appointment.agentNote, outcomeRecordedAt: now })
+      .where(eq(viewingAppointments.id, appointment.id));
+    await tx.insert(viewingAppointmentEvents).values({
+      appointmentId: appointment.id,
+      action: input.outcome,
+      fromStatus: appointment.status,
+      toStatus: input.outcome,
+      actorUserId: input.agentUserId,
+      note: input.note || null,
+    });
+    return { success: true, status: input.outcome } as const;
+  });
+}
+
+export async function listAdminViewingAppointments() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: viewingAppointments.id,
+    listingId: viewingAppointments.listingId,
+    status: viewingAppointments.status,
+    requestedStart: viewingAppointments.requestedStart,
+    requestedEnd: viewingAppointments.requestedEnd,
+    createdAt: viewingAppointments.createdAt,
+    city: listings.city,
+    neighborhood: listings.neighborhood,
+  }).from(viewingAppointments).innerJoin(listings, eq(viewingAppointments.listingId, listings.id)).orderBy(desc(viewingAppointments.createdAt));
 }
 
 export async function getAgentProfile(userId: number) {

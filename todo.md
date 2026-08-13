@@ -253,3 +253,29 @@
 - [x] Extend automated tests and responsive visual checks for the premium listing workflows.
 - [ ] Extend the optional temporary demo fixture with a real, clearly-labelled non-production vertical test video before using it for premium-video demonstrations.
 - [x] Update the owner operating guide and risk-response documentation with premium evidence, alert, and badge operating rules.
+
+## Meta WhatsApp Cloud API activation
+
+- [ ] Record the required Meta Cloud API credentials, approved utility-template name, and webhook subscription requirements without storing secrets in source control.
+- [ ] Add server-side Meta Cloud API delivery for eligible provider-pending match-alert records, with idempotency, timeouts, and auditable provider message references.
+- [ ] Add a verified Meta webhook endpoint that validates the subscription challenge and authenticates signed delivery and message events.
+- [ ] Process Meta delivery-status and incoming-message events into the alert audit record without exposing seeker phone numbers or message content publicly.
+- [ ] Define an evidence-based Responsive Host badge from real, consent-aware WhatsApp response timing rather than inferred or fabricated activity.
+- [ ] Add automated tests for disabled-provider safety, template delivery, webhook verification, signature rejection, delivery transitions, and responsiveness eligibility.
+- [ ] Update configuration and owner documentation with the exact Meta Business setup, template approval, webhook registration, and privacy obligations.
+
+## Provider-independent premium refinement
+
+- [ ] Keep live Meta WhatsApp alert delivery and Responsive Host evaluation disabled until the owner completes Meta account verification and provides approved credentials.
+- [ ] Add a clearly labelled, non-production vertical walk-through demonstration fixture so the premium video experience can be reviewed without representing synthetic material as a real available home.
+- [ ] Verify the premium discovery experience with the labelled demonstration fixture and retain the same evidence threshold for every real verified listing.
+
+## Premium viewing appointment concierge
+
+- [x] Define appointment eligibility, privacy, cancellation, no-show, and contact-disclosure rules for verified live listings.
+- [x] Add appointment persistence and protected seeker, Agent, Moderator, and Admin data access boundaries.
+- [x] Allow authenticated seekers to request a time window and private contact preference from an eligible property detail.
+- [x] Allow the responsible Agent to confirm, decline, cancel, or record a viewing outcome without revealing exact access details before confirmation.
+- [x] Add accountable appointment histories for the seeker and Agent, plus Moderator/Admin oversight limited to operationally necessary data.
+- [x] Add abuse controls for duplicate requests, stale listings, suspended accounts, inappropriate transitions, and time-window validation.
+- [x] Add regression tests, responsive checks, and operating-guide instructions for the viewing appointment workflow.
