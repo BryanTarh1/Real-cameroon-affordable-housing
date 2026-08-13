@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import { Banknote, Landmark, ShieldAlert, SlidersHorizontal, UsersRound, X } from "lucide-react";
+import { Banknote, Download, Landmark, Loader2, ShieldAlert, SlidersHorizontal, UsersRound, X } from "lucide-react";
 import { toast } from "sonner";
 import "./launch-refinements.css";
 
 const formatXaf = (value: number) => `${new Intl.NumberFormat("en-US").format(value)} XAF`;
+const csvCell = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
 type SettingsDraft = { agentAccessFeeXaf: number; listingPassFeeXaf: number; featuredPinFeeXaf: number; physicalVerificationFeeXaf: number; fieldModeratorShareBps: number };
 
 export default function AdminPortal({ onClose }: { onClose: () => void }) {
@@ -22,10 +23,11 @@ export default function AdminPortal({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     if (settings.data) setDraft({ agentAccessFeeXaf: settings.data.agentAccessFeeXaf, listingPassFeeXaf: settings.data.listingPassFeeXaf, featuredPinFeeXaf: settings.data.featuredPinFeeXaf, physicalVerificationFeeXaf: settings.data.physicalVerificationFeeXaf, fieldModeratorShareBps: settings.data.fieldModeratorShareBps });
   }, [settings.data]);
-  const updateSettings = trpc.admin.updateSettings.useMutation({ onSuccess: () => { utils.admin.settings.invalidate(); toast.success("Commercial settings saved and audited."); } });
-  const setBan = trpc.admin.setUserBan.useMutation({ onSuccess: () => { utils.admin.users.invalidate(); toast.success("Account access record updated."); } });
+  const updateSettings = trpc.admin.updateSettings.useMutation({ onSuccess: () => { utils.admin.settings.invalidate(); toast.success("Commercial settings saved and audited."); }, onError: error => toast.error(error.message) });
+  const setBan = trpc.admin.setUserBan.useMutation({ onSuccess: () => { utils.admin.users.invalidate(); toast.success("Account access record updated."); }, onError: error => toast.error(error.message) });
   const setRole = trpc.admin.setUserRole.useMutation({ onSuccess: () => { utils.admin.users.invalidate(); toast.success("Trusted role assignment saved and audited."); }, onError: error => toast.error(error.message) });
   const setNumber = (key: keyof SettingsDraft, raw: string) => setDraft(current => current ? { ...current, [key]: Number(raw) || 0 } : current);
+  const exportLedger = () => { const rows = commissionLedger.data ?? []; const csv = [["verification_order_id","listing_id","moderator","gross_xaf","moderator_xaf","platform_xaf","moderator_share_percent","status","recorded_at"], ...rows.map(x => [x.verificationOrderId,x.listingId,x.moderatorName ?? `Moderator #${x.moderatorUserId}`,x.grossAmountXaf,x.fieldModeratorAmountXaf,x.platformAmountXaf,(x.fieldModeratorShareBps / 100).toFixed(0),x.status,new Date(x.createdAt).toISOString()])].map(row => row.map(csvCell).join(",")).join("\n"); const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })); const link = document.createElement("a"); link.href = url; link.download = "ahc-verification-commission-ledger.csv"; link.click(); URL.revokeObjectURL(url); toast.success("Commission ledger CSV downloaded."); };
 
   if (!enabled) return <section className="agent-drawer admin-drawer"><button className="drawer-close" onClick={onClose}><X size={19} /></button><span className="section-overline">AHC / Admin</span><h2>Platform management is restricted.</h2><p>Only the designated AHC administrator can manage platform fees, cash-flow records, and account access. Field Moderators use <a href="/operations">Operations</a> for on-ground review work.</p></section>;
 

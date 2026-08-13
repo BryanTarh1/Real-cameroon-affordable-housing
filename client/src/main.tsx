@@ -3,6 +3,7 @@ import { COOKIE_NAME } from '@shared/const';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
 import { createRoot } from "react-dom/client";
+import { toast } from "sonner";
 import superjson from "superjson";
 import App from "./App";
 import "./index.css";
@@ -20,6 +21,7 @@ queryClient.getMutationCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.mutation.state.error;
     console.error("[API Mutation Error]", error);
+    toast.error(error instanceof Error ? error.message : "Your submission could not be completed. Please try again.");
   }
 });
 

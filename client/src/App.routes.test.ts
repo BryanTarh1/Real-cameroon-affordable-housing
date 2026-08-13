@@ -12,8 +12,9 @@ vi.mock("./pages/Home", () => ({ default: () => "Public marketplace" }));
 vi.mock("./pages/Admin", () => ({ default: () => "Admin management controls" }));
 vi.mock("./pages/Operations", () => ({ default: () => "Field Moderator operations" }));
 vi.mock("./pages/ModeratorAccess", () => ({ default: () => "Field Moderator sign in" }));
-vi.mock("./contexts/ThemeContext", () => ({ ThemeProvider: ({ children }: { children: unknown }) => children }));
+vi.mock("./contexts/ThemeContext", () => ({ ThemeProvider: ({ children }: { children: unknown }) => children, useTheme: () => ({ theme: "light", toggleTheme: vi.fn(), switchable: true }) }));
 vi.mock("./components/ErrorBoundary", () => ({ default: ({ children }: { children: unknown }) => children }));
+vi.mock("./components/CommissionLedgerCsvExport", () => ({ CommissionLedgerCsvExport: () => null }));
 vi.mock("@/components/ui/tooltip", () => ({ TooltipProvider: ({ children }: { children: unknown }) => children }));
 vi.mock("@/components/ui/sonner", () => ({ Toaster: () => null }));
 

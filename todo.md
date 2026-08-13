@@ -211,3 +211,11 @@
 - [x] Prepare a portable MySQL schema-and-demo-data SQL package using the current Drizzle migrations and clearly labelled non-production fixtures.
 - [x] Update local setup instructions for importing the supplied SQL package and running the application.
 - [x] Inspect the archive and SQL package for completeness, portability, and secret-free contents before delivery.
+
+## Reusable workflow skill and usability improvements
+
+- [x] Create and validate a reusable skill for packaging a full-stack AHC-style source and MySQL database delivery without secrets.
+- [x] Add a persistent accessible dark-mode preference and visible theme toggle across public and protected AHC interfaces.
+- [x] Add a protected CSV export action for an authorised records table, with correct field escaping and no private evidence URLs.
+- [x] Add clear pending states, loading spinners, and success/error toast feedback to the relevant form and workflow submissions.
+- [x] Add regression tests and desktop/mobile visual validation for the new theme, export, and submission-feedback behaviors.

@@ -9,6 +9,8 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
 import React, { useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { ThemeToggle } from "./components/ThemeToggle";
+import { CommissionLedgerCsvExport } from "./components/CommissionLedgerCsvExport";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Admin from "./pages/Admin";
@@ -67,9 +69,11 @@ function Router() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="light">
+      <ThemeProvider defaultTheme="light" switchable>
         <TooltipProvider>
           <Toaster position="bottom-right" />
+          <ThemeToggle />
+          <CommissionLedgerCsvExport />
           <Router />
         </TooltipProvider>
       </ThemeProvider>
