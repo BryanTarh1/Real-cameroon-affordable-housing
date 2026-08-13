@@ -267,8 +267,8 @@
 ## Provider-independent premium refinement
 
 - [ ] Keep live Meta WhatsApp alert delivery and Responsive Host evaluation disabled until the owner completes Meta account verification and provides approved credentials.
-- [ ] Add a clearly labelled, non-production vertical walk-through demonstration fixture so the premium video experience can be reviewed without representing synthetic material as a real available home.
-- [ ] Verify the premium discovery experience with the labelled demonstration fixture and retain the same evidence threshold for every real verified listing.
+- [x] Add a clearly labelled, non-production vertical walk-through demonstration fixture so the premium video experience can be reviewed without representing synthetic material as a real available home.
+- [x] Verify the premium discovery experience with the labelled demonstration fixture and retain the same evidence threshold for every real verified listing.
 
 ## Premium viewing appointment concierge
 
