@@ -311,3 +311,11 @@
 - [x] Ensure all protected backend procedures remain role-authorized independently of frontend route guards and clear local sessions on logout.
 - [x] Add authentication regression tests and desktop/mobile protected-route checks for signed-out, wrong-role, and valid-role states.
 - [x] Create a clear web document describing every platform role, provision path, authentication method, permissions, session boundary, and prohibited access.
+
+## Verified varied non-production accounts
+
+- [x] Audit the current database for the previously supplied AHC test accounts and their actual role, credential, paid-access, and listing-credit state.
+- [x] Create or repair clearly labelled non-production Seeker, Agent, Owner applicant, Field Moderator, and Admin accounts with distinct passwords and valid bcrypt-backed local credentials.
+- [x] Configure one named non-production Agent with active paid access, reconciled platform-service payment, and usable listing credits; retain a contrasting Agent state where useful for testing.
+- [x] Validate each credential against the local sign-in path and verify the intended role-specific workspace or business-access boundary.
+- [x] Update the non-production test-account reference, checkpoint the fixture update, and deliver the exact verified credentials with a cleanup warning.

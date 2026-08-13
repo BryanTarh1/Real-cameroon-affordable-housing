@@ -1,21 +1,18 @@
-import crypto from "node:crypto";
-import { promisify } from "node:util";
+import { hash } from "bcryptjs";
 import mysql from "mysql2/promise";
 
-const scrypt = promisify(crypto.scrypt);
 const DEMO_DOMAIN = "@test.ahc.local";
 const PASSWORDS = {
   seeker: "Seeker#2026!",
-  agent: "Agent#2026!",
+  agentPaid: "AgentPaid#2026!",
+  agentPending: "AgentPending#2026!",
   owner: "Owner#2026!",
   moderator: "Moderator#2026!",
   admin: "Admin#2026!",
 };
 
 async function hashPassword(password) {
-  const salt = crypto.randomBytes(16).toString("base64url");
-  const derived = await scrypt(password, salt, 64);
-  return `scrypt$${salt}$${derived.toString("base64url")}`;
+  return hash(password, 12);
 }
 
 function addDays(days) {
@@ -66,10 +63,17 @@ async function main() {
     });
     const agentId = await insertUser(connection, {
       openId: "demo_agent_ahc_2026",
-      name: "DEMO Agent — AHC Test",
-      email: `agent${DEMO_DOMAIN}`,
+      name: "DEMO Paid Agent — AHC Test",
+      email: `agent-paid${DEMO_DOMAIN}`,
       role: "user",
-      password: PASSWORDS.agent,
+      password: PASSWORDS.agentPaid,
+    });
+    const pendingAgentId = await insertUser(connection, {
+      openId: "demo_agent_pending_ahc_2026",
+      name: "DEMO Pending Agent — AHC Test",
+      email: `agent-pending${DEMO_DOMAIN}`,
+      role: "user",
+      password: PASSWORDS.agentPending,
     });
     const ownerId = await insertUser(connection, {
       openId: "demo_owner_ahc_2026",
@@ -88,7 +92,11 @@ async function main() {
 
     await connection.execute(
       "INSERT INTO `agent_profiles` (`userId`, `publicName`, `agencyName`, `whatsappPhone`, `subscriptionTier`, `subscriptionStatus`, `subscriptionExpiresAt`) VALUES (?, ?, ?, ?, 'growth', 'active', ?)",
-      [agentId, "DEMO Agent — AHC Test", "DEMO Test Realty", "237690000001", addDays(30)],
+      [agentId, "DEMO Paid Agent — AHC Test", "DEMO Test Realty", "237690000001", addDays(30)],
+    );
+    await connection.execute(
+      "INSERT INTO `agent_profiles` (`userId`, `publicName`, `agencyName`, `whatsappPhone`, `subscriptionTier`, `subscriptionStatus`) VALUES (?, ?, ?, ?, 'access', 'pending_payment')",
+      [pendingAgentId, "DEMO Pending Agent — AHC Test", "DEMO Test Realty", "237690000006"],
     );
     await connection.execute(
       "INSERT INTO `moderator_profiles` (`userId`, `displayName`, `cityCoverage`, `status`, `createdByUserId`) VALUES (?, ?, 'Yaoundé & Douala', 'active', ?)",
@@ -111,9 +119,9 @@ async function main() {
     const reviewId = "demo-review-biyemassi";
     const changesId = "demo-changes-bonapriso";
     const listingRows = [
-      [publishedId, "TEST DATA — Verified 2-bedroom near Bastos landmark", "Yaoundé", "Bastos", "Approx. 300 m from Bastos roundabout", "Apartment", "Small family", "published", agentId, "DEMO Agent — AHC Test", "physical_verified", "3.8669", "11.5174", 300, 1, addDays(14), addDays(30), "TEST DATA: passed field verification", adminId],
-      [reviewId, "TEST DATA — 1-bedroom awaiting moderation in Biyem-Assi", "Yaoundé", "Biyem-Assi", "Approx. 250 m from Carrefour Biyem-Assi", "Studio", "Single professional", "under_review", agentId, "DEMO Agent — AHC Test", "remote_checked", "3.8424", "11.5001", 250, 0, null, null, "TEST DATA: waiting for first publication review", null],
-      [changesId, "TEST DATA — Family home needing correction in Bonapriso", "Douala", "Bonapriso", "Approx. 400 m from Avenue de Gaulle", "House", "Family", "changes_requested", agentId, "DEMO Agent — AHC Test", "unverified", "4.0413", "9.6985", 400, 0, null, null, "TEST DATA: clarify the advance-month cost before approval", moderatorId],
+      [publishedId, "TEST DATA — Verified 2-bedroom near Bastos landmark", "Yaoundé", "Bastos", "Approx. 300 m from Bastos roundabout", "Apartment", "Small family", "published", agentId, "DEMO Paid Agent — AHC Test", "physical_verified", "3.8669", "11.5174", 300, 1, addDays(14), addDays(30), "TEST DATA: passed field verification", adminId],
+      [reviewId, "TEST DATA — 1-bedroom awaiting moderation in Biyem-Assi", "Yaoundé", "Biyem-Assi", "Approx. 250 m from Carrefour Biyem-Assi", "Studio", "Single professional", "under_review", agentId, "DEMO Paid Agent — AHC Test", "remote_checked", "3.8424", "11.5001", 250, 0, null, null, "TEST DATA: waiting for first publication review", null],
+      [changesId, "TEST DATA — Family home needing correction in Bonapriso", "Douala", "Bonapriso", "Approx. 400 m from Avenue de Gaulle", "House", "Family", "changes_requested", agentId, "DEMO Paid Agent — AHC Test", "unverified", "4.0413", "9.6985", 400, 0, null, null, "TEST DATA: clarify the advance-month cost before approval", moderatorId],
     ];
     for (const row of listingRows) {
       const [id, title, city, neighborhood, landmark, propertyType, householdFit, status, agentUserId, agentNameSnapshot, verificationStatus, latitude, longitude, mapRadiusM, isFeatured, verificationExpiresAt, featuredUntil, reviewSummary, reviewedByUserId] = row;
@@ -208,7 +216,8 @@ async function main() {
     await connection.commit();
     console.table([
       { role: "Seeker", email: `seeker${DEMO_DOMAIN}`, password: PASSWORDS.seeker },
-      { role: "Agent", email: `agent${DEMO_DOMAIN}`, password: PASSWORDS.agent },
+      { role: "Paid Agent", email: `agent-paid${DEMO_DOMAIN}`, password: PASSWORDS.agentPaid },
+      { role: "Pending-payment Agent", email: `agent-pending${DEMO_DOMAIN}`, password: PASSWORDS.agentPending },
       { role: "Owner applicant", email: `owner${DEMO_DOMAIN}`, password: PASSWORDS.owner },
       { role: "Field Moderator", email: `moderator${DEMO_DOMAIN}`, password: PASSWORDS.moderator },
       { role: "Admin", email: `admin${DEMO_DOMAIN}`, password: PASSWORDS.admin },
