@@ -26,3 +26,6 @@ SOURCE drizzle/0008_flat_obadiah_stane.sql;
 SOURCE drizzle/0009_sturdy_rictor.sql;
 SOURCE drizzle/0010_sticky_jetstream.sql;
 SOURCE drizzle/0011_loose_phantom_reporter.sql;
+SOURCE drizzle/0012_loving_patch.sql;
+SOURCE drizzle/0013_dusty_pandemic.sql;
+SOURCE drizzle/0014_productive_firelord.sql;

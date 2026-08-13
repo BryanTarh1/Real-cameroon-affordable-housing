@@ -9,9 +9,10 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { archiveStaleListingHandler } from "../listingFreshness";
-import { createWhatsAppLeadEvent, getPublicListingContact } from "../db";
+import { createWhatsAppLeadEvent, getPublicListingContact, registerWalkthroughVideo } from "../db";
 import { authenticateLocalRequest } from "./localAuth";
 import { sdk } from "./sdk";
+import { storagePut } from "../storage";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -50,6 +51,56 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   app.post("/api/scheduled/archive-stale-listings", archiveStaleListingHandler);
+  app.post("/api/operations/verification-orders/:verificationOrderId/walkthrough", express.raw({ type: ["video/mp4", "video/webm"], limit: "35mb" }), async (req, res) => {
+    let user = await authenticateLocalRequest(req);
+    if (!user) {
+      try {
+        user = await sdk.authenticateRequest(req);
+      } catch {
+        user = null;
+      }
+    }
+    if (!user || user.isBanned) {
+      res.status(401).json({ error: "Sign in as the assigned Field Moderator to upload walkthrough evidence." });
+      return;
+    }
+    if (user.role !== "moderator") {
+      res.status(403).json({ error: "Only a Field Moderator can submit on-site walk-through evidence." });
+      return;
+    }
+    const verificationOrderId = Number(req.params.verificationOrderId);
+    const durationSeconds = Number(req.get("x-ahc-duration-seconds"));
+    const listingMatch = req.get("x-ahc-listing-match");
+    const contentType = req.get("content-type") ?? "";
+    if (!Number.isInteger(verificationOrderId) || verificationOrderId <= 0 || !Number.isInteger(durationSeconds) || durationSeconds < 15 || durationSeconds > 30) {
+      res.status(400).json({ error: "Provide a 15–30 second vertical walkthrough for a valid verification request." });
+      return;
+    }
+    if (!req.body || !Buffer.isBuffer(req.body) || req.body.length === 0 || req.body.length > 35 * 1024 * 1024) {
+      res.status(400).json({ error: "Upload a non-empty MP4 or WebM video of 35 MB or less." });
+      return;
+    }
+    if (!['matches', 'partially_matches', 'does_not_match'].includes(listingMatch ?? "")) {
+      res.status(400).json({ error: "Record the moderator's listing-match assessment with the video." });
+      return;
+    }
+    const extension = contentType === "video/webm" ? "webm" : "mp4";
+    try {
+      const uploaded = await storagePut(`field-verifications/${user.id}/walkthrough-${verificationOrderId}.${extension}`, req.body, contentType);
+      const result = await registerWalkthroughVideo({
+        operatorUserId: user.id,
+        verificationOrderId,
+        storageKey: uploaded.key,
+        mediaUrl: uploaded.url,
+        durationSeconds,
+        orientation: "vertical",
+        listingMatch: listingMatch as "matches" | "partially_matches" | "does_not_match",
+      });
+      res.status(201).json({ success: true, ...result, mediaUrl: uploaded.url });
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : "The walkthrough could not be saved." });
+    }
+  });
   app.get("/api/public/listings/:listingId/share-card.svg", async (req, res) => {
     const listing = await getPublicListingContact(req.params.listingId);
     if (!listing) {

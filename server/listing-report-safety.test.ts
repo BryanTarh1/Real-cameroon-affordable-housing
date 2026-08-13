@@ -14,6 +14,7 @@ describe("listing report safety hold", () => {
 
   it("does not auto-hold other report categories without staff review", () => {
     expect(shouldApplyListingSafetyHold("misleading_details", 10)).toBe(false);
+    expect(shouldApplyListingSafetyHold("unofficial_fee", 10)).toBe(false);
     expect(shouldApplyListingSafetyHold("other", 10)).toBe(false);
   });
 

@@ -127,6 +127,7 @@ export const listings = mysqlTable("listings", {
   neighborhood: varchar("neighborhood", { length: 100 }).notNull(),
   landmark: text("landmark").notNull(),
   propertyType: varchar("propertyType", { length: 50 }).notNull(),
+  bedrooms: int("bedrooms").default(0).notNull(),
   householdFit: varchar("householdFit", { length: 80 }),
   availableFrom: date("availableFrom").notNull(),
   status: mysqlEnum("status", ["draft", "under_review", "changes_requested", "rejected", "published", "needs_reconfirmation", "suspended", "archived"]).default("under_review").notNull(),
@@ -277,6 +278,93 @@ export const verificationEvidence = mysqlTable("verification_evidence", {
   observation: text("observation").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => [index("verification_evidence_order_idx").on(table.verificationOrderId, table.createdAt)]);
+
+/**
+ * A moderator-captured, short vertical viewing clip. It becomes public only after
+ * the linked field visit has passed and the listing itself remains published.
+ * The storage key is retained for staff accountability; public searches receive
+ * only the published media URL.
+ */
+export const listingWalkthroughVideos = mysqlTable("listing_walkthrough_videos", {
+  id: int("id").autoincrement().primaryKey(),
+  listingId: varchar("listingId", { length: 32 }).notNull().unique().references(() => listings.id, { onDelete: "cascade" }),
+  verificationOrderId: int("verificationOrderId").notNull().unique().references(() => verificationOrders.id, { onDelete: "cascade" }),
+  capturedByUserId: int("capturedByUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  storageKey: text("storageKey").notNull(),
+  mediaUrl: text("mediaUrl").notNull(),
+  durationSeconds: int("durationSeconds").notNull(),
+  orientation: mysqlEnum("orientation", ["vertical", "other"]).default("vertical").notNull(),
+  listingMatch: mysqlEnum("listingMatch", ["matches", "partially_matches", "does_not_match"]).notNull(),
+  status: mysqlEnum("status", ["captured", "published", "withheld"]).default("captured").notNull(),
+  capturedAt: timestamp("capturedAt").defaultNow().notNull(),
+  publishedAt: timestamp("publishedAt"),
+}, (table) => [index("listing_walkthroughs_public_idx").on(table.status, table.listingId)]);
+
+/**
+ * Structured, time-bound Field Moderator observations for everyday access. These
+ * are observations from the visit, not absolute infrastructure guarantees or
+ * exact-address disclosure.
+ */
+export const listingNeighborhoodAssessments = mysqlTable("listing_neighborhood_assessments", {
+  id: int("id").autoincrement().primaryKey(),
+  listingId: varchar("listingId", { length: 32 }).notNull().unique().references(() => listings.id, { onDelete: "cascade" }),
+  verificationOrderId: int("verificationOrderId").notNull().unique().references(() => verificationOrders.id, { onDelete: "cascade" }),
+  assessedByUserId: int("assessedByUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  waterAccess: mysqlEnum("waterAccess", ["borehole_on_site", "water_storage_seen", "public_network_observed", "not_confirmed"]).default("not_confirmed").notNull(),
+  powerReliability: mysqlEnum("powerReliability", ["backup_seen", "prepaid_meter_seen", "local_low_outage_assessment", "local_outage_caution", "not_confirmed"]).default("not_confirmed").notNull(),
+  roadAccess: mysqlEnum("roadAccess", ["tarred_to_gate", "tarred_nearby", "dirt_track_to_gate", "not_confirmed"]).default("not_confirmed").notNull(),
+  taxiWalkMinutes: int("taxiWalkMinutes"),
+  junctionName: varchar("junctionName", { length: 100 }),
+  junctionMinutes: int("junctionMinutes"),
+  observationNote: text("observationNote").notNull(),
+  assessedAt: timestamp("assessedAt").defaultNow().notNull(),
+}, (table) => [index("listing_neighborhood_assessments_listing_idx").on(table.listingId)]);
+
+/**
+ * A seeker's consented criteria for a future property notice. Phone numbers are
+ * not exposed in public search or Agent views and consent can be withdrawn.
+ */
+export const seekerMatchAlertPreferences = mysqlTable("seeker_match_alert_preferences", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  whatsappPhone: varchar("whatsappPhone", { length: 20 }).notNull(),
+  city: varchar("city", { length: 50 }).notNull(),
+  neighborhood: varchar("neighborhood", { length: 100 }),
+  minBedrooms: int("minBedrooms").default(0).notNull(),
+  maxMonthlyRent: int("maxMonthlyRent"),
+  maxMoveInCash: int("maxMoveInCash"),
+  active: boolean("active").default(true).notNull(),
+  consentVersion: varchar("consentVersion", { length: 32 }).default("2026-08-13").notNull(),
+  consentedAt: timestamp("consentedAt").defaultNow().notNull(),
+  revokedAt: timestamp("revokedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [index("seeker_match_alert_preferences_user_idx").on(table.userId, table.active)]);
+
+/**
+ * One auditable potential alert per matching preference and approved listing.
+ * Provider states describe delivery only and never imply a response, viewing, or
+ * tenancy conversion.
+ */
+export const matchAlertDeliveries = mysqlTable("match_alert_deliveries", {
+  id: int("id").autoincrement().primaryKey(),
+  preferenceId: int("preferenceId").notNull().references(() => seekerMatchAlertPreferences.id, { onDelete: "cascade" }),
+  listingId: varchar("listingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
+  recipientUserId: int("recipientUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  status: mysqlEnum("status", ["provider_pending", "queued", "sent", "delivered", "read", "failed", "suppressed"]).default("provider_pending").notNull(),
+  provider: varchar("provider", { length: 64 }).default("unconfigured").notNull(),
+  providerMessageId: varchar("providerMessageId", { length: 160 }),
+  suppressionReason: text("suppressionReason"),
+  queuedAt: timestamp("queuedAt").defaultNow().notNull(),
+  sentAt: timestamp("sentAt"),
+  deliveredAt: timestamp("deliveredAt"),
+  readAt: timestamp("readAt"),
+  failedAt: timestamp("failedAt"),
+}, (table) => [
+  uniqueIndex("match_alert_deliveries_preference_listing_idx").on(table.preferenceId, table.listingId),
+  index("match_alert_deliveries_status_idx").on(table.status, table.queuedAt),
+  index("match_alert_deliveries_user_idx").on(table.recipientUserId, table.queuedAt),
+]);
 
 /**
  * A statistically selected, independent second field visit. It is private to

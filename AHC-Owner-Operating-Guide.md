@@ -167,3 +167,21 @@ AHC local accounts use their own signed session and password protection. Seekers
 | What proof is required before a physical-verification outcome? | At least two proof images, including one exterior image, with a factual observation and a listing-match assessment for each item. The requirement applies to both passed and failed outcomes. |
 | Why use the same domain? | One domain and codebase reduce maintenance and preserve one audit trail. Security comes from strict backend role checks, not from running a second public website. |
 | How do we add staff after the reset? | Each person first creates a normal AHC account. The retained owner Admin then opens `/admin` privately and uses **Trusted staff authority** to assign Moderator or Admin access. |
+
+## 7. Premium verified discovery and alert operations
+
+AHC’s premium presentation is built on **field evidence, not styling alone**. A premium walk-through, neighborhood-essential badge, cost-guarantee seal, and host credential must always be derived from recorded AHC data. Staff must never manually invent a badge, response-time claim, review, rating, location claim, or video record.
+
+| Control | Mandatory operating rule | What a seeker sees |
+|---|---|---|
+| Moderator walk-through | For a **passed** physical verification, the assigned Field Moderator must capture and upload one unedited **vertical 15–30 second** MP4 or WebM on the claimed visit, together with the required proof images and a listing-match assessment. The server accepts only the assigned Moderator’s video and publishes it only after the pass. | A premium vertical walk-through rail that identifies it as Field Moderator-verified. Exact compound location remains protected. |
+| Neighborhood essentials | The Moderator records only direct observations or cautious local assessments for water access, power, road access, approximate taxi walk, junction name, and travel minutes. “Not confirmed” is always allowed and must be used instead of guessing. | Compact practical badges, such as borehole observed, tarred road nearby, or a clearly qualified taxi-walk estimate. |
+| Zero-Surprise Total Cash | The seal is available only to a live physically verified listing with no open inaccurate-cost or unofficial-fee concern. A new relevant report immediately removes the seal pending review. | A statement that the itemised move-in total is protected while the listing remains verified, plus a direct report path for added platform or dossier fees. |
+| Direct-owner and transparency credentials | **Verified Direct Owner** is earned only from an approved Owner onboarding package. **Price-transparent record** is displayed only where there is no open cost-related report. AHC does not show invented star ratings, reviews, response times, or performance claims. | Evidence-based host credentials, never a fabricated reputation score. |
+| Match alerts | A signed-in Seeker may opt in with a WhatsApp number and city/budget criteria. The number is kept for alert delivery only, may be revoked at any time, and is never shown to Agents or landlords. AHC queues a potential alert only after a listing is moderator-approved and matches the chosen criteria. | A private alert-preference panel and delivery history. Until a WhatsApp Business provider is configured, delivery remains explicitly marked **provider activation pending**. |
+
+### WhatsApp alert activation boundary
+
+Do **not** activate live WhatsApp messages through personal accounts, browser automation, or an unapproved messaging gateway. The owner must select and configure an approved WhatsApp Business provider with an authorised business account, recipient opt-in, an approved utility template, secure access credentials, delivery-status webhook verification, opt-out handling, and a documented retention policy. The implementation is intentionally provider-ready but does not send messages until that controlled configuration is completed.
+
+> **Cost-protection rule:** AHC never asks a Seeker to pay a platform or dossier fee through an Agent. A legitimate AHC charge must be supported by an official AHC receipt code. Seekers should report a requested unofficial fee before paying it; staff must investigate the report fairly before any permanent account action.

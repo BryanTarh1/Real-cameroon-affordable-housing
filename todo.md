@@ -236,3 +236,20 @@
 - [x] Add safe property-specific OpenGraph metadata for direct listing links without exposing exact locations, documents, evidence, or contact details.
 - [x] Add regression tests and responsive validation for report integrity, payout approval, and property-share metadata behavior.
 - [x] Update the risk-response operating guide and Word report with the new launch safeguards.
+
+## Premium trust-led marketplace upgrade
+
+- [x] Define a moderation-first 15–30 second vertical walk-through video standard, including privacy, retention, and publication eligibility.
+- [x] Add stored Field Moderator video evidence and structured neighborhood-essentials observations to the listing-verification data model.
+- [x] Require an eligible moderator-captured vertical walk-through video before a listing can receive the premium verified-video presentation.
+- [x] Add a premium vertical video discovery experience alongside the standard home search without exposing exact compound locations.
+- [x] Add verified neighborhood essentials and commute badges for water, power, road access, taxi-walk context, and junction proximity.
+- [x] Add a rules-based Zero-Surprise Total Cash seal that revokes eligibility on a relevant open pricing or unofficial-fee concern pending fair staff review.
+- [x] Add evidence-based Verified Direct Owner and price-transparency badges without fabricating reviews, ratings, or response metrics.
+- [ ] Add a Responsive Host badge only after provider-backed WhatsApp response events can substantiate it.
+- [x] Add authenticated seeker match-alert preferences with explicit WhatsApp consent, preference controls, and an auditable delivery queue.
+- [ ] Assess and configure an approved WhatsApp Business delivery provider before enabling live outbound alert messages.
+- [x] Trigger or queue consented match alerts only after a moderator-approved listing becomes publicly available.
+- [x] Extend automated tests and responsive visual checks for the premium listing workflows.
+- [ ] Extend the optional temporary demo fixture with a real, clearly-labelled non-production vertical test video before using it for premium-video demonstrations.
+- [x] Update the owner operating guide and risk-response documentation with premium evidence, alert, and badge operating rules.

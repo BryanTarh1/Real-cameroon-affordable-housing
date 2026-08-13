@@ -8,9 +8,11 @@ import {
   InsertUser,
   listingCosts,
   listingCredits,
+  listingNeighborhoodAssessments,
   leadEvents,
   listingPromotions,
   listingReviewEvents,
+  listingWalkthroughVideos,
   listings,
   localCredentials,
   moderatorProfiles,
@@ -18,6 +20,8 @@ import {
   paymentOrders,
   platformSettings,
   reports,
+  seekerMatchAlertPreferences,
+  matchAlertDeliveries,
   users,
   verificationEvents,
   verificationEvidence,
@@ -341,6 +345,7 @@ function mapListing(row: any) {
     neighborhood: row.neighborhood,
     landmark: row.landmark,
     propertyType: row.propertyType,
+    bedrooms: row.bedrooms,
     householdFit: row.householdFit,
     availableFrom: row.availableFrom,
     lastReconfirmed: row.lastReconfirmed,
@@ -348,6 +353,29 @@ function mapListing(row: any) {
     featured: Boolean(row.isFeatured) && (!row.featuredUntil || new Date(row.featuredUntil) > new Date()),
     verificationStatus: row.verificationStatus,
     photosCount: row.photosCount,
+    walkthrough: row.walkthroughUrl && row.walkthroughStatus === "published" ? {
+      url: row.walkthroughUrl,
+      durationSeconds: row.walkthroughDurationSeconds,
+      verifiedAt: row.walkthroughPublishedAt,
+    } : null,
+    neighborhoodEssentials: row.neighborhoodAssessmentId ? {
+      waterAccess: row.waterAccess,
+      powerReliability: row.powerReliability,
+      roadAccess: row.roadAccess,
+      taxiWalkMinutes: row.taxiWalkMinutes,
+      junctionName: row.junctionName,
+      junctionMinutes: row.junctionMinutes,
+      assessedAt: row.assessedAt,
+    } : null,
+    trust: {
+      guaranteedTotalCash: row.verificationStatus === "physical_verified" && !Boolean(row.hasOpenPricingConcern),
+      guaranteeRule: "The itemized total is protected while this verified listing is active. Report any added platform or dossier fee before paying.",
+      badges: [
+        ...(Boolean(row.isVerifiedDirectOwner) ? [{ code: "verified_direct_owner", label: "Verified Direct Owner" }] : []),
+        ...(!Boolean(row.hasOpenPricingConcern) ? [{ code: "price_transparent", label: "Price-transparent record" }] : []),
+      ],
+      responseMetricAvailable: false,
+    },
     agent: { name: row.publicName ?? row.agentNameSnapshot, whatsappPhone: row.whatsappPhone ?? null },
     costs: { ...costs, totalMoveInCashRequired: calculateTotalMoveInCash(costs) },
   };
@@ -360,7 +388,7 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
   const cutoff = new Date(Date.now() - FRESHNESS_WINDOW_DAYS * 24 * 60 * 60 * 1000);
   const rows = await db.select({
     id: listings.id, title: listings.title, city: listings.city, neighborhood: listings.neighborhood,
-    landmark: listings.landmark, propertyType: listings.propertyType, householdFit: listings.householdFit,
+    landmark: listings.landmark, propertyType: listings.propertyType, bedrooms: listings.bedrooms, householdFit: listings.householdFit,
     availableFrom: listings.availableFrom, lastReconfirmed: listings.lastReconfirmed,
     publicLatitude: listings.publicLatitude, publicLongitude: listings.publicLongitude, mapRadiusM: listings.mapRadiusM,
     isFeatured: listings.isFeatured, featuredUntil: listings.featuredUntil, verificationStatus: listings.verificationStatus,
@@ -369,9 +397,20 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
     securityDeposit: listingCosts.securityDeposit, agencyFee: listingCosts.agencyFee,
     serviceFee: listingCosts.serviceFee, firstMonthUtilities: listingCosts.firstMonthUtilities,
     publicName: agentProfiles.publicName, whatsappPhone: agentProfiles.whatsappPhone,
+    walkthroughUrl: listingWalkthroughVideos.mediaUrl, walkthroughStatus: listingWalkthroughVideos.status,
+    walkthroughDurationSeconds: listingWalkthroughVideos.durationSeconds, walkthroughPublishedAt: listingWalkthroughVideos.publishedAt,
+    neighborhoodAssessmentId: listingNeighborhoodAssessments.id,
+    waterAccess: listingNeighborhoodAssessments.waterAccess, powerReliability: listingNeighborhoodAssessments.powerReliability,
+    roadAccess: listingNeighborhoodAssessments.roadAccess, taxiWalkMinutes: listingNeighborhoodAssessments.taxiWalkMinutes,
+    junctionName: listingNeighborhoodAssessments.junctionName, junctionMinutes: listingNeighborhoodAssessments.junctionMinutes,
+    assessedAt: listingNeighborhoodAssessments.assessedAt,
+    isVerifiedDirectOwner: sql<number>`EXISTS (SELECT 1 FROM onboarding_applications owner_application WHERE owner_application.userId = ${listings.agentUserId} AND owner_application.applicantType = 'owner' AND owner_application.status = 'approved')`,
+    hasOpenPricingConcern: sql<number>`EXISTS (SELECT 1 FROM reports pricing_report WHERE pricing_report.listingId = ${listings.id} AND pricing_report.status = 'open' AND pricing_report.reason IN ('inaccurate_cost', 'unofficial_fee'))`,
   }).from(listings)
     .innerJoin(listingCosts, eq(listingCosts.listingId, listings.id))
     .leftJoin(agentProfiles, eq(agentProfiles.userId, listings.agentUserId))
+    .leftJoin(listingWalkthroughVideos, and(eq(listingWalkthroughVideos.listingId, listings.id), eq(listingWalkthroughVideos.status, "published")))
+    .leftJoin(listingNeighborhoodAssessments, eq(listingNeighborhoodAssessments.listingId, listings.id))
     .where(and(eq(listings.status, "published"), sql`${listings.lastReconfirmed} >= ${cutoff}`))
     .orderBy(desc(listings.isFeatured), desc(listings.lastReconfirmed));
 
@@ -905,7 +944,69 @@ export function validateFieldVerificationEvidence(evidence: FieldVerificationEvi
   }
 }
 
-export async function decideVerificationOrder(operatorUserId: number, verificationOrderId: number, decision: "passed" | "failed", evidenceNote: string, evidence: FieldVerificationEvidenceInput[]) {
+export type NeighborhoodAssessmentInput = {
+  waterAccess: "borehole_on_site" | "water_storage_seen" | "public_network_observed" | "not_confirmed";
+  powerReliability: "backup_seen" | "prepaid_meter_seen" | "local_low_outage_assessment" | "local_outage_caution" | "not_confirmed";
+  roadAccess: "tarred_to_gate" | "tarred_nearby" | "dirt_track_to_gate" | "not_confirmed";
+  taxiWalkMinutes?: number | null;
+  junctionName?: string | null;
+  junctionMinutes?: number | null;
+  observationNote: string;
+};
+
+export async function registerWalkthroughVideo(input: {
+  operatorUserId: number;
+  verificationOrderId: number;
+  storageKey: string;
+  mediaUrl: string;
+  durationSeconds: number;
+  orientation: "vertical";
+  listingMatch: "matches" | "partially_matches" | "does_not_match";
+}) {
+  if (!Number.isInteger(input.durationSeconds) || input.durationSeconds < 15 || input.durationSeconds > 30) {
+    throw new Error("A premium walk-through must be an unedited 15–30 second video.");
+  }
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async (tx) => {
+    const order = (await tx.select().from(verificationOrders).where(eq(verificationOrders.id, input.verificationOrderId)).limit(1))[0];
+    if (!order || order.status !== "scheduled" || order.assignedModeratorUserId !== input.operatorUserId) {
+      throw new Error("Only the assigned Field Moderator may attach a walk-through to a claimed visit.");
+    }
+    await tx.insert(listingWalkthroughVideos).values({
+      listingId: order.listingId,
+      verificationOrderId: order.id,
+      capturedByUserId: input.operatorUserId,
+      storageKey: input.storageKey,
+      mediaUrl: input.mediaUrl,
+      durationSeconds: input.durationSeconds,
+      orientation: input.orientation,
+      listingMatch: input.listingMatch,
+      status: "captured",
+    }).onDuplicateKeyUpdate({
+      set: {
+        storageKey: input.storageKey,
+        mediaUrl: input.mediaUrl,
+        durationSeconds: input.durationSeconds,
+        orientation: input.orientation,
+        listingMatch: input.listingMatch,
+        capturedByUserId: input.operatorUserId,
+        status: "captured",
+        publishedAt: null,
+      },
+    });
+    return { listingId: order.listingId, durationSeconds: input.durationSeconds };
+  });
+}
+
+export async function decideVerificationOrder(
+  operatorUserId: number,
+  verificationOrderId: number,
+  decision: "passed" | "failed",
+  evidenceNote: string,
+  evidence: FieldVerificationEvidenceInput[],
+  neighborhood?: NeighborhoodAssessmentInput,
+) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   return db.transaction(async (tx) => {
@@ -913,6 +1014,15 @@ export async function decideVerificationOrder(operatorUserId: number, verificati
     if (!order || order.status !== "scheduled") throw new Error("Only claimed verification requests can receive a field outcome.");
     if (order.assignedModeratorUserId !== operatorUserId) throw new Error("Only the assigned reviewer can record this verification outcome.");
     validateFieldVerificationEvidence(evidence);
+    const walkthrough = (await tx.select().from(listingWalkthroughVideos)
+      .where(and(eq(listingWalkthroughVideos.verificationOrderId, verificationOrderId), eq(listingWalkthroughVideos.capturedByUserId, operatorUserId)))
+      .limit(1))[0];
+    if (decision === "passed") {
+      if (!walkthrough || walkthrough.orientation !== "vertical" || walkthrough.durationSeconds < 15 || walkthrough.durationSeconds > 30) {
+        throw new Error("A passed premium verification requires the assigned moderator's 15–30 second vertical walk-through video.");
+      }
+      if (!neighborhood) throw new Error("A passed premium verification requires a structured neighborhood-essentials assessment.");
+    }
     const now = new Date();
     const expiresAt = decision === "passed" ? new Date(now.getTime() + getPaidOffer("physical_verification").validityDays * 86_400_000) : null;
     await tx.update(verificationOrders).set({ status: decision, evidenceNote, verifiedAt: now, expiresAt }).where(eq(verificationOrders.id, verificationOrderId));
@@ -925,6 +1035,19 @@ export async function decideVerificationOrder(operatorUserId: number, verificati
       reason: evidenceNote, actorUserId: operatorUserId, assignedModeratorUserId: operatorUserId,
     });
     await tx.insert(verificationEvidence).values(evidence.map(item => ({ ...item, verificationOrderId, capturedByUserId: operatorUserId })));
+    if (decision === "passed" && walkthrough && neighborhood) {
+      await tx.update(listingWalkthroughVideos).set({ status: "published", publishedAt: now })
+        .where(eq(listingWalkthroughVideos.id, walkthrough.id));
+      await tx.insert(listingNeighborhoodAssessments).values({
+        listingId: order.listingId,
+        verificationOrderId,
+        assessedByUserId: operatorUserId,
+        ...neighborhood,
+      }).onDuplicateKeyUpdate({ set: { ...neighborhood, assessedByUserId: operatorUserId, assessedAt: now } });
+    } else if (walkthrough) {
+      await tx.update(listingWalkthroughVideos).set({ status: "withheld", publishedAt: null })
+        .where(eq(listingWalkthroughVideos.id, walkthrough.id));
+    }
     if (decision === "passed") {
       const settings = await getPlatformSettings();
       const allocation = calculateFieldVerificationCommission(order.amountXaf, settings.fieldModeratorShareBps);
@@ -970,12 +1093,107 @@ export async function decideListingReview(operatorUserId: number, listingId: str
     await tx.insert(listingReviewEvents).values({
       listingId, action: decision, fromStatus: listing.status, toStatus: target, reason, actorUserId: operatorUserId,
     });
+    if (decision === "approved") {
+      await queueMatchAlertDeliveriesForListing(tx, { ...listing, status: "published" });
+    }
     if (decision === "rejected") {
       await tx.update(listingCredits).set({ status: "restored", usedForListingId: null, consumedAt: null })
         .where(and(eq(listingCredits.usedForListingId, listingId), eq(listingCredits.status, "consumed")));
     }
     return { status: target };
   });
+}
+
+type MatchAlertPreferenceInput = {
+  whatsappPhone: string;
+  city: "Yaoundé" | "Douala";
+  neighborhood?: string;
+  minBedrooms?: number;
+  maxMonthlyRent?: number;
+  maxMoveInCash?: number;
+};
+
+/** A preference represents explicit opt-in; delivery remains provider-pending until a licensed WhatsApp Business provider is configured. */
+export async function createSeekerMatchAlertPreference(userId: number, input: MatchAlertPreferenceInput) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const existing = await db.select({ id: seekerMatchAlertPreferences.id }).from(seekerMatchAlertPreferences)
+    .where(eq(seekerMatchAlertPreferences.userId, userId));
+  if (existing.length >= 10) throw new Error("Keep up to 10 active or historical match alerts per account.");
+  const result = await db.insert(seekerMatchAlertPreferences).values({
+    userId,
+    whatsappPhone: input.whatsappPhone,
+    city: input.city,
+    neighborhood: input.neighborhood || null,
+    minBedrooms: input.minBedrooms ?? 0,
+    maxMonthlyRent: input.maxMonthlyRent ?? null,
+    maxMoveInCash: input.maxMoveInCash ?? null,
+    active: true,
+    consentVersion: "2026-08-13",
+    consentedAt: new Date(),
+    revokedAt: null,
+  });
+  return { id: Number(result[0].insertId), active: true };
+}
+
+export async function listSeekerMatchAlertPreferences(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(seekerMatchAlertPreferences)
+    .where(eq(seekerMatchAlertPreferences.userId, userId));
+}
+
+export async function revokeSeekerMatchAlertPreference(userId: number, preferenceId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.update(seekerMatchAlertPreferences).set({ active: false, revokedAt: new Date() })
+    .where(and(eq(seekerMatchAlertPreferences.id, preferenceId), eq(seekerMatchAlertPreferences.userId, userId)));
+  return { success: true } as const;
+}
+
+export async function listSeekerMatchAlertDeliveries(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: matchAlertDeliveries.id,
+    status: matchAlertDeliveries.status,
+    provider: matchAlertDeliveries.provider,
+    queuedAt: matchAlertDeliveries.queuedAt,
+    suppressionReason: matchAlertDeliveries.suppressionReason,
+    listingId: listings.id,
+    title: listings.title,
+    city: listings.city,
+    neighborhood: listings.neighborhood,
+  }).from(matchAlertDeliveries).innerJoin(listings, eq(matchAlertDeliveries.listingId, listings.id))
+    .where(eq(matchAlertDeliveries.recipientUserId, userId));
+}
+
+async function queueMatchAlertDeliveriesForListing(tx: any, listing: typeof listings.$inferSelect) {
+  const costs = (await tx.select().from(listingCosts).where(eq(listingCosts.listingId, listing.id)).limit(1))[0];
+  if (!costs) return;
+  const totalMoveInCash = calculateTotalMoveInCash(costs);
+  const preferences = await tx.select().from(seekerMatchAlertPreferences)
+    .where(and(eq(seekerMatchAlertPreferences.active, true), eq(seekerMatchAlertPreferences.city, listing.city)));
+  const matches = preferences.filter((preference: typeof seekerMatchAlertPreferences.$inferSelect) => {
+    const neighborhoodMatches = !preference.neighborhood || preference.neighborhood.trim().toLowerCase() === listing.neighborhood.trim().toLowerCase();
+    const bedroomMatches = listing.bedrooms >= preference.minBedrooms;
+    const rentMatches = !preference.maxMonthlyRent || costs.monthlyRent <= preference.maxMonthlyRent;
+    const cashMatches = !preference.maxMoveInCash || totalMoveInCash <= preference.maxMoveInCash;
+    return neighborhoodMatches && bedroomMatches && rentMatches && cashMatches;
+  });
+  for (const preference of matches) {
+    await tx.insert(matchAlertDeliveries).values({
+      preferenceId: preference.id,
+      listingId: listing.id,
+      recipientUserId: preference.userId,
+      status: "provider_pending",
+      provider: "unconfigured",
+      suppressionReason: "Awaiting approved WhatsApp Business provider configuration.",
+      queuedAt: new Date(),
+    }).onDuplicateKeyUpdate({
+      set: { status: "provider_pending", provider: "unconfigured", suppressionReason: "Awaiting approved WhatsApp Business provider configuration." },
+    });
+  }
 }
 
 export async function listReviewHistory(listingId: string, agentUserId?: number) {

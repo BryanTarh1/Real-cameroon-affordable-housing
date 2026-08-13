@@ -12,6 +12,7 @@ import {
   approveHeldCommission,
   archiveStaleListings,
   clearLocalLoginFailures,
+  createSeekerMatchAlertPreference,
   createLocalAgentAccount,
   createPaymentOrder,
   createListing,
@@ -40,6 +41,8 @@ import {
   listOperationsVerificationQueue,
   listVerificationAuditQueue,
   listReviewHistory,
+  listSeekerMatchAlertDeliveries,
+  listSeekerMatchAlertPreferences,
   claimVerificationOrder,
   claimVerificationAudit,
   completeVerificationAudit,
@@ -49,6 +52,7 @@ import {
   submitPaymentReference,
   setUserBan,
   setUserRole,
+  revokeSeekerMatchAlertPreference,
   updatePlatformSettings,
   upsertAgentProfile,
 } from "./db";
@@ -181,6 +185,23 @@ export const appRouter = router({
       reason: z.enum(["inaccurate_cost", "unavailable", "misleading_details", "unofficial_fee", "other"]),
       note: z.string().trim().min(10).max(800),
     })).mutation(({ ctx, input }) => createListingReport(ensureUserId(ctx.user?.id), input.listingId, input.reason, input.note, getReportNetworkFingerprint(ctx.req))),
+    matchAlerts: router({
+      list: protectedProcedure.query(({ ctx }) => listSeekerMatchAlertPreferences(ensureUserId(ctx.user?.id))),
+      deliveries: protectedProcedure.query(({ ctx }) => listSeekerMatchAlertDeliveries(ensureUserId(ctx.user?.id))),
+      create: protectedProcedure.input(z.object({
+        whatsappPhone: z.string().trim().min(8).max(30),
+        city: z.enum(["Yaoundé", "Douala"]),
+        neighborhood: z.string().trim().min(2).max(100).optional(),
+        minBedrooms: z.number().int().min(0).max(20).default(0),
+        maxMonthlyRent: z.number().int().positive().max(5_000_000).optional(),
+        maxMoveInCash: z.number().int().positive().max(20_000_000).optional(),
+      })).mutation(({ ctx, input }) => createSeekerMatchAlertPreference(ensureUserId(ctx.user?.id), {
+        ...input,
+        whatsappPhone: normalizeCameroonWhatsAppPhone(input.whatsappPhone),
+      })),
+      revoke: protectedProcedure.input(z.object({ preferenceId: z.number().int().positive() }))
+        .mutation(({ ctx, input }) => revokeSeekerMatchAlertPreference(ensureUserId(ctx.user?.id), input.preferenceId)),
+    }),
   }),
 
   agent: router({
@@ -271,7 +292,18 @@ export const appRouter = router({
       verificationOrderId: z.number().int().positive(), decision: z.enum(["passed", "failed"]),
       evidenceNote: z.string().trim().min(12).max(1_200),
       evidence: z.array(z.object({ kind: z.enum(["exterior", "interior", "bathroom", "document", "other"]), mediaUrl: z.string().url(), listingMatch: z.enum(["matches", "partially_matches", "does_not_match"]), observation: z.string().trim().min(8).max(1_200) })).min(2),
-    })).mutation(({ ctx, input }) => decideVerificationOrder(ensureUserId(ctx.user?.id), input.verificationOrderId, input.decision, input.evidenceNote, input.evidence)),
+      neighborhood: z.object({
+        waterAccess: z.enum(["borehole_on_site", "water_storage_seen", "public_network_observed", "not_confirmed"]),
+        powerReliability: z.enum(["backup_seen", "prepaid_meter_seen", "local_low_outage_assessment", "local_outage_caution", "not_confirmed"]),
+        roadAccess: z.enum(["tarred_to_gate", "tarred_nearby", "dirt_track_to_gate", "not_confirmed"]),
+        taxiWalkMinutes: z.number().int().min(0).max(60).nullable().optional(),
+        junctionName: z.string().trim().min(2).max(100).nullable().optional(),
+        junctionMinutes: z.number().int().min(0).max(60).nullable().optional(),
+        observationNote: z.string().trim().min(12).max(1_200),
+      }).optional(),
+    })).mutation(({ ctx, input }) => decideVerificationOrder(
+      ensureUserId(ctx.user?.id), input.verificationOrderId, input.decision, input.evidenceNote, input.evidence, input.neighborhood,
+    )),
     myVerificationCommissions: moderatorProcedure.query(({ ctx }) => listFieldModeratorCommissions(ensureUserId(ctx.user?.id))),
     archiveFreshnessGuard: adminProcedure.mutation(() => archiveStaleListings()),
   }),
