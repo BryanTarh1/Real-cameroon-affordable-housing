@@ -8,6 +8,7 @@ import {
   InsertUser,
   listingCosts,
   listingCredits,
+  leadEvents,
   listingPromotions,
   listingReviewEvents,
   listings,
@@ -22,7 +23,7 @@ import {
   verificationEvidence,
   verificationOrders,
 } from "../drizzle/schema";
-import { calculateFieldVerificationCommission, calculateTotalMoveInCash, DEFAULT_FIELD_MODERATOR_SHARE_BPS, FRESHNESS_WINDOW_DAYS, getAgentAccessState, getPaidOffer, type PaidOfferType } from "../shared/ahc";
+import { calculateFieldVerificationCommission, calculateTotalMoveInCash, createWhatsAppListingLink, DEFAULT_FIELD_MODERATOR_SHARE_BPS, FRESHNESS_WINDOW_DAYS, getAgentAccessState, getPaidOffer, type PaidOfferType } from "../shared/ahc";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -465,11 +466,93 @@ export async function createPromotionRequest(userId: number, listingId: string) 
   return createPaymentOrder(userId, "featured_pin", listingId);
 }
 
-export async function createListingReport(listingId: string, note: string) {
+export type ListingReportReason = "inaccurate_cost" | "unavailable" | "misleading_details" | "other";
+
+export function shouldApplyListingSafetyHold(reason: ListingReportReason, matchingOpenReportCount: number) {
+  return (reason === "inaccurate_cost" || reason === "unavailable") && matchingOpenReportCount >= 3;
+}
+
+/**
+ * Stores one accountable report per seeker and listing. Three distinct
+ * inaccurate-cost or unavailable-listing reports immediately remove the
+ * listing from public search, revoke its verification state, and pause the
+ * responsible Agent's commercial access pending an Admin review. This is a
+ * listing safety hold, not a final finding of misconduct.
+ */
+export async function createListingReport(reporterUserId: number, listingId: string, reason: ListingReportReason, note: string) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
-  await db.insert(reports).values({ listingId, note });
-  return { success: true };
+  return db.transaction(async (tx) => {
+    const listing = (await tx.select({ id: listings.id, status: listings.status, agentUserId: listings.agentUserId })
+      .from(listings).where(eq(listings.id, listingId)).limit(1))[0];
+    if (!listing || listing.status !== "published") throw new Error("This listing is no longer available for reports.");
+
+    const existing = (await tx.select({ id: reports.id }).from(reports).where(and(
+      eq(reports.listingId, listingId), eq(reports.reporterUserId, reporterUserId),
+    )).limit(1))[0];
+    if (existing) throw new Error("You have already reported this listing. AHC will review your existing report.");
+
+    await tx.insert(reports).values({ listingId, reporterUserId, reason, note });
+    const safetyReason = reason === "inaccurate_cost" || reason === "unavailable" ? reason : undefined;
+    const matchingOpenReports = safetyReason ? await tx.select({ id: reports.id }).from(reports).where(and(
+      eq(reports.listingId, listingId), eq(reports.reason, safetyReason), eq(reports.status, "open"),
+    )) : [];
+    const automaticSafetyAction = safetyReason ? shouldApplyListingSafetyHold(safetyReason, matchingOpenReports.length) : false;
+    const safetySummary = safetyReason === "unavailable" ? "Automatic safety hold after three distinct unavailable-listing reports; Admin review required." : "Automatic safety hold after three distinct inaccurate-cost reports; Admin review required.";
+
+    if (automaticSafetyAction) {
+      await tx.update(listings).set({
+        status: "suspended", verificationStatus: "unverified", verificationExpiresAt: null,
+        reviewSummary: safetySummary,
+      }).where(eq(listings.id, listingId));
+      await tx.insert(listingReviewEvents).values({
+        listingId, action: "suspended", fromStatus: listing.status, toStatus: "suspended",
+        reason: safetySummary,
+      });
+      if (listing.agentUserId) {
+        await tx.update(agentProfiles).set({ subscriptionStatus: "suspended" })
+          .where(eq(agentProfiles.userId, listing.agentUserId));
+      }
+    }
+    return { success: true, automaticSafetyAction, openReportCount: matchingOpenReports.length, safetyReason: safetyReason ?? null };
+  });
+}
+
+/** Logs only an authenticated seeker's outbound-contact intent before redirecting to WhatsApp. */
+export async function createWhatsAppLeadEvent(seekerUserId: number, listingId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const contact = await getPublicListingContact(listingId);
+  if (!contact?.agent.whatsappPhone) throw new Error("This listing is no longer available for contact.");
+  const listing = (await db.select({ agentUserId: listings.agentUserId }).from(listings)
+    .where(eq(listings.id, listingId)).limit(1))[0];
+  await db.insert(leadEvents).values({
+    listingId, seekerUserId, contactUserId: listing?.agentUserId ?? null, channel: "whatsapp",
+  });
+  return { url: createWhatsAppListingLink(contact.agent.whatsappPhone, contact.id) };
+}
+
+/** Private Admin audit data: report content remains off the public marketplace. */
+export async function listAdminTrustReports() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: reports.id, listingId: reports.listingId, reason: reports.reason, note: reports.note,
+    status: reports.status, filedAt: reports.filedAt, reporterUserId: reports.reporterUserId,
+    listingTitle: listings.title, listingStatus: listings.status, agentUserId: listings.agentUserId,
+    agentName: listings.agentNameSnapshot,
+  }).from(reports).innerJoin(listings, eq(listings.id, reports.listingId)).orderBy(desc(reports.filedAt));
+}
+
+/** Private Admin audit data; deliberately excludes message content, phone numbers, IP addresses, and location. */
+export async function listAdminLeadEvents() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: leadEvents.id, listingId: leadEvents.listingId, seekerUserId: leadEvents.seekerUserId,
+    contactUserId: leadEvents.contactUserId, channel: leadEvents.channel, createdAt: leadEvents.createdAt,
+    listingTitle: listings.title, city: listings.city, neighborhood: listings.neighborhood,
+  }).from(leadEvents).innerJoin(listings, eq(listings.id, leadEvents.listingId)).orderBy(desc(leadEvents.createdAt));
 }
 
 export async function createPaymentOrder(userId: number, type: PaidOfferType, listingId?: string) {

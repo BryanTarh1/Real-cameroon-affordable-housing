@@ -9,6 +9,9 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { archiveStaleListingHandler } from "../listingFreshness";
+import { createWhatsAppLeadEvent } from "../db";
+import { authenticateLocalRequest } from "./localAuth";
+import { sdk } from "./sdk";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -38,6 +41,32 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   app.post("/api/scheduled/archive-stale-listings", archiveStaleListingHandler);
+  app.get("/api/listings/:listingId/whatsapp", async (req, res) => {
+    let user = await authenticateLocalRequest(req);
+    if (!user) {
+      try {
+        user = await sdk.authenticateRequest(req);
+      } catch {
+        user = null;
+      }
+    }
+    if (!user) {
+      res.status(401).type("text/plain").send("Please sign in to contact an Agent or Owner.");
+      return;
+    }
+    if (user.isBanned) {
+      res.status(403).type("text/plain").send("This account is suspended. Contact AHC support.");
+      return;
+    }
+    try {
+      const lead = await createWhatsAppLeadEvent(user.id, req.params.listingId);
+      res.setHeader("Cache-Control", "no-store");
+      res.redirect(302, lead.url);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "This listing cannot be contacted right now.";
+      res.status(404).type("text/plain").send(message);
+    }
+  });
   // tRPC API
   app.use(
     "/api/trpc",

@@ -14,6 +14,7 @@ import {
   createListing,
   createListingReport,
   createPromotionRequest,
+  createWhatsAppLeadEvent,
   decideListingReview,
   decideVerificationOrder,
   getAdminCashFlowAudit,
@@ -26,6 +27,8 @@ import {
   listAgentPaymentOrders,
   listAdminUsers,
   listAdminCommissionLedger,
+  listAdminLeadEvents,
+  listAdminTrustReports,
   listFieldModeratorCommissions,
   listFreshPublicListings,
   listOperationsPaymentQueue,
@@ -156,13 +159,14 @@ export const appRouter = router({
       maxMonthlyRent: z.number().int().positive().optional(), maxMoveInCash: z.number().int().positive().optional(),
       verification: z.enum(["any", "physical_verified"]).default("any"),
     }).optional()).query(async ({ input }) => listFreshPublicListings(input ?? {})),
-    getContact: publicProcedure.input(z.object({ listingId: z.string().min(4).max(32) })).query(async ({ input }) => {
-      const listing = await getPublicListingContact(input.listingId);
-      if (!listing?.agent.whatsappPhone) throw new TRPCError({ code: "NOT_FOUND", message: "This listing is no longer available for contact." });
-      return { url: createWhatsAppListingLink(listing.agent.whatsappPhone, listing.id) };
-    }),
-    report: publicProcedure.input(z.object({ listingId: z.string().min(4).max(32), note: z.string().trim().min(10).max(800) }))
-      .mutation(({ input }) => createListingReport(input.listingId, input.note)),
+    getContact: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) })).query(({ input }) => ({
+      redirectUrl: `/api/listings/${encodeURIComponent(input.listingId)}/whatsapp`,
+    })),
+    report: protectedProcedure.input(z.object({
+      listingId: z.string().min(4).max(32),
+      reason: z.enum(["inaccurate_cost", "unavailable", "misleading_details", "other"]),
+      note: z.string().trim().min(10).max(800),
+    })).mutation(({ ctx, input }) => createListingReport(ensureUserId(ctx.user?.id), input.listingId, input.reason, input.note)),
   }),
 
   agent: router({
@@ -254,6 +258,8 @@ export const appRouter = router({
       .mutation(({ ctx, input }) => setUserRole(ensureUserId(ctx.user?.id), input.userId, input.role)),
     cashFlowAudit: adminProcedure.query(() => getAdminCashFlowAudit()),
     commissionLedger: adminProcedure.query(() => listAdminCommissionLedger()),
+    trustReports: adminProcedure.query(() => listAdminTrustReports()),
+    leadEvents: adminProcedure.query(() => listAdminLeadEvents()),
     paymentQueue: adminProcedure.query(() => listOperationsPaymentQueue()),
     reviewQueue: adminProcedure.query(() => listOperationsReviewQueue()),
     reviewHistory: adminProcedure.input(z.object({ listingId: z.string().min(4).max(32) })).query(({ input }) => listReviewHistory(input.listingId)),

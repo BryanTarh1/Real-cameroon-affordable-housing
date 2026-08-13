@@ -58,13 +58,14 @@ function ListingCard({ listing, onOpen }: { listing: Listing; onOpen: () => void
 
 function ListingDetail({ listing, onClose }: { listing: Listing; onClose: () => void }) {
   const utils = trpc.useUtils();
-  const reportMutation = trpc.marketplace.report.useMutation({ onSuccess: () => toast.success("Report received", { description: "AHC operations will review the availability concern." }) });
+  const reportMutation = trpc.marketplace.report.useMutation({ onSuccess: result => toast.success("Report received", { description: result.automaticSafetyAction ? "This listing has been placed on a safety hold for Admin review." : "AHC operations will review the reported terms." }) });
   const [reporting, setReporting] = useState(false);
   const [note, setNote] = useState("");
+  const [reportReason, setReportReason] = useState<"inaccurate_cost" | "unavailable" | "misleading_details" | "other">("inaccurate_cost");
   const contact = async () => {
     try {
       const result = await utils.marketplace.getContact.fetch({ listingId: listing.id });
-      window.open(result.url, "_blank", "noopener,noreferrer");
+      window.open(result.redirectUrl, "_blank", "noopener,noreferrer");
     } catch {
       toast.error("This listing cannot be contacted right now.");
     }
@@ -78,7 +79,7 @@ function ListingDetail({ listing, onClose }: { listing: Listing; onClose: () => 
     <CostBreakdown listing={listing} />
     <div className="listing-disclosures"><div><b>What “paid listing” means</b><span>The agent paid for Agent Access and a Listing Pass before the listing entered moderator review. It is not a guarantee that the home, price, or agent is risk-free.</span></div><div><b>Protect your visit</b><span>Do not send a deposit before you inspect the home, agree terms in writing, and receive a receipt. Report a changed cost or unavailable home here.</span></div></div>
     <div className="freshness-callout"><ShieldCheck size={18} /><div><b>{listing.verificationStatus === "physical_verified" ? "Physical verification badge" : "Freshness check"}</b><span>Last reconfirmed {new Date(listing.lastReconfirmed).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}. This listing leaves public search after 14 days without agent reconfirmation.</span></div></div>
-    {!reporting ? <div className="modal-actions"><button className="button-secondary" onClick={() => setReporting(true)}>Report an issue</button><button className="button-primary" onClick={contact}><MessageCircle size={17} /> Ask agent on WhatsApp</button></div> : <form className="report-form" onSubmit={event => { event.preventDefault(); reportMutation.mutate({ listingId: listing.id, note }); setReporting(false); setNote(""); }}><label>What needs review?<textarea required minLength={10} value={note} onChange={event => setNote(event.target.value)} placeholder="For example: price or availability changed..." /></label><div><button type="button" className="text-button" onClick={() => setReporting(false)}>Cancel</button><button className="button-primary" disabled={reportMutation.isPending}>{reportMutation.isPending ? "Sending…" : "Send report"}</button></div></form>}
+    {!reporting ? <div className="modal-actions"><button className="button-secondary" onClick={() => setReporting(true)}>Report an issue</button><button className="button-primary" onClick={contact}><MessageCircle size={17} /> Ask agent on WhatsApp</button></div> : <form className="report-form" onSubmit={event => { event.preventDefault(); reportMutation.mutate({ listingId: listing.id, reason: reportReason, note }, { onSuccess: () => { setReporting(false); setNote(""); } }); }}><label>What needs review?<select value={reportReason} onChange={event => setReportReason(event.target.value as typeof reportReason)}><option value="inaccurate_cost">Inaccurate Total Move-In Cash</option><option value="unavailable">Home is no longer available</option><option value="misleading_details">Listing details do not match</option><option value="other">Another issue</option></select></label><label>What happened?<textarea required minLength={10} value={note} onChange={event => setNote(event.target.value)} placeholder="For example: the agent requested 12 months’ advance instead of the listed amount..." /></label><p className="report-safety-note">Three distinct inaccurate-cost or unavailable-listing reports automatically remove this listing from public search pending Admin review.</p><div><button type="button" className="text-button" onClick={() => setReporting(false)}>Cancel</button><button className="button-primary" disabled={reportMutation.isPending}>{reportMutation.isPending ? "Sending report…" : "Send report"}</button></div></form>}
   </section></div>;
 }
 
@@ -86,7 +87,7 @@ function AgentPortal({ onClose }: { onClose: () => void }) {
   return <PaidAgentPortal onClose={onClose} />;
 }
 
-export default function Home({ startAgentOpen = false }: { startAgentOpen?: boolean }) {
+export default function Home({ startAgentOpen = false, directListingId }: { startAgentOpen?: boolean; directListingId?: string }) {
   const { isAuthenticated } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [agentOpen, setAgentOpen] = useState(() => startAgentOpen || new URLSearchParams(window.location.search).get("agent") === "1");
@@ -113,6 +114,11 @@ export default function Home({ startAgentOpen = false }: { startAgentOpen?: bool
       setListingAwaitingSignIn(null);
     }
   }, [isAuthenticated, listingAwaitingSignIn]);
+  useEffect(() => {
+    if (!directListingId || !listings.length) return;
+    const sharedListing = listings.find(item => item.id === directListingId);
+    if (sharedListing) openListing(sharedListing);
+  }, [directListingId, listings, isAuthenticated]);
 
   return <div className="ahc-app"><header className="topbar"><a className="brand" href="#top"><span className="brand-emblem"><span /><span /><span /></span><span>Affordable Housing<br /><b>Cameroon</b></span></a><nav className={menuOpen ? "nav-links is-open" : "nav-links"}><a href="#homes" onClick={() => setMenuOpen(false)}>Find homes</a><a href="#trust" onClick={() => setMenuOpen(false)}>Why it’s safer</a><button onClick={() => { setAgentOpen(true); setMenuOpen(false); }}>For agents</button><a href="#moderators" onClick={() => setMenuOpen(false)}>For moderators</a></nav><button className="agent-top-cta" onClick={() => setAgentOpen(true)}>List a home <span>↗</span></button><button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle navigation">{menuOpen ? <X /> : <Menu />}</button></header>
     <main id="top"><aside className="atlas-index" aria-label="On this page"><span>AHC / ROUTE</span><a href="#homes"><b>01</b> Fresh homes</a><a href="#trust"><b>02</b> Trust design</a><a href="#agents"><b>03</b> Agent tools</a><a href="#moderators"><b>04</b> Field work</a></aside><section className="hero"><div className="hero-grid"><div className="hero-copy"><span className="section-overline light">Urban Cameroon / verified availability</span><h1>Know the <em>full cost</em><br />before you move.</h1><p>Fresh rental listings for Yaoundé and Douala. Every live home shows the cash needed to move in — not just rent.</p><div className="hero-proof"><span><ShieldCheck size={16} /> 14-day freshness rule</span><span><MapPinned size={16} /> Landmark-only maps</span></div></div><div className="search-panel"><span className="search-kicker">Start with the money you have</span><label>Where do you want to live?<input value={search} onChange={e => setSearch(e.target.value)} placeholder="Neighborhood or landmark" /></label><div className="two-fields"><label>City<select value={city} onChange={e => setCity(e.target.value)}><option>All cities</option><option>Yaoundé</option><option>Douala</option></select></label><label>Maximum move-in cash<select value={maxMoveInCash} onChange={e => setMaxMoveInCash(Number(e.target.value))}><option value={100000}>100,000 XAF</option><option value={200000}>200,000 XAF</option><option value={300000}>300,000 XAF</option><option value={500000}>500,000 XAF</option><option value={1000000}>Any amount</option></select></label></div><button className="button-primary full-width" onClick={() => document.getElementById("homes")?.scrollIntoView({ behavior: "smooth" })}>See fresh homes <span>↓</span></button><p className="search-foot"><CircleAlert size={14} /> You can search without an account. Sign in only when you open a property.</p></div></div></section>

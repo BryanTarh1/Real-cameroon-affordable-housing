@@ -292,10 +292,32 @@ export const fieldVerificationCommissions = mysqlTable("field_verification_commi
 export const reports = mysqlTable("reports", {
   id: int("id").autoincrement().primaryKey(),
   listingId: varchar("listingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
+  reporterUserId: int("reporterUserId").references(() => users.id, { onDelete: "set null" }),
+  reason: mysqlEnum("reason", ["inaccurate_cost", "unavailable", "misleading_details", "other"]).default("other").notNull(),
   note: text("note").notNull(),
   status: mysqlEnum("status", ["open", "resolved"]).default("open").notNull(),
   filedAt: timestamp("filedAt").defaultNow().notNull(),
-}, (table) => [index("reports_listing_idx").on(table.listingId, table.status)]);
+}, (table) => [
+  index("reports_listing_idx").on(table.listingId, table.status),
+  uniqueIndex("reports_distinct_reporter_idx").on(table.listingId, table.reporterUserId),
+]);
+
+/**
+ * A privacy-minimised record of an authenticated seeker's decision to open a
+ * listing's WhatsApp contact route. It records intent, not messages, location,
+ * contact content, or a claimed conversion.
+ */
+export const leadEvents = mysqlTable("lead_events", {
+  id: int("id").autoincrement().primaryKey(),
+  listingId: varchar("listingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
+  seekerUserId: int("seekerUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  contactUserId: int("contactUserId").references(() => users.id, { onDelete: "set null" }),
+  channel: mysqlEnum("channel", ["whatsapp"]).default("whatsapp").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  index("lead_events_listing_idx").on(table.listingId, table.createdAt),
+  index("lead_events_contact_idx").on(table.contactUserId, table.createdAt),
+]);
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;

@@ -22,3 +22,4 @@ SOURCE drizzle/0004_lumpy_malcolm_colcord.sql;
 SOURCE drizzle/0005_complex_echo.sql;
 SOURCE drizzle/0006_long_freak.sql;
 SOURCE drizzle/0007_flawless_scrambler.sql;
+SOURCE drizzle/0008_flat_obadiah_stane.sql;

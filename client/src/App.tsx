@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { canAccessWorkspace } from "@/lib/workspaceAccess";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch, useLocation } from "wouter";
+import { Route, Switch, useLocation, useRoute } from "wouter";
 import React, { useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeToggle } from "./components/ThemeToggle";
@@ -53,11 +53,17 @@ function MarketplaceRoute() {
   return <Home />;
 }
 
+function SharedPropertyRoute() {
+  const [, params] = useRoute("/property/:listingId");
+  return <Home directListingId={params?.listingId} />;
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/" component={MarketplaceRoute} />
       <Route path="/agent" component={AgentOnboardingRoute} />
+      <Route path="/property/:listingId" component={SharedPropertyRoute} />
       <Route path="/admin" component={AdminRoute} />
       <Route path="/operations" component={OperationsRoute} />
       <Route path="/404" component={NotFound} />

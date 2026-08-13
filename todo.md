@@ -219,3 +219,12 @@
 - [x] Add a protected CSV export action for an authorised records table, with correct field escaping and no private evidence URLs.
 - [x] Add clear pending states, loading spinners, and success/error toast feedback to the relevant form and workflow submissions.
 - [x] Add regression tests and desktop/mobile visual validation for the new theme, export, and submission-feedback behaviors.
+
+## Trust-risk response and operating-controls assessment
+
+- [x] Assess the ghost-listing, off-platform payment, moderator-fraud, map-privacy, WhatsApp-lead, total-cash, and direct-link risks against the current AHC implementation.
+- [x] Add an authenticated seeker-facing inaccurate-cost report flow with automatic listing safety action after three distinct reports.
+- [x] Add privacy-preserving WhatsApp lead-event logging before redirecting a seeker to an Agent or Owner contact.
+- [x] Add an Admin review surface for cost reports and lead-event evidence without exposing personal data publicly.
+- [x] Document the complete risk-response analysis, current controls, limits, and operational procedures in a Word document.
+- [x] Add regression tests and responsive validation for the new reporting, lead-tracking, and Admin-review workflows.
