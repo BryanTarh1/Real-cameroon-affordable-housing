@@ -4,7 +4,7 @@ import mysql from "mysql2/promise";
 const DEMO_DOMAIN = "@test.ahc.local";
 const PASSWORDS = {
   seeker: "Seeker#2026!",
-  agentPaid: "AgentPaid#2026!",
+  agentPaid: "Agent#2026!",
   agentPending: "AgentPending#2026!",
   owner: "Owner#2026!",
   moderator: "Moderator#2026!",
@@ -64,7 +64,7 @@ async function main() {
     const agentId = await insertUser(connection, {
       openId: "demo_agent_ahc_2026",
       name: "DEMO Paid Agent — AHC Test",
-      email: `agent-paid${DEMO_DOMAIN}`,
+      email: `agent${DEMO_DOMAIN}`,
       role: "user",
       password: PASSWORDS.agentPaid,
     });
@@ -216,7 +216,7 @@ async function main() {
     await connection.commit();
     console.table([
       { role: "Seeker", email: `seeker${DEMO_DOMAIN}`, password: PASSWORDS.seeker },
-      { role: "Paid Agent", email: `agent-paid${DEMO_DOMAIN}`, password: PASSWORDS.agentPaid },
+      { role: "Paid Agent", email: `agent${DEMO_DOMAIN}`, password: PASSWORDS.agentPaid },
       { role: "Pending-payment Agent", email: `agent-pending${DEMO_DOMAIN}`, password: PASSWORDS.agentPending },
       { role: "Owner applicant", email: `owner${DEMO_DOMAIN}`, password: PASSWORDS.owner },
       { role: "Field Moderator", email: `moderator${DEMO_DOMAIN}`, password: PASSWORDS.moderator },

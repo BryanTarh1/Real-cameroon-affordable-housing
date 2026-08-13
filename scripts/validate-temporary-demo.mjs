@@ -3,7 +3,7 @@ import mysql from "mysql2/promise";
 
 const ACCOUNTS = [
   { label: "Seeker", email: "seeker@test.ahc.local", password: "Seeker#2026!", requiredRole: "user" },
-  { label: "Paid Agent", email: "agent-paid@test.ahc.local", password: "AgentPaid#2026!", requiredRole: "user", expectedSubscriptionStatus: "active", minimumListingCredits: 1 },
+  { label: "Paid Agent", email: "agent@test.ahc.local", password: "Agent#2026!", requiredRole: "user", expectedSubscriptionStatus: "active", minimumListingCredits: 1 },
   { label: "Pending-payment Agent", email: "agent-pending@test.ahc.local", password: "AgentPending#2026!", requiredRole: "user", expectedSubscriptionStatus: "pending_payment", minimumListingCredits: 0 },
   { label: "Owner applicant", email: "owner@test.ahc.local", password: "Owner#2026!", requiredRole: "user" },
   { label: "Field Moderator", email: "moderator@test.ahc.local", password: "Moderator#2026!", requiredRole: "moderator" },

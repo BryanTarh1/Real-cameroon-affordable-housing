@@ -319,3 +319,10 @@
 - [x] Configure one named non-production Agent with active paid access, reconciled platform-service payment, and usable listing credits; retain a contrasting Agent state where useful for testing.
 - [x] Validate each credential against the local sign-in path and verify the intended role-specific workspace or business-access boundary.
 - [x] Update the non-production test-account reference, checkpoint the fixture update, and deliver the exact verified credentials with a cleanup warning.
+
+## Local sign-in regression repair
+
+- [x] Trace the reported browser-facing “Invalid email or password” response through the local login request, database lookup, and password verification path.
+- [x] Correct the identified fixture, input-normalisation, client-request, or authentication implementation mismatch without weakening access control.
+- [x] Add focused regression coverage and validate an actual browser-facing local sign-in for a paid Agent and a staff role.
+- [x] Checkpoint the sign-in repair and provide the verified credentials and route-specific test steps.

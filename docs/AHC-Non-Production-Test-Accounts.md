@@ -9,7 +9,7 @@
 | Test position | Email | Password | Sign-in location | Intended state |
 |---|---|---|---|---|
 | Seeker | `seeker@test.ahc.local` | `Seeker#2026!` | Open a property, then use the seeker sign-in prompt | Authenticated `user`; can exercise protected seeker actions |
-| Paid Agent | `agent-paid@test.ahc.local` | `AgentPaid#2026!` | `/agent` | Active Growth Agent; confirmed agent-access order; one unexpired, available listing credit; approved Agent onboarding |
+| Paid Agent | `agent@test.ahc.local` | `Agent#2026!` | `/agent` | Active Growth Agent; confirmed agent-access order; one unexpired, available listing credit; approved Agent onboarding |
 | Pending-payment Agent | `agent-pending@test.ahc.local` | `AgentPending#2026!` | `/agent` | Authenticated Agent profile with `pending_payment`; no confirmed access and no listing credits, to demonstrate the paid-access boundary |
 | Owner applicant | `owner@test.ahc.local` | `Owner#2026!` | `/agent` | Authenticated `user` with submitted Owner application and stronger document package awaiting review |
 | Field Moderator | `moderator@test.ahc.local` | `Moderator#2026!` | `/operations` | `moderator`; active moderator profile; can exercise Operations and route-batch controls |
