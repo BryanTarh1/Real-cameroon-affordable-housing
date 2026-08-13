@@ -1038,6 +1038,67 @@ export async function listOperationsVerificationQueue() {
     .orderBy(verificationOrders.createdAt);
 }
 
+/**
+ * Protected operations view for grouping unassigned, already-paid field visits.
+ * It intentionally exposes only the same approximate locality fields already used
+ * in the private verification queue; exact compound access remains a post-claim,
+ * Agent-coordinated step.
+ */
+export async function listModeratorVerificationBatches() {
+  const db = await getDb();
+  if (!db) return [];
+
+  const settings = await getPlatformSettings();
+  const rows = await db.select({
+    verificationOrderId: verificationOrders.id,
+    listingId: listings.id,
+    title: listings.title,
+    city: listings.city,
+    neighborhood: listings.neighborhood,
+    landmark: listings.landmark,
+    amountXaf: verificationOrders.amountXaf,
+    createdAt: verificationOrders.createdAt,
+  }).from(verificationOrders)
+    .innerJoin(listings, eq(listings.id, verificationOrders.listingId))
+    .where(and(eq(verificationOrders.status, "paid"), sql`${verificationOrders.assignedModeratorUserId} IS NULL`))
+    .orderBy(verificationOrders.createdAt);
+
+  const batches = new Map<string, {
+    city: string;
+    neighborhood: string;
+    landmarkAreas: string[];
+    earliestRequestedAt: Date;
+    estimatedFieldEarningsXaf: number;
+    work: Array<{ verificationOrderId: number; listingId: string; title: string; landmark: string; requestedAt: Date }>;
+  }>();
+
+  for (const row of rows) {
+    const key = `${row.city}::${row.neighborhood}`;
+    const existing = batches.get(key);
+    const estimatedEarnings = Math.floor((row.amountXaf * settings.fieldModeratorShareBps) / 10_000);
+    const workItem = { verificationOrderId: row.verificationOrderId, listingId: row.listingId, title: row.title, landmark: row.landmark, requestedAt: row.createdAt };
+    if (existing) {
+      existing.estimatedFieldEarningsXaf += estimatedEarnings;
+      if (!existing.landmarkAreas.includes(row.landmark)) existing.landmarkAreas.push(row.landmark);
+      existing.work.push(workItem);
+      if (row.createdAt < existing.earliestRequestedAt) existing.earliestRequestedAt = row.createdAt;
+    } else {
+      batches.set(key, {
+        city: row.city,
+        neighborhood: row.neighborhood,
+        landmarkAreas: [row.landmark],
+        earliestRequestedAt: row.createdAt,
+        estimatedFieldEarningsXaf: estimatedEarnings,
+        work: [workItem],
+      });
+    }
+  }
+
+  return Array.from(batches.values())
+    .map(batch => ({ ...batch, landmarkAreas: batch.landmarkAreas.slice(0, 4), workCount: batch.work.length }))
+    .sort((a, b) => b.workCount - a.workCount || a.earliestRequestedAt.getTime() - b.earliestRequestedAt.getTime());
+}
+
 /** Private staff view. Public marketplace queries never select proof URLs or observations. */
 export async function listOperationsVerificationEvidence() {
   const db = await getDb();

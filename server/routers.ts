@@ -38,6 +38,7 @@ import {
   listFreshPublicListings,
   listOperationsPaymentQueue,
   listOperationsReviewQueue,
+  listModeratorVerificationBatches,
   listOperationsVerificationEvidence,
   listOperationsVerificationQueue,
   listVerificationAuditQueue,
@@ -295,6 +296,7 @@ export const appRouter = router({
       .query(({ input }) => listReviewHistory(input.listingId)),
     paymentQueue: moderatorProcedure.query(() => listOperationsPaymentQueue()),
     verificationQueue: moderatorProcedure.query(() => listOperationsVerificationQueue()),
+    verificationBatches: moderatorProcedure.query(() => listModeratorVerificationBatches()),
     verificationEvidenceHistory: moderatorProcedure.query(() => listOperationsVerificationEvidence()),
     verificationAuditQueue: moderatorProcedure.query(() => listVerificationAuditQueue()),
     assignReview: moderatorProcedure.input(z.object({ listingId: z.string().min(4).max(32), moderatorUserId: z.number().int().positive() }))

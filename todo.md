@@ -271,6 +271,14 @@
 - [x] Define the required approval gate for any future partner-mediated payment capability and prohibit arbitrary custom escrow handling.
 - [x] Add regression coverage and owner operating guidance for payment-custody boundaries.
 
+## Field Moderator geographic batching
+
+- [x] Define batch eligibility using only approved verification work, city, neighborhood/landmark area, and safe date windows.
+- [x] Add protected moderator-only query services that group eligible verification work by practical route area without revealing exact doors before assignment.
+- [x] Add a Field Moderator route board with batch counts, approximate areas, estimated verification earnings, and accountable claim actions.
+- [x] Preserve assignment, conflict, audit, and second-verifier safeguards when work is claimed from a geographic batch.
+- [x] Add regression tests, responsive review, and operating-guide rules for geographic batching.
+
 ## Provider-independent premium refinement
 
 - [ ] Keep live Meta WhatsApp alert delivery and Responsive Host evaluation disabled until the owner completes Meta account verification and provides approved credentials.

@@ -67,6 +67,14 @@ describe("AHC moderator operations authorization", () => {
     });
   });
 
+  it("prevents an ordinary agent from reading geographic verification batches", async () => {
+    const caller = appRouter.createCaller(createAgentContext());
+
+    await expect(caller.operations.verificationBatches()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+
   it("prevents an ordinary user from claiming or completing an independent second visit", async () => {
     const caller = appRouter.createCaller(createAgentContext());
 

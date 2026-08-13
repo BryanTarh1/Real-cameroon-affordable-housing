@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import { BadgeCheck, ClipboardCheck, ReceiptText, X } from "lucide-react";
+import { BadgeCheck, ClipboardCheck, MapPin, ReceiptText, Route, X } from "lucide-react";
 import { toast } from "sonner";
 import "./launch-refinements.css";
 
@@ -28,13 +28,14 @@ export function OperationsPortal({ onClose }: { onClose: () => void }) {
   const reviews = trpc.operations.reviewQueue.useQuery(undefined, { enabled });
   const payments = trpc.operations.paymentQueue.useQuery(undefined, { enabled });
   const verifications = trpc.operations.verificationQueue.useQuery(undefined, { enabled });
+  const verificationBatches = trpc.operations.verificationBatches.useQuery(undefined, { enabled });
   const verificationEvidenceHistory = trpc.operations.verificationEvidenceHistory.useQuery(undefined, { enabled });
   const verificationAudits = trpc.operations.verificationAuditQueue.useQuery(undefined, { enabled });
   const commissions = trpc.operations.myVerificationCommissions.useQuery(undefined, { enabled });
   const assign = trpc.operations.assignReview.useMutation({ onSuccess: () => { utils.operations.reviewQueue.invalidate(); utils.operations.reviewHistory.invalidate(); toast.success("Review assigned"); } });
   const decide = trpc.operations.decideReview.useMutation({ onSuccess: () => { utils.operations.reviewQueue.invalidate(); utils.operations.reviewHistory.invalidate(); utils.marketplace.search.invalidate(); toast.success("Review decision recorded"); } });
   const reconcile = trpc.operations.reconcilePayment.useMutation({ onSuccess: () => { utils.operations.paymentQueue.invalidate(); utils.operations.reviewQueue.invalidate(); toast.success("Payment reconciliation recorded"); } });
-  const claimVerification = trpc.operations.claimVerification.useMutation({ onSuccess: () => { utils.operations.verificationQueue.invalidate(); toast.success("Field verification claimed and scheduled"); } });
+  const claimVerification = trpc.operations.claimVerification.useMutation({ onSuccess: () => { utils.operations.verificationQueue.invalidate(); utils.operations.verificationBatches.invalidate(); toast.success("Field verification claimed and scheduled"); } });
   const decideVerification = trpc.operations.decideVerification.useMutation({ onSuccess: () => { utils.operations.verificationQueue.invalidate(); utils.marketplace.search.invalidate(); toast.success("Physical-verification outcome recorded"); } });
   const claimAudit = trpc.operations.claimVerificationAudit.useMutation({ onSuccess: () => { utils.operations.verificationAuditQueue.invalidate(); toast.success("Independent second visit claimed"); } });
   const completeAudit = trpc.operations.completeVerificationAudit.useMutation({ onSuccess: (result) => { utils.operations.verificationAuditQueue.invalidate(); utils.operations.myVerificationCommissions.invalidate(); toast.success(result.outcome === "confirmed" ? "Independent audit confirmed" : "Independent audit disputed — commission remains held"); } });

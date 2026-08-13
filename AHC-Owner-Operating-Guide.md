@@ -118,6 +118,19 @@ For **every** passed or failed physical outcome, the Field Moderator must submit
 
 The Field Moderator can also see a personal commission ledger for passed physical visits. The launch configuration allocates **80% to the Field Moderator and 20% to AHC** for each passed paid verification. These entries are immutable operational records; actual payout evidence should be retained separately.
 
+### Geographic route batching
+
+Field Moderators may open the protected route board at **`/operations/batches`** to plan efficient field days. It groups only **paid, unassigned verification work** by city, neighbourhood, and approximate public landmark area. The board deliberately shows neither compound doors nor private proof, renter contact details, or access instructions.
+
+| Step | Field Moderator action | Required control |
+|---|---|---|
+| 1 | Review an approximate-area batch and its indicative verification earnings. | Treat the grouping as a route-planning aid, not a confirmation that the individual homes remain accessible. |
+| 2 | Claim one eligible verification through the existing Operations workflow. | Existing assignment-conflict checks still apply; no moderator may take work already assigned to another staff member. |
+| 3 | Arrange the visit through the approved operational contact path. | Do not disclose the precise property location, proof records, or a seeker’s private information from the route board. |
+| 4 | Complete the normal evidence, walk-through, neighbourhood, and audit requirements. | Batch membership never reduces the two-image, exterior-proof, video, or independent-audit safeguards. |
+
+The Admin should use batching to concentrate field work in practical areas, not to optimise at the expense of safety, privacy, or independent verification.
+
 ## 5. Where the Admin page is and how it works
 
 The platform owner or designated manager uses:

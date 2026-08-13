@@ -11,6 +11,7 @@ vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => auth.state }));
 vi.mock("./pages/Home", () => ({ default: () => "Public marketplace" }));
 vi.mock("./pages/Admin", () => ({ default: () => "Admin management controls" }));
 vi.mock("./pages/Operations", () => ({ default: () => "Field Moderator operations" }));
+vi.mock("./pages/OperationsBatches", () => ({ default: () => "Field Moderator route board" }));
 vi.mock("./pages/ModeratorAccess", () => ({ default: () => "Field Moderator sign in" }));
 vi.mock("./contexts/ThemeContext", () => ({ ThemeProvider: ({ children }: { children: unknown }) => children, useTheme: () => ({ theme: "light", toggleTheme: vi.fn(), switchable: true }) }));
 vi.mock("./components/ErrorBoundary", () => ({ default: ({ children }: { children: unknown }) => children }));
@@ -68,5 +69,24 @@ describe("protected workspace routes", () => {
     cleanup();
     renderAt("/operations", "admin");
     expect(screen.getByText("Field Moderator operations")).toBeTruthy();
+  });
+
+  it("restricts the geographic route board to Field Moderators and administrators", async () => {
+    renderAt("/operations/batches", null);
+    await waitFor(() => expect(screen.getByText("Public marketplace")).toBeTruthy());
+    expect(screen.queryByText("Field Moderator route board")).toBeNull();
+
+    cleanup();
+    renderAt("/operations/batches", "user");
+    await waitFor(() => expect(screen.getByText("Public marketplace")).toBeTruthy());
+    expect(screen.queryByText("Field Moderator route board")).toBeNull();
+
+    cleanup();
+    renderAt("/operations/batches", "moderator");
+    expect(screen.getByText("Field Moderator route board")).toBeTruthy();
+
+    cleanup();
+    renderAt("/operations/batches", "admin");
+    expect(screen.getByText("Field Moderator route board")).toBeTruthy();
   });
 });

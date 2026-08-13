@@ -16,6 +16,7 @@ import Home from "./pages/Home";
 import Admin from "./pages/Admin";
 import ModeratorAccess from "./pages/ModeratorAccess";
 import Operations from "./pages/Operations";
+import OperationsBatches from "./pages/OperationsBatches";
 
 function ProtectedWorkspaceRoute({ allowedRoles, children }: { allowedRoles: readonly string[]; children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -45,6 +46,10 @@ function OperationsRoute() {
   return canAccessWorkspace(user?.role, ["admin", "moderator"]) ? <Operations /> : <ModeratorAccess />;
 }
 
+function OperationsBatchesRoute() {
+  return <ProtectedWorkspaceRoute allowedRoles={["admin", "moderator"]}><OperationsBatches /></ProtectedWorkspaceRoute>;
+}
+
 function AgentOnboardingRoute() {
   return <Home startAgentOpen />;
 }
@@ -66,6 +71,7 @@ function Router() {
       <Route path="/property/:listingId" component={SharedPropertyRoute} />
       <Route path="/admin" component={AdminRoute} />
       <Route path="/operations" component={OperationsRoute} />
+      <Route path="/operations/batches" component={OperationsBatchesRoute} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
