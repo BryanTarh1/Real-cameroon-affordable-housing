@@ -1,4 +1,4 @@
-import { and, desc, eq, lt, sql } from "drizzle-orm";
+import { and, desc, eq, lt, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { nanoid } from "nanoid";
 import {
@@ -21,6 +21,7 @@ import {
   users,
   verificationEvents,
   verificationEvidence,
+  verificationAudits,
   verificationOrders,
 } from "../drizzle/schema";
 import { calculateFieldVerificationCommission, calculateTotalMoveInCash, createWhatsAppListingLink, DEFAULT_FIELD_MODERATOR_SHARE_BPS, FRESHNESS_WINDOW_DAYS, getAgentAccessState, getPaidOffer, type PaidOfferType } from "../shared/ahc";
@@ -291,6 +292,11 @@ export async function approveHeldCommission(adminUserId: number, commissionId: n
       .where(eq(verificationEvidence.verificationOrderId, commission.verificationOrderId));
     if (evidence.length < 2 || !evidence.some(item => item.kind === "exterior")) {
       throw new Error("Cannot approve payout: the stored field visit does not meet AHC's minimum proof standard.");
+    }
+    const audit = (await tx.select({ status: verificationAudits.status }).from(verificationAudits)
+      .where(eq(verificationAudits.verificationOrderId, commission.verificationOrderId)).limit(1))[0];
+    if (audit && audit.status !== "confirmed") {
+      throw new Error("Cannot approve payout: this verification is selected for an independent second-visit audit that is not yet confirmed.");
     }
     await tx.update(fieldVerificationCommissions).set({
       status: "accrued", evidenceReviewedAt: new Date(), evidenceReviewedByUserId: adminUserId,
@@ -792,6 +798,78 @@ export async function listOperationsVerificationEvidence() {
     .orderBy(desc(verificationEvidence.createdAt));
 }
 
+/** A 20% sample is selected only when another active Field Moderator can conduct a truly independent visit. */
+export function shouldSelectSecondVerifierAudit(randomValue = Math.random()) {
+  return Number.isFinite(randomValue) && randomValue >= 0 && randomValue < 0.2;
+}
+
+/** Private staff queue; public marketplace queries never select audit proof. */
+export async function listVerificationAuditQueue() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: verificationAudits.id,
+    verificationOrderId: verificationAudits.verificationOrderId,
+    listingId: verificationOrders.listingId,
+    title: listings.title,
+    city: listings.city,
+    neighborhood: listings.neighborhood,
+    status: verificationAudits.status,
+    primaryModeratorUserId: verificationAudits.primaryModeratorUserId,
+    auditorUserId: verificationAudits.auditorUserId,
+    listingMatch: verificationAudits.listingMatch,
+    exteriorProofUrl: verificationAudits.exteriorProofUrl,
+    supportingProofUrl: verificationAudits.supportingProofUrl,
+    observation: verificationAudits.observation,
+    selectedAt: verificationAudits.selectedAt,
+    completedAt: verificationAudits.completedAt,
+  }).from(verificationAudits)
+    .innerJoin(verificationOrders, eq(verificationAudits.verificationOrderId, verificationOrders.id))
+    .innerJoin(listings, eq(verificationOrders.listingId, listings.id))
+    .orderBy(desc(verificationAudits.selectedAt));
+}
+
+export async function claimVerificationAudit(auditorUserId: number, auditId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async (tx) => {
+    const audit = (await tx.select().from(verificationAudits).where(eq(verificationAudits.id, auditId)).limit(1))[0];
+    if (!audit || audit.status !== "selected") throw new Error("This independent audit is not available to claim.");
+    if (audit.primaryModeratorUserId === auditorUserId) throw new Error("The original Field Moderator cannot audit their own visit.");
+    await tx.update(verificationAudits).set({ auditorUserId, status: "claimed" }).where(eq(verificationAudits.id, auditId));
+    return { success: true } as const;
+  });
+}
+
+export async function completeVerificationAudit(
+  auditorUserId: number,
+  auditId: number,
+  outcome: "confirmed" | "disputed",
+  listingMatch: "matches" | "partially_matches" | "does_not_match",
+  exteriorProofUrl: string,
+  supportingProofUrl: string,
+  observation: string,
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async (tx) => {
+    const audit = (await tx.select().from(verificationAudits).where(eq(verificationAudits.id, auditId)).limit(1))[0];
+    if (!audit || audit.status !== "claimed" || audit.auditorUserId !== auditorUserId) {
+      throw new Error("Only the assigned independent Field Moderator can complete this audit.");
+    }
+    if (audit.primaryModeratorUserId === auditorUserId) throw new Error("The original Field Moderator cannot audit their own visit.");
+    await tx.update(verificationAudits).set({
+      status: outcome,
+      listingMatch,
+      exteriorProofUrl,
+      supportingProofUrl,
+      observation,
+      completedAt: new Date(),
+    }).where(eq(verificationAudits.id, auditId));
+    return { success: true, outcome } as const;
+  });
+}
+
 export async function claimVerificationOrder(operatorUserId: number, verificationOrderId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
@@ -846,6 +924,11 @@ export async function decideVerificationOrder(operatorUserId: number, verificati
       const settings = await getPlatformSettings();
       const allocation = calculateFieldVerificationCommission(order.amountXaf, settings.fieldModeratorShareBps);
       await tx.insert(fieldVerificationCommissions).values({ verificationOrderId, moderatorUserId: operatorUserId, ...allocation, status: "held" });
+      const alternateModerator = (await tx.select({ id: users.id }).from(users)
+        .where(and(eq(users.role, "moderator"), eq(users.isBanned, false), ne(users.id, operatorUserId))).limit(1))[0];
+      if (alternateModerator && shouldSelectSecondVerifierAudit()) {
+        await tx.insert(verificationAudits).values({ verificationOrderId, primaryModeratorUserId: operatorUserId, status: "selected" });
+      }
     }
     return { status: decision, expiresAt };
   });

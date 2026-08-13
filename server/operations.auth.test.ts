@@ -20,6 +20,24 @@ function createAgentContext(): TrpcContext {
   };
 }
 
+function createAdminContext(): TrpcContext {
+  return {
+    user: {
+      id: 48,
+      openId: "admin-user",
+      email: "admin@example.com",
+      name: "Admin User",
+      loginMethod: "manus",
+      role: "admin",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSignedIn: new Date(),
+    },
+    req: { protocol: "https", headers: {} } as TrpcContext["req"],
+    res: {} as TrpcContext["res"],
+  };
+}
+
 describe("AHC moderator operations authorization", () => {
   it("prevents an ordinary agent from reading the listing review queue", async () => {
     const caller = appRouter.createCaller(createAgentContext());
@@ -47,6 +65,26 @@ describe("AHC moderator operations authorization", () => {
     await expect(caller.operations.verificationEvidenceHistory()).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
+  });
+
+  it("prevents an ordinary user from claiming or completing an independent second visit", async () => {
+    const caller = appRouter.createCaller(createAgentContext());
+
+    await expect(caller.operations.claimVerificationAudit({ auditId: 1 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.operations.completeVerificationAudit({
+      auditId: 1,
+      outcome: "confirmed",
+      listingMatch: "matches",
+      exteriorProofUrl: "https://example.com/exterior.jpg",
+      supportingProofUrl: "https://example.com/interior.jpg",
+      observation: "Independent second visit confirmed the exterior, unit details, and listed costs.",
+    })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("prevents an administrator from impersonating a Field Moderator on an independent second visit", async () => {
+    const caller = appRouter.createCaller(createAdminContext());
+
+    await expect(caller.operations.claimVerificationAudit({ auditId: 1 })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("prevents an ordinary user from reading private trust reports and WhatsApp lead events", async () => {

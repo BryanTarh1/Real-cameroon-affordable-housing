@@ -25,3 +25,4 @@ SOURCE drizzle/0007_flawless_scrambler.sql;
 SOURCE drizzle/0008_flat_obadiah_stane.sql;
 SOURCE drizzle/0009_sturdy_rictor.sql;
 SOURCE drizzle/0010_sticky_jetstream.sql;
+SOURCE drizzle/0011_loose_phantom_reporter.sql;

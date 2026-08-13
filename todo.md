@@ -66,7 +66,7 @@
 
 - [ ] Add the 7/10 venture-readiness assessment as an internal strategic evaluation, not a guaranteed score.
 - [ ] Add the off-platform settlement loophole and monetary/digital-receipt countermeasures.
-- [ ] Add moderator-agent collusion risk, random second-verifier audits, and payout-hold logic.
+- [x] Add moderator-agent collusion risk, random second-verifier audits, and payout-hold logic.
 - [ ] Add licensed payment-partner requirement and prohibit custom escrow custody.
 - [ ] Add geographic batching to improve moderator unit economics and reduce churn.
 - [ ] Add updated diagrams for settlement protection, audit controls, and clustered verification.

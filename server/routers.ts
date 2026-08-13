@@ -38,8 +38,11 @@ import {
   listOperationsReviewQueue,
   listOperationsVerificationEvidence,
   listOperationsVerificationQueue,
+  listVerificationAuditQueue,
   listReviewHistory,
   claimVerificationOrder,
+  claimVerificationAudit,
+  completeVerificationAudit,
   reconfirmAgentListing,
   reconcilePaymentOrder,
   recordLocalLoginFailure,
@@ -232,6 +235,7 @@ export const appRouter = router({
     paymentQueue: moderatorProcedure.query(() => listOperationsPaymentQueue()),
     verificationQueue: moderatorProcedure.query(() => listOperationsVerificationQueue()),
     verificationEvidenceHistory: moderatorProcedure.query(() => listOperationsVerificationEvidence()),
+    verificationAuditQueue: moderatorProcedure.query(() => listVerificationAuditQueue()),
     assignReview: moderatorProcedure.input(z.object({ listingId: z.string().min(4).max(32), moderatorUserId: z.number().int().positive() }))
       .mutation(({ ctx, input }) => assignListingReview(ensureUserId(ctx.user?.id), input.listingId, input.moderatorUserId)),
     decideReview: moderatorProcedure.input(z.object({
@@ -244,6 +248,25 @@ export const appRouter = router({
     })).mutation(({ ctx, input }) => reconcilePaymentOrder(ensureUserId(ctx.user?.id), input.orderId, input.decision, input.note)),
     claimVerification: moderatorProcedure.input(z.object({ verificationOrderId: z.number().int().positive() }))
       .mutation(({ ctx, input }) => claimVerificationOrder(ensureUserId(ctx.user?.id), input.verificationOrderId)),
+    claimVerificationAudit: moderatorProcedure.input(z.object({ auditId: z.number().int().positive() }))
+      .mutation(({ ctx, input }) => {
+        if (ctx.user?.role !== "moderator") throw new TRPCError({ code: "FORBIDDEN", message: "Only a Field Moderator may conduct an independent second visit." });
+        return claimVerificationAudit(ensureUserId(ctx.user?.id), input.auditId);
+      }),
+    completeVerificationAudit: moderatorProcedure.input(z.object({
+      auditId: z.number().int().positive(),
+      outcome: z.enum(["confirmed", "disputed"]),
+      listingMatch: z.enum(["matches", "partially_matches", "does_not_match"]),
+      exteriorProofUrl: z.string().url(),
+      supportingProofUrl: z.string().url(),
+      observation: z.string().trim().min(12).max(1_200),
+    })).mutation(({ ctx, input }) => {
+      if (ctx.user?.role !== "moderator") throw new TRPCError({ code: "FORBIDDEN", message: "Only a Field Moderator may complete an independent second visit." });
+      return completeVerificationAudit(
+        ensureUserId(ctx.user?.id), input.auditId, input.outcome, input.listingMatch,
+        input.exteriorProofUrl, input.supportingProofUrl, input.observation,
+      );
+    }),
     decideVerification: moderatorProcedure.input(z.object({
       verificationOrderId: z.number().int().positive(), decision: z.enum(["passed", "failed"]),
       evidenceNote: z.string().trim().min(12).max(1_200),
@@ -269,6 +292,7 @@ export const appRouter = router({
       .mutation(({ ctx, input }) => setUserRole(ensureUserId(ctx.user?.id), input.userId, input.role)),
     cashFlowAudit: adminProcedure.query(() => getAdminCashFlowAudit()),
     commissionLedger: adminProcedure.query(() => listAdminCommissionLedger()),
+    verificationAudits: adminProcedure.query(() => listVerificationAuditQueue()),
     approveHeldCommission: adminProcedure.input(z.object({ commissionId: z.number().int().positive(), evidenceReviewNote: z.string().trim().min(12).max(1_200) }))
       .mutation(({ ctx, input }) => approveHeldCommission(ensureUserId(ctx.user?.id), input.commissionId, input.evidenceReviewNote)),
     trustReports: adminProcedure.query(() => listAdminTrustReports()),

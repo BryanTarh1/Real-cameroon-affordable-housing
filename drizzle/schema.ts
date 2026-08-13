@@ -275,6 +275,28 @@ export const verificationEvidence = mysqlTable("verification_evidence", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => [index("verification_evidence_order_idx").on(table.verificationOrderId, table.createdAt)]);
 
+/**
+ * A statistically selected, independent second field visit. It is private to
+ * authorised staff and prevents the first Field Moderator from auditing their
+ * own result or releasing their commission without the second visit resolving.
+ */
+export const verificationAudits = mysqlTable("verification_audits", {
+  id: int("id").autoincrement().primaryKey(),
+  verificationOrderId: int("verificationOrderId").notNull().unique().references(() => verificationOrders.id, { onDelete: "cascade" }),
+  primaryModeratorUserId: int("primaryModeratorUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  auditorUserId: int("auditorUserId").references(() => users.id, { onDelete: "set null" }),
+  status: mysqlEnum("status", ["selected", "claimed", "confirmed", "disputed", "cancelled"]).default("selected").notNull(),
+  listingMatch: mysqlEnum("listingMatch", ["matches", "partially_matches", "does_not_match"]),
+  exteriorProofUrl: text("exteriorProofUrl"),
+  supportingProofUrl: text("supportingProofUrl"),
+  observation: text("observation"),
+  selectedAt: timestamp("selectedAt").defaultNow().notNull(),
+  completedAt: timestamp("completedAt"),
+}, (table) => [
+  index("verification_audits_status_idx").on(table.status, table.selectedAt),
+  index("verification_audits_auditor_idx").on(table.auditorUserId, table.status),
+]);
+
 /** Allocations earned only after a Field Moderator records a passed physical verification. */
 export const fieldVerificationCommissions = mysqlTable("field_verification_commissions", {
   id: int("id").autoincrement().primaryKey(),
