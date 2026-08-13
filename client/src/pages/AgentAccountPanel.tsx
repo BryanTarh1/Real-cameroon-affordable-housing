@@ -19,12 +19,8 @@ export function AgentAccountPanel({ audience = "agent", onAuthenticated }: { aud
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [supplyType, setSupplyType] = useState<"agent" | "owner">("agent");
   const [governmentIdUrl, setGovernmentIdUrl] = useState("");
   const [workProofUrl, setWorkProofUrl] = useState("");
-  const [landTitleUrl, setLandTitleUrl] = useState("");
-  const [occupancyRightUrl, setOccupancyRightUrl] = useState("");
-  const [supportingDocumentUrl, setSupportingDocumentUrl] = useState("");
   const utils = trpc.useUtils();
   const onSuccess = async () => {
     await utils.auth.me.invalidate();
@@ -42,11 +38,11 @@ export function AgentAccountPanel({ audience = "agent", onAuthenticated }: { aud
     </div>}
     <form className="agent-form" onSubmit={event => {
       event.preventDefault();
-      if (mode === "register") register.mutate({ name, email, password, onboarding: audience === "agent" ? { applicantType: supplyType, governmentIdUrl, workProofUrl: supplyType === "agent" ? workProofUrl : undefined, landTitleUrl: supplyType === "owner" ? landTitleUrl : undefined, occupancyRightUrl: supplyType === "owner" ? occupancyRightUrl : undefined, supportingDocumentUrl: supplyType === "owner" ? supportingDocumentUrl : undefined } : undefined });
+      if (mode === "register") register.mutate({ name, email, password, onboarding: audience === "agent" ? { applicantType: "agent", governmentIdUrl, workProofUrl } : undefined });
       else login.mutate({ email, password });
     }}>
       {mode === "register" && <label>Full name<input required value={name} onChange={event => setName(event.target.value)} autoComplete="name" placeholder={audience === "agent" ? "Your professional name" : "Your full name"} /></label>}
-      {mode === "register" && audience === "agent" && <><label>Applying as<select value={supplyType} onChange={event => setSupplyType(event.target.value as "agent" | "owner")}><option value="agent">Agent · ID + proof of work</option><option value="owner">Owner · ID + land and occupancy proof</option></select></label><label>Government ID reference URL<input required type="url" value={governmentIdUrl} onChange={event => setGovernmentIdUrl(event.target.value)} placeholder="Private secure-document URL" /></label>{supplyType === "agent" ? <label>Proof of work reference URL<input required type="url" value={workProofUrl} onChange={event => setWorkProofUrl(event.target.value)} placeholder="Brokerage, employer, or work proof URL" /></label> : <><label>Land title reference URL<input required type="url" value={landTitleUrl} onChange={event => setLandTitleUrl(event.target.value)} placeholder="Private land-title URL" /></label><label>Occupancy right reference URL<input required type="url" value={occupancyRightUrl} onChange={event => setOccupancyRightUrl(event.target.value)} placeholder="Private occupancy-right URL" /></label><label>Supporting property document URL<input required type="url" value={supportingDocumentUrl} onChange={event => setSupportingDocumentUrl(event.target.value)} placeholder="Private property-document URL" /></label></>}</>}
+      {mode === "register" && audience === "agent" && <><label>Government ID reference URL<input required type="url" value={governmentIdUrl} onChange={event => setGovernmentIdUrl(event.target.value)} placeholder="Private secure-document URL" /></label><label>Proof of work reference URL<input required type="url" value={workProofUrl} onChange={event => setWorkProofUrl(event.target.value)} placeholder="Brokerage, employer, or work proof URL" /></label></>}
       <label>Email address<input required type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="email" placeholder="you@example.com" /></label>
       <label>Password<input required type="password" minLength={mode === "register" ? 10 : 1} value={password} onChange={event => setPassword(event.target.value)} autoComplete={mode === "register" ? "new-password" : "current-password"} placeholder={mode === "register" ? "At least 10 characters" : "Your AHC password"} /></label>
       <button className="button-primary full-width" disabled={pending}>{pending ? "Please wait…" : mode === "register" ? copy.registerLabel : audience === "moderator" ? "Sign in to Field Operations" : audience === "admin" ? "Sign in to Admin" : "Sign in to AHC"}</button>

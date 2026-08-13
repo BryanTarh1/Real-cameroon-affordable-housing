@@ -119,10 +119,6 @@ async function main() {
       [agentId, "/manus-storage/ahc-test-evidence-exterior_345e18db.png", "/manus-storage/ahc-test-evidence-living-room_b47fb09f.png", adminId],
     );
     await connection.execute(
-      "INSERT INTO `onboarding_applications` (`userId`, `applicantType`, `status`, `governmentIdUrl`, `landTitleUrl`, `occupancyRightUrl`, `supportingDocumentUrl`, `reviewNote`) VALUES (?, 'owner', 'submitted', ?, ?, ?, ?, 'TEST DATA: awaiting Admin review of stronger owner document package.')",
-      [ownerId, "/manus-storage/ahc-test-evidence-exterior_345e18db.png", "/manus-storage/ahc-test-owner-land-title-preview_a6c75f83.png", "/manus-storage/ahc-test-evidence-living-room_b47fb09f.png", "/manus-storage/ahc-test-evidence-bathroom_bafa9958.png"],
-    );
-    await connection.execute(
       "INSERT INTO `platform_settings` (`id`, `agentAccessFeeXaf`, `listingPassFeeXaf`, `featuredPinFeeXaf`, `physicalVerificationFeeXaf`, `fieldModeratorShareBps`, `updatedByUserId`) VALUES (1, 3000, 1000, 3000, 7500, 8000, ?) ON DUPLICATE KEY UPDATE `updatedByUserId` = VALUES(`updatedByUserId`)",
       [adminId],
     );
@@ -284,7 +280,7 @@ async function main() {
       { actor: "Ebot", role: "Paid Agent", purpose: "Active Growth access and one listing credit", email: `agent${DEMO_DOMAIN}`, password: PASSWORDS.agentPaid },
       { actor: "Mireille", role: "Paid Douala Agent", purpose: "Second active supply owner for varied inventory", email: `agent-douala${DEMO_DOMAIN}`, password: PASSWORDS.agentSecondPaid },
       { actor: "Nadege", role: "Pending-payment Agent", purpose: "Payment gate and no-paid-access test", email: `agent-pending${DEMO_DOMAIN}`, password: PASSWORDS.agentPending },
-      { actor: "Ateh", role: "Owner applicant", purpose: "Stronger owner-document review test", email: `owner${DEMO_DOMAIN}`, password: PASSWORDS.owner },
+      { actor: "Ateh", role: "New Agent applicant", purpose: "Unified Agent profile setup test", email: `owner${DEMO_DOMAIN}`, password: PASSWORDS.owner },
       { actor: "Robinson", role: "Field Moderator", purpose: "Evidence and Operations-only test", email: `moderator${DEMO_DOMAIN}`, password: PASSWORDS.moderator },
       { actor: "Bryan", role: "Admin", purpose: "Role governance and protected Admin test", email: `admin${DEMO_DOMAIN}`, password: PASSWORDS.admin },
     ]);

@@ -25,14 +25,13 @@ The application uses an AHC-issued JSON Web Token (JWT) stored in the `ahc_local
 
 ## 2. Role catalogue
 
-AHC uses three stored roles: `user`, `moderator`, and `admin`. **Seeker**, **Agent**, and **Owner applicant** are controlled operating positions within the `user` role, distinguished by the action being performed and, where relevant, the onboarding application. This design ensures that a public registration does not become a staff account.
+AHC uses three stored roles: `user`, `moderator`, and `admin`. **Seeker** and **Agent** are controlled operating positions within the `user` role, distinguished by the action being performed and the relevant onboarding application. This design ensures that a public registration does not become a staff account.
 
 | Position | Stored role | How the position is obtained | Can authenticate? | Primary permitted actions | Explicitly prohibited |
 |---|---|---|---|---|---|
 | Anonymous visitor | None | Visit the public website | No | Browse fresh listings, use filters, view landmark-area map information, review public cost totals and published trust signals | Full property detail, tracked WhatsApp lead, report, alert preference, viewing request, any workspace |
 | Seeker | `user` | Public AHC account registration, then explicit AHC sign-in | Yes | Open protected listing detail, create a tracked WhatsApp lead, submit cost/availability or unofficial-fee reports, set consented match alerts, request a viewing | Supply listing inventory, access evidence, Operations, Admin, other users’ private records |
 | Agent | `user` with Agent onboarding application | Public AHC registration with identity and proof-of-work references, then explicit AHC sign-in; access to paid capabilities depends on the platform’s commercial controls | Yes | Use `/agent`, submit itemised supply listings, manage credits and paid service orders, reconfirm listing freshness, manage own appointments | Self-assign staff roles, publish bypassing review, inspect private moderator evidence, use Admin or Operations tools |
-| Owner applicant / direct owner | `user` with Owner onboarding application | Public AHC registration with identity, land-title, occupancy-right, and supporting-property references, then explicit AHC sign-in | Yes | Use the appropriate supply flow and seek direct-owner recognition after evidence-based review | Self-issue owner or verification badges, access staff workspaces, see unrelated private evidence |
 | Field Moderator | `moderator` | An existing Admin deliberately assigns the Field Moderator role to a known AHC account; there is no public staff-registration form | Yes | Use `/operations` and `/operations/batches`, claim eligible verification work, submit structured proof and verification outcomes, complete authorised operational tasks | Change roles, platform settings, bans, payouts, or other Admin-only decisions; view data outside authorised operational scope |
 | Administrator | `admin` | System owner or an existing authorised Admin deliberately assigns the Admin role; there is no public Admin-registration form | Yes | Use `/admin`; manage roles and bans; govern settings; review trust reports, safety holds, payments, audit evidence, appointments, and held commission approvals | Bypass server authorisation, treat a user report as proof without review, or receive/hold rent, deposit, agency commission, or tenancy-settlement funds |
 
@@ -44,7 +43,7 @@ The public website deliberately keeps anonymous search available. When a visitor
 |---|---|---|---|---|
 | Anonymous visitor | Public route `/` | None needed | Remains anonymous | Not applicable |
 | Seeker | Protected action from a listing or trust feature | Public AHC seeker registration | Returns to the intended protected seeker action when valid | A standard `user` is the expected role |
-| Agent / Owner applicant | `/agent` or public supply call to action | Public AHC registration with the required onboarding evidence | Opens only the user-scoped Agent area after sign-in | An unapproved or unpaid user receives the relevant business-status boundary, not staff access |
+| Agent | `/agent` or public supply call to action | Public AHC registration with identity and proof-of-work references | Opens only the user-scoped Agent area after sign-in | An unapproved or unpaid user receives the relevant business-status boundary, not staff access |
 | Field Moderator | `/operations` or `/operations/batches` | Existing authorised Admin assigns `moderator` through the Admin workspace | Opens Operations only when the newly checked AHC session has `moderator` or `admin` | A signed-in `user` sees a clear assignment message; a signed-out visitor sees the Field Moderator sign-in form |
 | Administrator | `/admin` | System owner or existing authorised Admin assigns `admin` through the Admin workspace | Opens Admin only when the newly checked AHC session has `admin` | A signed-in non-Admin sees a clear role-assignment message; a signed-out visitor sees the Admin sign-in form |
 
@@ -83,7 +82,7 @@ The session expires after 30 days. The user should use the AHC logout action on 
 
 ## 6. Authorisation boundaries by activity
 
-| Activity | Anonymous | Seeker / user | Agent / Owner applicant | Field Moderator | Admin |
+| Activity | Anonymous | Seeker / user | Agent | Field Moderator | Admin |
 |---|---:|---:|---:|---:|---:|
 | Search public fresh inventory | Yes | Yes | Yes | Yes | Yes |
 | See protected contact or create tracked WhatsApp lead | No | Yes | Yes, only under normal authenticated flow | Yes, only where operationally appropriate | Yes |
@@ -105,7 +104,7 @@ The platform owner remains responsible for choosing trustworthy staff, reviewing
 | System owner | Maintain at least one recoverable Admin account, authorise initial staff roles, review access periodically, and retain incident contacts |
 | Admin | Assign or revoke roles only after verification, review safety holds and evidence before irreversible action, and never share Admin credentials |
 | Field Moderator | Use a personally assigned account, upload genuine field evidence, and avoid copying private property or seeker information outside authorised workflows |
-| Agent / Owner applicant | Protect their password, declare itemised costs accurately, and reconfirm live inventory within the required freshness window |
+| Agent | Protect their password, declare itemised costs accurately, and reconfirm live inventory within the required freshness window |
 | Seeker | Use an AHC account for reports and contact requests, provide good-faith information, and report an exposed account promptly |
 
 ## 8. Implementation references

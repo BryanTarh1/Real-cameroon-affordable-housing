@@ -393,3 +393,11 @@
 - [x] Add a discoverable Owner onboarding path and enforce server-side restrictions that prevent a declared Owner from publishing through the lighter Agent evidence path.
 - [x] Add regression coverage for Owner evidence requirements, Agent-path bypass prevention, and Owner-applicant workspace visibility.
 - [x] Update the acceptance walkthrough, validate the role boundary, checkpoint the correction, and resume the owner-led test.
+
+## Unified Agent supplier workflow
+
+- [x] Audit the recently added Owner-specific interfaces, procedures, schema fields, fixtures, and documentation for consolidation into Agent operations.
+- [x] Replace the separate Owner onboarding experience with a unified Agent supplier pathway while preserving paid listing, moderation, evidence, and safety rules.
+- [x] Remove obsolete Owner-specific declarations, trust labels, review queues, and acceptance guidance without weakening protected staff controls.
+- [x] Add regression coverage and validate that every supplier uses the Agent workspace and protected publishing workflow.
+- [x] Checkpoint the unified Agent workflow and provide the completed product update.

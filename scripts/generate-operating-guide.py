@@ -134,13 +134,13 @@ def build_document():
     ])
 
     add_heading(doc, "2. User levels, named demonstration actors, and access")
-    add_body(doc, "AHC has anonymous visitors, authenticated users, Field Moderators, and Administrators. Seeker, Agent, and Owner applicant are distinct operating positions within the ordinary user role. Staff roles are never exposed through public registration.")
+    add_body(doc, "AHC has anonymous visitors, authenticated users, Field Moderators, and Administrators. Seeker and Agent are distinct operating positions within the ordinary user role. All property suppliers use the Agent pathway, while staff roles are never exposed through public registration.")
     add_table(doc, ["Actor", "Defined demonstration role", "Primary route", "Fixture purpose"], [
         ["Tarh", "Seeker", "Public search; protected property action", "Tests sign-in-gated details, reports, viewing requests, match consent, and tracked lead intent."],
         ["Ebot", "Paid Agent", "/agent", "Tests active Growth access and one available listing credit."],
         ["Mireille", "Paid Douala Agent", "/agent", "Owns varied Douala inventory and tests a second active supply account."],
         ["Nadege", "Pending-payment Agent", "/agent", "Tests the paid-access gate without publishing authority or paid credits."],
-        ["Ateh", "Owner applicant", "/agent", "Tests stronger owner onboarding: identity, land-title, occupancy-right, and supporting documents."],
+        ["Ateh", "New Agent applicant", "/agent", "Tests the unified Agent profile setup and unpaid-access boundary."],
         ["Robinson", "Field Moderator", "/operations", "Tests field proof, review work, verification batches, and Operations-only records."],
         ["Bryan", "Administrator", "/admin", "Tests role governance, payment reconciliation, safety holds, audits, and held-commission approval."],
     ])
@@ -157,7 +157,7 @@ def build_document():
         ["/acceptance", "Administrator only", "An owner-led role-by-role acceptance exercise appears only after an explicit Admin sign-in."],
     ])
     add_body(doc, "The frontend boundary prevents unnecessary workspace rendering, but the server is the enforcement point. Protected procedures independently check the AHC local session and required role. Preview state, a remembered page, or knowledge of a URL does not unlock a workspace.")
-    add_callout(doc, "Owner acceptance walkthrough.", "After signing in as an Administrator, open /#/acceptance or use the Admin workspace link. The in-site exercise teaches a safe, ordered check of Anonymous Visitor, Seeker, Paid Agent, Owner applicant, Field Moderator, and Admin workflows. It stores only completion checkmarks in the current browser; it does not store passwords, change platform data, or replace server audit records.")
+    add_callout(doc, "Acceptance walkthrough.", "After signing in as an Administrator, open /#/acceptance or use the Admin workspace link. The in-site exercise teaches a safe, ordered check of Anonymous Visitor, Seeker, Agent, Field Moderator, and Admin workflows. It stores only completion checkmarks in the current browser; it does not store passwords, change platform data, or replace server audit records.")
 
     add_heading(doc, "4. Seeker workflow")
     add_body(doc, "A seeker begins on the public marketplace. They can filter available Yaoundé and Douala homes by city, neighbourhood text, maximum Total Move-In Cash Required, and physical-verification status. Cards show the total cost, monthly rent as supporting context, landmark-radius map scope, approved public badges, neighbourhood essentials, and relative freshness without exposing private evidence.")
@@ -165,14 +165,14 @@ def build_document():
         ["1. Discover", "Search public inventory or open a shared property link.", "Shows fresh public listing data only. An ordinary shared link redirects to /#/property/:listingId so refreshes remain safe in the SPA."],
         ["2. Review", "Open a listing or use View full home details from a verified Walk-Thru card.", "Presents the cost breakdown, landmark area, disclosures, freshness, and verified public trust signals."],
         ["3. Authenticate", "Sign in or register when taking an account-required action.", "Creates an AHC seeker session; the user can then request a viewing, report a concern, save alert consent, or contact supply."],
-        ["4. Contact", "Select Chat on WhatsApp.", "AHC records a privacy-minimised authenticated lead-intent event first, then redirects to the responsible Agent or Owner’s pre-filled WhatsApp chat. AHC cannot read the message body."],
+        ["4. Contact", "Select Chat on WhatsApp.", "AHC records a privacy-minimised authenticated lead-intent event first, then redirects to the responsible Agent’s pre-filled WhatsApp chat. AHC cannot read the message body."],
         ["5. Report", "Report inaccurate costs, unavailability, misleading details, or an unofficial AHC fee demand.", "Reports enter protected staff review. Fair-review safeguards and automatic holds apply according to the trust workflow."],
         ["6. Arrange", "Request a viewing window and contact preference.", "The responsible Agent confirms, declines, cancels, or records the appointment outcome; private histories are role-scoped."],
     ])
 
-    add_heading(doc, "5. Agent and Owner applicant workflow")
-    add_body(doc, "Agents register through the public supply entry and provide identity and proof-of-work information. Owner applicants face a stronger onboarding package that includes identity, land-title, occupancy-right, and supporting-property material. Neither path confers moderator or administrative authority.")
-    add_table(doc, ["Stage", "Agent / Owner activity", "Control or outcome"], [
+    add_heading(doc, "5. Unified Agent supplier workflow")
+    add_body(doc, "Every property supplier—whether they own a property or represent one—registers through the public Agent entry and provides identity and proof-of-work information. AHC does not expose a separate Owner workspace, Owner evidence queue, or Direct Owner badge. Agent onboarding never confers moderator or administrative authority.")
+    add_table(doc, ["Stage", "Agent activity", "Control or outcome"], [
         ["Access", "Sign in at /agent and complete the relevant profile.", "Paid access and listing credits are separate platform-service controls. Nadege’s fixture demonstrates a pending-payment boundary."],
         ["Create listing", "Enter city, landmark area, property details, itemised costs, availability, map-radius scope, and required supply information.", "AHC calculates Total Move-In Cash Required. The submission enters review; it does not publish automatically."],
         ["Review", "Respond to clarification or correction requests.", "First publication is moderator controlled; refused or incomplete information cannot be made public by the Agent."],

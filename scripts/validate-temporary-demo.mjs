@@ -6,7 +6,7 @@ const ACCOUNTS = [
   { label: "Ebot — Paid Agent", email: "agent@test.ahc.local", password: "Agent#2026!", requiredRole: "user", expectedSubscriptionStatus: "active", minimumListingCredits: 1 },
   { label: "Mireille — Paid Douala Agent", email: "agent-douala@test.ahc.local", password: "AgentDouala#2026!", requiredRole: "user", expectedSubscriptionStatus: "active", minimumListingCredits: 0 },
   { label: "Nadege — Pending-payment Agent", email: "agent-pending@test.ahc.local", password: "AgentPending#2026!", requiredRole: "user", expectedSubscriptionStatus: "pending_payment", minimumListingCredits: 0 },
-  { label: "Ateh — Owner applicant", email: "owner@test.ahc.local", password: "Owner#2026!", requiredRole: "user" },
+  { label: "Ateh — New Agent applicant", email: "owner@test.ahc.local", password: "Owner#2026!", requiredRole: "user" },
   { label: "Robinson — Field Moderator", email: "moderator@test.ahc.local", password: "Moderator#2026!", requiredRole: "moderator" },
   { label: "Bryan — Admin", email: "admin@test.ahc.local", password: "Admin#2026!", requiredRole: "admin" },
 ];
