@@ -340,3 +340,7 @@
 - [x] Add regression tests plus desktop and mobile validation for video detail navigation, tracked WhatsApp leads, link metadata, and staff-evidence privacy.
 - [x] Produce a detailed Word operating guide covering every user level, route, workflow, control, and platform functionality.
 - [x] Checkpoint the release and deliver the updated site and operating guide.
+
+## Hash-route internal navigation correction
+
+- [x] Convert remaining public and protected internal navigation links and route-sensitive controls to hash-route-safe forms, then validate staff-route entry and Admin-only controls.
