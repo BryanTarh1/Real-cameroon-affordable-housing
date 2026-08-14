@@ -421,3 +421,7 @@
 - [x] Remove payment-reconciliation controls from Field Moderator Operations while retaining its read-only verification commission status.
 - [x] Ensure protected Admin governance exposes official platform-order reconciliation and commission-payout approval controls.
 - [x] Add regression coverage, validate role boundaries, checkpoint the clarification, and resume acceptance testing.
+
+## Final Admin governance acceptance check
+
+- [x] Confirm Bryan can access protected Admin commercial settings, official service-order reconciliation, cash-flow audit, commission approval, trust reports, and role management without exposing those controls to a Field Moderator.
