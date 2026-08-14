@@ -34,6 +34,7 @@ import {
 import { calculateFieldVerificationCommission, calculateTotalMoveInCash, createWhatsAppListingLink, DEFAULT_FIELD_MODERATOR_SHARE_BPS, FRESHNESS_WINDOW_DAYS, getAgentAccessState, getPaidOffer, PRO_ACTIVE_LISTING_LIMIT, type OwnerAlertEventType, type OwnerAlertStatus, type PaidOfferType } from "../shared/ahc";
 import { ENV } from "./_core/env";
 import { buildOwnerAlertTemplatePayload, getOwnerAlertDashboardUrl, META_WHATSAPP_GRAPH_VERSION } from "./ownerAlerts";
+import { summarizeAdminLeadEvents } from "./leadCounts";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -1073,11 +1074,12 @@ export async function releaseListingSafetyHold(operatorUserId: number, listingId
 export async function listAdminLeadEvents() {
   const db = await getDb();
   if (!db) return [];
-  return db.select({
+  const events = await db.select({
     id: leadEvents.id, listingId: leadEvents.listingId, seekerUserId: leadEvents.seekerUserId,
     contactUserId: leadEvents.contactUserId, channel: leadEvents.channel, createdAt: leadEvents.createdAt,
     listingTitle: listings.title, city: listings.city, neighborhood: listings.neighborhood,
   }).from(leadEvents).innerJoin(listings, eq(listings.id, leadEvents.listingId)).orderBy(desc(leadEvents.createdAt));
+  return summarizeAdminLeadEvents(events);
 }
 
 export async function createPaymentOrder(userId: number, type: PaidOfferType, listingId?: string) {

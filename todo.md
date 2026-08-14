@@ -501,3 +501,8 @@
 - [x] Define the owner-only high-priority WhatsApp alert events, recipient controls, message data-minimisation rules, and provider delivery requirements.
 - [x] Implement a server-side event-alert framework with audit records and Admin controls for confirmed payments, verification outcomes, safety actions, and published announcements.
 - [ ] Configure a WhatsApp delivery provider using protected credentials, test delivery, and document operational setup without exposing user or payment data.
+
+## Account-entry and Admin lead clarity
+- [x] Add accessible show/hide password controls wherever users enter an AHC password, without weakening masked-by-default behavior or autocomplete guidance.
+- [x] Replace repeated Admin lead rows with one clear listing-level WhatsApp lead count that increases for every tracked click.
+- [x] Add regression coverage and visual validation for password visibility and cumulative lead-count presentation.

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
+import { getPasswordInputType } from "@/lib/passwordVisibility";
 import "./AgentAccountPanel.css";
 
 type Mode = "signIn" | "register";
@@ -19,6 +21,7 @@ export function AgentAccountPanel({ audience = "agent", onAuthenticated }: { aud
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [governmentIdUrl, setGovernmentIdUrl] = useState("");
   const [workProofUrl, setWorkProofUrl] = useState("");
   const utils = trpc.useUtils();
@@ -53,7 +56,7 @@ export function AgentAccountPanel({ audience = "agent", onAuthenticated }: { aud
       {mode === "register" && <label>Full name<input required value={name} onChange={event => setName(event.target.value)} autoComplete="name" placeholder={audience === "agent" ? "Your professional name" : "Your full name"} /></label>}
       {mode === "register" && audience === "agent" && <><label>Government ID reference URL<input required type="url" value={governmentIdUrl} onChange={event => setGovernmentIdUrl(event.target.value)} placeholder="Private secure-document URL" /></label><label>Proof of work reference URL<input required type="url" value={workProofUrl} onChange={event => setWorkProofUrl(event.target.value)} placeholder="Brokerage, employer, or work proof URL" /></label></>}
       <label>Email address<input required type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="email" placeholder="you@example.com" /></label>
-      <label>Password<input required type="password" minLength={mode === "register" ? 10 : 1} value={password} onChange={event => setPassword(event.target.value)} autoComplete={mode === "register" ? "new-password" : "current-password"} placeholder={mode === "register" ? "At least 10 characters" : "Your AHC password"} /></label>
+      <label>Password<div className="password-field"><input required type={getPasswordInputType(passwordVisible)} minLength={mode === "register" ? 10 : 1} value={password} onChange={event => setPassword(event.target.value)} autoComplete={mode === "register" ? "new-password" : "current-password"} placeholder={mode === "register" ? "At least 10 characters" : "Your AHC password"} /><button type="button" className="password-visibility-toggle" onClick={() => setPasswordVisible(current => !current)} aria-label={passwordVisible ? "Hide password" : "Show password"} aria-pressed={passwordVisible}>{passwordVisible ? <EyeOff size={17} /> : <Eye size={17} />}<span>{passwordVisible ? "Hide" : "Show"}</span></button></div></label>
       <button className="button-primary full-width" disabled={pending}>{pending ? "Please wait…" : mode === "register" ? copy.registerLabel : audience === "moderator" ? "Sign in to Field Operations" : audience === "admin" ? "Sign in to Admin" : "Sign in to AHC"}</button>
     </form>
     <p className="form-note">{copy.note}</p>
