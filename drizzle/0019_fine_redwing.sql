@@ -1,0 +1,2 @@
+ALTER TABLE `listing_review_events` MODIFY COLUMN `action` enum('submitted','assigned','approved','changes_requested','rejected','resubmitted','suspended','released','archived') NOT NULL;--> statement-breakpoint
+ALTER TABLE `platform_settings` ADD `ownerAlertsEnabled` boolean DEFAULT true NOT NULL;

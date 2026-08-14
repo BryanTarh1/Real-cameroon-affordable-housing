@@ -27,6 +27,7 @@ import {
   getAgentPaidStatus,
   getAgentOfficialServiceReceipt,
   getAgentProfile,
+  getOwnerAlertProviderStatus,
   getLocalCredentialByEmail,
   getPlatformSettings,
   getPublicListingContact,
@@ -43,6 +44,7 @@ import {
   listModeratorVerificationBatches,
   listOperationsVerificationEvidence,
   listOperationsVerificationQueue,
+  listOwnerAlerts,
   listVerificationAuditQueue,
   listReviewHistory,
   listSeekerMatchAlertDeliveries,
@@ -55,6 +57,7 @@ import {
   completeVerificationAudit,
   reconfirmAgentListing,
   reconcilePaymentOrder,
+  releaseListingSafetyHold,
   recordLocalLoginFailure,
   submitPaymentReference,
   setUserBan,
@@ -66,6 +69,7 @@ import {
   updatePlatformSettings,
   upsertAgentProfile,
   upgradeLocalCredentialPasswordHash,
+  createOwnerAlertAnnouncement,
 } from "./db";
 import { createApproximatePoint, createWhatsAppListingLink, normalizeCameroonWhatsAppPhone, type PaidOfferType } from "../shared/ahc";
 
@@ -367,6 +371,7 @@ export const appRouter = router({
       routeBatchVerificationFeeXaf: z.number().int().min(0).max(100_000),
       physicalVerificationFeeXaf: z.number().int().min(0).max(100_000),
       fieldModeratorShareBps: z.number().int().min(0).max(10_000),
+      ownerAlertsEnabled: z.boolean().default(true),
     })).mutation(({ ctx, input }) => updatePlatformSettings(ensureUserId(ctx.user?.id), input)),
     users: adminProcedure.query(() => listAdminUsers()),
     setUserBan: adminProcedure.input(z.object({ userId: z.number().int().positive(), isBanned: z.boolean(), reason: z.string().trim().min(8).max(800) }))
@@ -379,6 +384,12 @@ export const appRouter = router({
     approveHeldCommission: adminProcedure.input(z.object({ commissionId: z.number().int().positive(), evidenceReviewNote: z.string().trim().min(12).max(1_200) }))
       .mutation(({ ctx, input }) => approveHeldCommission(ensureUserId(ctx.user?.id), input.commissionId, input.evidenceReviewNote)),
     trustReports: adminProcedure.query(() => listAdminTrustReports()),
+    ownerAlertProvider: adminProcedure.query(() => getOwnerAlertProviderStatus()),
+    ownerAlerts: adminProcedure.input(z.object({ limit: z.number().int().min(1).max(100).default(50) }).optional())
+      .query(({ input }) => listOwnerAlerts(input?.limit ?? 50)),
+    sendOwnerAlertTest: adminProcedure.mutation(() => createOwnerAlertAnnouncement()),
+    releaseSafetyHold: adminProcedure.input(z.object({ listingId: z.string().min(4).max(32), reason: z.string().trim().min(12).max(1_200) }))
+      .mutation(({ ctx, input }) => releaseListingSafetyHold(ensureUserId(ctx.user?.id), input.listingId, input.reason)),
     leadEvents: adminProcedure.query(() => listAdminLeadEvents()),
     paymentQueue: adminProcedure.query(() => listOperationsPaymentQueue()),
     officialServiceReceipt: adminProcedure.input(z.object({ orderId: z.string().min(6).max(32) }))

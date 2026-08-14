@@ -109,6 +109,8 @@ export const platformSettings = mysqlTable("platform_settings", {
   routeBatchVerificationFeeXaf: int("routeBatchVerificationFeeXaf").default(5_000).notNull(),
   physicalVerificationFeeXaf: int("physicalVerificationFeeXaf").default(7_500).notNull(),
   fieldModeratorShareBps: int("fieldModeratorShareBps").default(8_000).notNull(),
+  /** Owner-only operational notifications may be paused without deleting their audit trail. */
+  ownerAlertsEnabled: boolean("ownerAlertsEnabled").default(true).notNull(),
   updatedByUserId: int("updatedByUserId").references(() => users.id, { onDelete: "set null" }),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -237,7 +239,7 @@ export const listingCredits = mysqlTable("listing_credits", {
 export const listingReviewEvents = mysqlTable("listing_review_events", {
   id: int("id").autoincrement().primaryKey(),
   listingId: varchar("listingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
-  action: mysqlEnum("action", ["submitted", "assigned", "approved", "changes_requested", "rejected", "resubmitted", "suspended", "archived"]).notNull(),
+  action: mysqlEnum("action", ["submitted", "assigned", "approved", "changes_requested", "rejected", "resubmitted", "suspended", "released", "archived"]).notNull(),
   fromStatus: varchar("fromStatus", { length: 32 }),
   toStatus: varchar("toStatus", { length: 32 }).notNull(),
   reason: text("reason"),
@@ -373,6 +375,37 @@ export const matchAlertDeliveries = mysqlTable("match_alert_deliveries", {
   uniqueIndex("match_alert_deliveries_preference_listing_idx").on(table.preferenceId, table.listingId),
   index("match_alert_deliveries_status_idx").on(table.status, table.queuedAt),
   index("match_alert_deliveries_user_idx").on(table.recipientUserId, table.queuedAt),
+]);
+
+/**
+ * A delivery-audited, owner-only operational alert. Message text never contains
+ * payment references, tenancy money, exact addresses, contact details, or proof.
+ * `dedupeKey` makes durable business outcomes safe against duplicate dispatches.
+ */
+export const ownerAlertOutbox = mysqlTable("owner_alert_outbox", {
+  id: int("id").autoincrement().primaryKey(),
+  eventType: mysqlEnum("eventType", [
+    "payment_confirmed", "payment_rejected", "verification_passed", "verification_failed",
+    "safety_hold_applied", "safety_hold_released", "listing_published", "announcement",
+  ]).notNull(),
+  referenceId: varchar("referenceId", { length: 96 }).notNull(),
+  /** Private Admin-readable context, limited to a non-sensitive operational summary. */
+  summary: varchar("summary", { length: 500 }).notNull(),
+  dedupeKey: varchar("dedupeKey", { length: 180 }).notNull(),
+  status: mysqlEnum("status", ["queued", "sent", "delivered", "read", "failed", "suppressed"]).default("queued").notNull(),
+  provider: varchar("provider", { length: 64 }).default("unconfigured").notNull(),
+  providerMessageId: varchar("providerMessageId", { length: 160 }),
+  attemptCount: int("attemptCount").default(0).notNull(),
+  failureReason: text("failureReason"),
+  queuedAt: timestamp("queuedAt").defaultNow().notNull(),
+  sentAt: timestamp("sentAt"),
+  deliveredAt: timestamp("deliveredAt"),
+  readAt: timestamp("readAt"),
+  failedAt: timestamp("failedAt"),
+}, (table) => [
+  uniqueIndex("owner_alert_outbox_dedupe_idx").on(table.dedupeKey),
+  uniqueIndex("owner_alert_outbox_provider_message_idx").on(table.providerMessageId),
+  index("owner_alert_outbox_status_idx").on(table.status, table.queuedAt),
 ]);
 
 /**

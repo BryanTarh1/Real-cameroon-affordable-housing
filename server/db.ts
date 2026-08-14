@@ -22,6 +22,7 @@ import {
   reports,
   seekerMatchAlertPreferences,
   matchAlertDeliveries,
+  ownerAlertOutbox,
   users,
   verificationEvents,
   verificationEvidence,
@@ -30,10 +31,145 @@ import {
   viewingAppointmentEvents,
   viewingAppointments,
 } from "../drizzle/schema";
-import { calculateFieldVerificationCommission, calculateTotalMoveInCash, createWhatsAppListingLink, DEFAULT_FIELD_MODERATOR_SHARE_BPS, FRESHNESS_WINDOW_DAYS, getAgentAccessState, getPaidOffer, PRO_ACTIVE_LISTING_LIMIT, type PaidOfferType } from "../shared/ahc";
+import { calculateFieldVerificationCommission, calculateTotalMoveInCash, createWhatsAppListingLink, DEFAULT_FIELD_MODERATOR_SHARE_BPS, FRESHNESS_WINDOW_DAYS, getAgentAccessState, getPaidOffer, PRO_ACTIVE_LISTING_LIMIT, type OwnerAlertEventType, type OwnerAlertStatus, type PaidOfferType } from "../shared/ahc";
 import { ENV } from "./_core/env";
+import { buildOwnerAlertTemplatePayload, getOwnerAlertDashboardUrl, META_WHATSAPP_GRAPH_VERSION } from "./ownerAlerts";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+
+const OWNER_ALERT_UNCONFIGURED_REASON = "WhatsApp provider is not configured; this operational alert remains queued.";
+
+function isOwnerAlertProviderConfigured() {
+  return Boolean(
+    ENV.whatsappPhoneNumberId
+      && ENV.whatsappAccessToken
+      && ENV.whatsappOwnerPhone
+      && ENV.whatsappTemplateName,
+  );
+}
+
+function maskOwnerPhone(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 4 ? `••••${digits.slice(-4)}` : "Not configured";
+}
+
+/** Safe, Admin-readable configuration state; no credential or full phone number leaves the server. */
+export async function getOwnerAlertProviderStatus() {
+  const settings = await getPlatformSettings();
+  return {
+    configured: isOwnerAlertProviderConfigured(),
+    enabled: settings.ownerAlertsEnabled,
+    active: isOwnerAlertProviderConfigured() && settings.ownerAlertsEnabled,
+    provider: isOwnerAlertProviderConfigured() ? "Meta WhatsApp Cloud API" : "Not configured",
+    ownerPhoneMasked: ENV.whatsappOwnerPhone ? maskOwnerPhone(ENV.whatsappOwnerPhone) : "Not configured",
+    templateName: ENV.whatsappTemplateName || null,
+    queuePolicy: OWNER_ALERT_UNCONFIGURED_REASON,
+  };
+}
+
+/** Inserts one alert per durable business event/reference pair and returns its existing row on replay. */
+export async function enqueueOwnerAlert(eventType: OwnerAlertEventType, referenceId: string, summary: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const dedupeKey = `${eventType}:${referenceId}`;
+  await db.insert(ownerAlertOutbox).values({
+    eventType,
+    referenceId,
+    summary: summary.slice(0, 500),
+    dedupeKey,
+    provider: isOwnerAlertProviderConfigured() ? "meta_whatsapp_cloud" : "unconfigured",
+  }).onDuplicateKeyUpdate({ set: { dedupeKey: sql`${ownerAlertOutbox.dedupeKey}` } });
+  const alert = (await db.select().from(ownerAlertOutbox).where(eq(ownerAlertOutbox.dedupeKey, dedupeKey)).limit(1))[0];
+  if (!alert) throw new Error("Owner alert could not be queued.");
+  return alert;
+}
+
+/** Sends a queued alert once. Delivery errors never roll back the confirmed platform event that caused it. */
+export async function dispatchOwnerAlert(alertId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const alert = (await db.select().from(ownerAlertOutbox).where(eq(ownerAlertOutbox.id, alertId)).limit(1))[0];
+  if (!alert) throw new Error("Owner alert not found.");
+  if (alert.providerMessageId || ["delivered", "read"].includes(alert.status)) return alert;
+  const settings = await getPlatformSettings();
+  if (!settings.ownerAlertsEnabled) {
+    await db.update(ownerAlertOutbox).set({ provider: "disabled", status: "suppressed", failureReason: "Owner alerts are paused by an AHC administrator." })
+      .where(eq(ownerAlertOutbox.id, alertId));
+    return (await db.select().from(ownerAlertOutbox).where(eq(ownerAlertOutbox.id, alertId)).limit(1))[0];
+  }
+  if (!isOwnerAlertProviderConfigured()) {
+    await db.update(ownerAlertOutbox).set({ provider: "unconfigured", status: "queued", failureReason: OWNER_ALERT_UNCONFIGURED_REASON })
+      .where(eq(ownerAlertOutbox.id, alertId));
+    return (await db.select().from(ownerAlertOutbox).where(eq(ownerAlertOutbox.id, alertId)).limit(1))[0];
+  }
+  const now = new Date();
+  await db.update(ownerAlertOutbox).set({ provider: "meta_whatsapp_cloud", attemptCount: alert.attemptCount + 1, failureReason: null })
+    .where(eq(ownerAlertOutbox.id, alertId));
+  try {
+    const response = await fetch(`https://graph.facebook.com/${META_WHATSAPP_GRAPH_VERSION}/${ENV.whatsappPhoneNumberId}/messages`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${ENV.whatsappAccessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify(buildOwnerAlertTemplatePayload({
+        ownerPhone: ENV.whatsappOwnerPhone,
+        templateName: ENV.whatsappTemplateName,
+        language: ENV.whatsappTemplateLanguage,
+        eventType: alert.eventType,
+        referenceId: alert.referenceId,
+        dashboardUrl: getOwnerAlertDashboardUrl(ENV.publicAppUrl),
+      })),
+      signal: AbortSignal.timeout(12_000),
+    });
+    const body = await response.json().catch(() => null) as { messages?: Array<{ id?: string }>; error?: { message?: string } } | null;
+    const providerMessageId = body?.messages?.[0]?.id;
+    if (!response.ok || !providerMessageId) {
+      const failureReason = body?.error?.message?.slice(0, 900) || `Meta WhatsApp request failed with HTTP ${response.status}.`;
+      await db.update(ownerAlertOutbox).set({ status: "failed", failedAt: now, failureReason })
+        .where(eq(ownerAlertOutbox.id, alertId));
+    } else {
+      await db.update(ownerAlertOutbox).set({ status: "sent", providerMessageId, sentAt: now, failureReason: null })
+        .where(eq(ownerAlertOutbox.id, alertId));
+    }
+  } catch (error) {
+    await db.update(ownerAlertOutbox).set({
+      status: "failed", failedAt: now,
+      failureReason: (error instanceof Error ? error.message : "Meta WhatsApp dispatch failed.").slice(0, 900),
+    }).where(eq(ownerAlertOutbox.id, alertId));
+  }
+  return (await db.select().from(ownerAlertOutbox).where(eq(ownerAlertOutbox.id, alertId)).limit(1))[0];
+}
+
+/** Records Meta delivery callbacks idempotently and never dispatches a new message. */
+export async function updateOwnerAlertStatus(providerMessageId: string, status: OwnerAlertStatus, failureReason: string | null = null) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const alert = (await db.select().from(ownerAlertOutbox).where(eq(ownerAlertOutbox.providerMessageId, providerMessageId)).limit(1))[0];
+  if (!alert) return { updated: false, reason: "unknown_message" as const };
+  const ranks: Record<OwnerAlertStatus, number> = { queued: 0, sent: 1, failed: 1, delivered: 2, read: 3, suppressed: 4 };
+  if (ranks[status] < ranks[alert.status]) return { updated: false, reason: "stale_status" as const };
+  const now = new Date();
+  await db.update(ownerAlertOutbox).set({
+    status,
+    ...(status === "delivered" ? { deliveredAt: now } : {}),
+    ...(status === "read" ? { readAt: now } : {}),
+    ...(status === "failed" ? { failedAt: now, failureReason: failureReason ?? "Meta reported delivery failure." } : {}),
+  }).where(eq(ownerAlertOutbox.id, alert.id));
+  return { updated: true, reason: "recorded" as const };
+}
+
+export async function listOwnerAlerts(limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(ownerAlertOutbox).orderBy(desc(ownerAlertOutbox.queuedAt)).limit(Math.max(1, Math.min(limit, 100)));
+}
+
+export async function enqueueAndDispatchOwnerAlert(eventType: OwnerAlertEventType, referenceId: string, summary: string) {
+  const alert = await enqueueOwnerAlert(eventType, referenceId, summary);
+  return dispatchOwnerAlert(alert.id);
+}
+
+export async function createOwnerAlertAnnouncement() {
+  return enqueueAndDispatchOwnerAlert("announcement", `ANN-${nanoid(10)}`, "Admin initiated an owner-only operational alert test.");
+}
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
@@ -174,11 +310,12 @@ const DEFAULT_PLATFORM_SETTINGS = {
   routeBatchVerificationFeeXaf: 5_000,
   physicalVerificationFeeXaf: 7_500,
   fieldModeratorShareBps: DEFAULT_FIELD_MODERATOR_SHARE_BPS,
+  ownerAlertsEnabled: true,
 };
 
 type PlatformCommercialSettingsInput = Pick<typeof DEFAULT_PLATFORM_SETTINGS,
   "agentAccessFeeXaf" | "starterAccessFeeXaf" | "proAccessFeeXaf" | "featuredPinFeeXaf"
-  | "routeBatchVerificationFeeXaf" | "physicalVerificationFeeXaf" | "fieldModeratorShareBps">;
+  | "routeBatchVerificationFeeXaf" | "physicalVerificationFeeXaf" | "fieldModeratorShareBps" | "ownerAlertsEnabled">;
 
 export async function getPlatformSettings() {
   const db = await getDb();
@@ -813,7 +950,7 @@ export function shouldApplyListingSafetyHold(reason: ListingReportReason, matchi
 export async function createListingReport(reporterUserId: number, listingId: string, reason: ListingReportReason, note: string, reporterNetworkFingerprint: string | null = null) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
-  return db.transaction(async (tx) => {
+  const outcome = await db.transaction(async (tx) => {
     const listing = (await tx.select({ id: listings.id, status: listings.status, agentUserId: listings.agentUserId })
       .from(listings).where(eq(listings.id, listingId)).limit(1))[0];
     if (!listing || listing.status !== "published") throw new Error("This listing is no longer available for reports.");
@@ -847,6 +984,10 @@ export async function createListingReport(reporterUserId: number, listingId: str
     }
     return { success: true, automaticSafetyAction, openReportCount: matchingOpenReports.length, safetyReason: safetyReason ?? null };
   });
+  if (outcome.automaticSafetyAction) {
+    await enqueueAndDispatchOwnerAlert("safety_hold_applied", listingId, "Automatic three-report listing safety hold applied; Admin review required.");
+  }
+  return outcome;
 }
 
 /** Logs only an authenticated seeker's outbound-contact intent before redirecting to WhatsApp. */
@@ -893,6 +1034,39 @@ export async function listAdminTrustReports() {
       },
     };
   });
+}
+
+/** Reopens a safety-held listing only after documented Admin review; all currently open reports are resolved together. */
+export async function releaseListingSafetyHold(operatorUserId: number, listingId: string, reason: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const outcome = await db.transaction(async (tx) => {
+    const listing = (await tx.select().from(listings).where(eq(listings.id, listingId)).limit(1))[0];
+    if (!listing) throw new Error("Listing not found.");
+    if (listing.status !== "suspended") throw new Error("Only a suspended listing can be released from a safety hold.");
+    const now = new Date();
+    await tx.update(listings).set({
+      status: "published",
+      reviewedAt: now,
+      reviewedByUserId: operatorUserId,
+      reviewSummary: `Safety hold released by Admin: ${reason}`,
+      lastReconfirmed: now,
+      freshnessWindowDays: FRESHNESS_WINDOW_DAYS,
+    }).where(eq(listings.id, listingId));
+    await tx.update(reports).set({ status: "resolved" })
+      .where(and(eq(reports.listingId, listingId), eq(reports.status, "open")));
+    await tx.insert(listingReviewEvents).values({
+      listingId,
+      action: "released",
+      fromStatus: "suspended",
+      toStatus: "published",
+      reason,
+      actorUserId: operatorUserId,
+    });
+    return { success: true, status: "published" as const };
+  });
+  await enqueueAndDispatchOwnerAlert("safety_hold_released", listingId, "Admin released a listing safety hold after documented review.");
+  return outcome;
 }
 
 /** Private Admin audit data; deliberately excludes message content, phone numbers, IP addresses, and location. */
@@ -1092,7 +1266,7 @@ export async function getAdminOfficialServiceReceipt(orderId: string) {
 export async function reconcilePaymentOrder(operatorUserId: number, orderId: string, decision: "confirmed" | "rejected", note: string) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
-  return db.transaction(async (tx) => {
+  const outcome = await db.transaction(async (tx) => {
     const order = (await tx.select().from(paymentOrders).where(eq(paymentOrders.id, orderId)).limit(1))[0];
     if (!order || order.status !== "reference_submitted") throw new Error("Only submitted payment references can be reconciled.");
     const now = new Date();
@@ -1165,6 +1339,12 @@ export async function reconcilePaymentOrder(operatorUserId: number, orderId: str
     }
     return { status: "confirmed" as const, officialReceiptCode };
   });
+  await enqueueAndDispatchOwnerAlert(
+    decision === "confirmed" ? "payment_confirmed" : "payment_rejected",
+    orderId,
+    decision === "confirmed" ? "Admin confirmed an AHC platform-service order." : "Admin rejected an AHC platform-service order.",
+  );
+  return outcome;
 }
 
 export async function listOperationsReviewQueue() {
@@ -1462,7 +1642,7 @@ export async function decideVerificationOrder(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
-  return db.transaction(async (tx) => {
+  const outcome = await db.transaction(async (tx) => {
     const order = (await tx.select().from(verificationOrders).where(eq(verificationOrders.id, verificationOrderId)).limit(1))[0];
     if (!order || order.status !== "scheduled") throw new Error("Only claimed verification requests can receive a field outcome.");
     if (order.assignedModeratorUserId !== operatorUserId) throw new Error("Only the assigned reviewer can record this verification outcome.");
@@ -1513,6 +1693,12 @@ export async function decideVerificationOrder(
     }
     return { status: decision, expiresAt };
   });
+  await enqueueAndDispatchOwnerAlert(
+    decision === "passed" ? "verification_passed" : "verification_failed",
+    `VER-${verificationOrderId}`,
+    decision === "passed" ? "A Field Moderator recorded a passed physical verification." : "A Field Moderator recorded a failed physical verification.",
+  );
+  return outcome;
 }
 
 export async function assignListingReview(operatorUserId: number, listingId: string, moderatorUserId: number) {
@@ -1532,7 +1718,7 @@ export async function assignListingReview(operatorUserId: number, listingId: str
 export async function decideListingReview(operatorUserId: number, listingId: string, decision: "approved" | "changes_requested" | "rejected", reason: string) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
-  return db.transaction(async (tx) => {
+  const outcome = await db.transaction(async (tx) => {
     const listing = (await tx.select().from(listings).where(eq(listings.id, listingId)).limit(1))[0];
     if (!listing || !["under_review", "changes_requested"].includes(listing.status)) throw new Error("This listing is not awaiting a review decision.");
     if (listing.agentUserId === operatorUserId) throw new Error("A reviewer cannot decide their own listing.");
@@ -1555,6 +1741,10 @@ export async function decideListingReview(operatorUserId: number, listingId: str
     }
     return { status: target };
   });
+  if (decision === "approved") {
+    await enqueueAndDispatchOwnerAlert("listing_published", listingId, "A listing passed first-publication review and is now public.");
+  }
+  return outcome;
 }
 
 type MatchAlertPreferenceInput = {

@@ -36,7 +36,7 @@ describe("AHC Admin governance and Field Moderator boundaries", () => {
   });
 
   it("records an Admin price and commission-split update through the protected API", async () => {
-    const nextSettings = { agentAccessFeeXaf: 3_000, starterAccessFeeXaf: 10_000, proAccessFeeXaf: 25_000, featuredPinFeeXaf: 2_500, routeBatchVerificationFeeXaf: 5_000, physicalVerificationFeeXaf: 7_500, fieldModeratorShareBps: 8_000 };
+    const nextSettings = { agentAccessFeeXaf: 3_000, starterAccessFeeXaf: 10_000, proAccessFeeXaf: 25_000, featuredPinFeeXaf: 2_500, routeBatchVerificationFeeXaf: 5_000, physicalVerificationFeeXaf: 7_500, fieldModeratorShareBps: 8_000, ownerAlertsEnabled: true };
     vi.mocked(database.updatePlatformSettings).mockResolvedValue({ id: 1, ...nextSettings, updatedAt: new Date(), updatedByUserId: admin.id } as never);
     await expect(callerFor(admin).admin.updateSettings(nextSettings)).resolves.toMatchObject({ proAccessFeeXaf: 25_000, fieldModeratorShareBps: 8_000 });
     expect(database.updatePlatformSettings).toHaveBeenCalledWith(admin.id, nextSettings);

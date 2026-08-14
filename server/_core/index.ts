@@ -10,13 +10,14 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { archiveStaleListingHandler } from "../listingFreshness";
-import { createWhatsAppLeadEvent, getPublicListingContact, listFreshPublicListings, registerWalkthroughVideo } from "../db";
+import { createWhatsAppLeadEvent, getPublicListingContact, listFreshPublicListings, registerWalkthroughVideo, updateOwnerAlertStatus } from "../db";
 import { authenticateLocalRequest } from "./localAuth";
 import { ENV } from "./env";
 import { storagePut } from "../storage";
 import { isSocialPreviewBot, propertySpaRedirect } from "./sharedPropertyLink";
 import { buildPropertyOpenGraphDocument } from "./openGraphPropertyPreview";
 import { buildSanitizedLocalTestingSnapshot, isAuthorizedLocalTestingExport } from "../localTestingSnapshot";
+import { extractMetaDeliveryStatuses, verifyMetaWebhookSignature } from "../ownerAlerts";
 
 function escapeMarkup(value: string) {
   return value.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character] ?? character));
@@ -46,6 +47,39 @@ async function startServer() {
   const server = createServer(app);
   let lastLocalTestingSnapshotAt = 0;
   app.set("trust proxy", 1);
+  app.get("/api/whatsapp/webhook", (req, res) => {
+    const mode = typeof req.query["hub.mode"] === "string" ? req.query["hub.mode"] : "";
+    const token = typeof req.query["hub.verify_token"] === "string" ? req.query["hub.verify_token"] : "";
+    const challenge = typeof req.query["hub.challenge"] === "string" ? req.query["hub.challenge"] : "";
+    if (!ENV.whatsappWebhookVerifyToken) {
+      res.status(503).json({ error: "WhatsApp webhook verification is not configured." });
+      return;
+    }
+    if (mode === "subscribe" && token === ENV.whatsappWebhookVerifyToken && challenge) {
+      res.status(200).type("text/plain").send(challenge);
+      return;
+    }
+    res.status(403).json({ error: "WhatsApp webhook verification failed." });
+  });
+  app.post("/api/whatsapp/webhook", express.raw({ type: "application/json", limit: "3mb" }), async (req, res) => {
+    if (!ENV.whatsappAppSecret) {
+      res.status(503).json({ error: "WhatsApp webhook signature verification is not configured." });
+      return;
+    }
+    if (!Buffer.isBuffer(req.body) || !verifyMetaWebhookSignature(req.body, req.get("x-hub-signature-256"), ENV.whatsappAppSecret)) {
+      res.status(401).json({ error: "Invalid WhatsApp webhook signature." });
+      return;
+    }
+    try {
+      const payload = JSON.parse(req.body.toString("utf8")) as unknown;
+      const statuses = extractMetaDeliveryStatuses(payload);
+      await Promise.all(statuses.map(status => updateOwnerAlertStatus(status.id, status.status, status.failureReason)));
+      res.status(200).json({ received: true });
+    } catch (error) {
+      console.error("WhatsApp delivery webhook processing failed", error);
+      res.status(500).json({ error: "WhatsApp delivery webhook processing failed." });
+    }
+  });
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));

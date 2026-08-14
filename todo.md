@@ -496,3 +496,8 @@
 - [x] Create a 15–17 page Word Software Requirements Specification covering the full AHC platform, roles, trust rules, commercial workflow, and validated local snapshot testing setup.
 - [x] Build and package a standalone XAMPP local test interface (`index.php`, CSS, JavaScript, and PHP data endpoint) that reads only the isolated `ahc_local_test.sanitized_listings` database.
 - [x] Validate the local test package, assemble a safe downloadable archive, and deliver it with the Word SRS.
+
+## Owner-only WhatsApp operational alerts
+- [x] Define the owner-only high-priority WhatsApp alert events, recipient controls, message data-minimisation rules, and provider delivery requirements.
+- [x] Implement a server-side event-alert framework with audit records and Admin controls for confirmed payments, verification outcomes, safety actions, and published announcements.
+- [ ] Configure a WhatsApp delivery provider using protected credentials, test delivery, and document operational setup without exposing user or payment data.

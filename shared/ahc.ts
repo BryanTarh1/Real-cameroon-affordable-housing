@@ -35,6 +35,23 @@ export type PaidOfferType =
   | "listing_pass"
   | "physical_verification";
 
+/** Owner-only operational events. They intentionally exclude rent, deposits, and tenancy payments. */
+export const OWNER_ALERT_EVENT_TYPES = [
+  "payment_confirmed",
+  "payment_rejected",
+  "verification_passed",
+  "verification_failed",
+  "safety_hold_applied",
+  "safety_hold_released",
+  "listing_published",
+  "announcement",
+] as const;
+
+export type OwnerAlertEventType = (typeof OWNER_ALERT_EVENT_TYPES)[number];
+
+export const OWNER_ALERT_STATUSES = ["queued", "sent", "delivered", "read", "failed", "suppressed"] as const;
+export type OwnerAlertStatus = (typeof OWNER_ALERT_STATUSES)[number];
+
 export const DEFAULT_FIELD_MODERATOR_SHARE_BPS = 8_000;
 export const BASIS_POINTS_DENOMINATOR = 10_000;
 
