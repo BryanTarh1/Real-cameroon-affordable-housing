@@ -296,7 +296,6 @@ export const appRouter = router({
     reviewQueue: moderatorProcedure.query(() => listOperationsReviewQueue()),
     reviewHistory: moderatorProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
       .query(({ input }) => listReviewHistory(input.listingId)),
-    paymentQueue: moderatorProcedure.query(() => listOperationsPaymentQueue()),
     verificationQueue: moderatorProcedure.query(() => listOperationsVerificationQueue()),
     verificationBatches: moderatorProcedure.query(() => listModeratorVerificationBatches()),
     verificationEvidenceHistory: moderatorProcedure.query(() => listOperationsVerificationEvidence()),
@@ -307,10 +306,6 @@ export const appRouter = router({
       listingId: z.string().min(4).max(32), decision: z.enum(["approved", "changes_requested", "rejected"]),
       reason: z.string().trim().min(8).max(1_200),
     })).mutation(({ ctx, input }) => decideListingReview(ensureUserId(ctx.user?.id), input.listingId, input.decision, input.reason)),
-    reconcilePayment: moderatorProcedure.input(z.object({
-      orderId: z.string().min(6).max(32), decision: z.enum(["confirmed", "rejected"]),
-      note: z.string().trim().min(12, "Record a short reconciliation note for the official payment audit.").max(800),
-    })).mutation(({ ctx, input }) => reconcilePaymentOrder(ensureUserId(ctx.user?.id), input.orderId, input.decision, input.note)),
     claimVerification: moderatorProcedure.input(z.object({ verificationOrderId: z.number().int().positive() }))
       .mutation(({ ctx, input }) => claimVerificationOrder(ensureUserId(ctx.user?.id), input.verificationOrderId)),
     claimVerificationAudit: moderatorProcedure.input(z.object({ auditId: z.number().int().positive() }))

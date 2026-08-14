@@ -18,8 +18,9 @@ import { appRouter } from "./routers";
 
 const agent = { id: 62, openId: "payment-agent", email: "agent@example.com", name: "Payment Agent", loginMethod: "manus", role: "user" as const, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() };
 const moderator = { id: 63, openId: "payment-moderator", email: "moderator@example.com", name: "Payment Moderator", loginMethod: "manus", role: "moderator" as const, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() };
+const admin = { id: 64, openId: "payment-admin", email: "admin@example.com", name: "Payment Admin", loginMethod: "manus", role: "admin" as const, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() };
 
-function callerFor(user: typeof agent | typeof moderator) {
+function callerFor(user: typeof agent | typeof moderator | typeof admin) {
   return appRouter.createCaller({ user, req: { protocol: "https", headers: {} } as TrpcContext["req"], res: {} as TrpcContext["res"] });
 }
 
@@ -50,16 +51,19 @@ describe("AHC payment reconciliation and listing-credit API guards", () => {
     expect(database.createPaymentOrder).not.toHaveBeenCalled();
   });
 
-  it("only accepts a moderator reconciliation decision with a recorded note", async () => {
+  it("accepts reconciliation only through the Admin governance namespace and removes it from Field Moderator operations", async () => {
     vi.mocked(database.reconcilePaymentOrder).mockResolvedValue({ status: "confirmed" } as never);
 
-    await expect(callerFor(moderator).operations.reconcilePayment({
+    expect(Object.keys(appRouter._def.record.operations)).not.toContain("paymentQueue");
+    expect(Object.keys(appRouter._def.record.operations)).not.toContain("reconcilePayment");
+
+    await expect(callerFor(admin).admin.reconcilePayment({
       orderId: "PAY-ACCESS-62",
       decision: "confirmed",
       note: "MTN reference matched the received merchant evidence.",
     })).resolves.toEqual({ status: "confirmed" });
 
-    expect(database.reconcilePaymentOrder).toHaveBeenCalledWith(63, "PAY-ACCESS-62", "confirmed", "MTN reference matched the received merchant evidence.");
+    expect(database.reconcilePaymentOrder).toHaveBeenCalledWith(64, "PAY-ACCESS-62", "confirmed", "MTN reference matched the received merchant evidence.");
   });
 
   it("does not allow a listing to enter review when the data guard reports no approved Listing Pass", async () => {

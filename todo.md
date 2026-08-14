@@ -407,10 +407,17 @@
 - [x] Inspect whether Robinson has eligible held-commission data and whether the Operations workspace renders its commission state.
 - [x] Add a protected read-only commission status view or clear empty state if the current Moderator workspace lacks one.
 - [x] Add regression coverage and validate that commission payout remains Admin-controlled rather than automatic.
-- [ ] Checkpoint the commission-visibility result and resume the role acceptance walkthrough.
+- [x] Checkpoint the commission-visibility result and resume the role acceptance walkthrough.
 
 ## Commission panel version alignment
 
 - [x] Identify that the user was on an earlier dynamic preview rather than the freshly restarted build where the protected commission panel was verified.
-- [ ] Make the tested commission-status panel available on the user-facing version without altering commission data.
+- [x] Make the tested commission-status panel available on the user-facing version without altering commission data.
 - [ ] Confirm the visible panel with the user and checkpoint the corrected acceptance flow.
+
+## Payment reconciliation role separation
+
+- [x] Inspect current Field Moderator and Admin visibility of service-order reconciliation and commission-payout controls.
+- [x] Remove payment-reconciliation controls from Field Moderator Operations while retaining its read-only verification commission status.
+- [x] Ensure protected Admin governance exposes official platform-order reconciliation and commission-payout approval controls.
+- [x] Add regression coverage, validate role boundaries, checkpoint the clarification, and resume acceptance testing.
