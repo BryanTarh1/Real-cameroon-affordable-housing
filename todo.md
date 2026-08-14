@@ -437,3 +437,15 @@
 ## Direct guide delivery
 
 - [x] Remove the beginner operating-guide source and generated file from the website project, retain a standalone Word copy outside the project, and deliver it directly to the owner.
+
+## Google discoverability check
+
+- [x] Check current public Google discovery for the AHC domain and identify the indexability actions required for reliable visibility; the published AHC domain was not returned in the check, and the robots/sitemap paths currently fall back to the SPA page instead of serving crawl-control files.
+
+## Share previews, property trust cues, and mobile map polish
+
+- [x] Audit the existing public property-link route, crawler metadata response, primary-card source/freshness labels, and Leaflet mobile layout.
+- [x] Serve crawler-visible OpenGraph metadata for public shared property links without exposing protected evidence or exact locations.
+- [x] Make the truthful Managing Agent and listing freshness cues more prominent on primary property cards while preserving the unified Agent pathway.
+- [x] Improve small-device Leaflet map height, control placement, and bottom actions for comfortable touch use.
+- [x] Add regression coverage, validate crawler and responsive behavior, checkpoint the update, and provide the new project version.

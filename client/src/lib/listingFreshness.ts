@@ -21,3 +21,14 @@ export function formatReconfirmedDate(value: Date | string) {
     year: "numeric",
   });
 }
+
+/** Gives public cards a plain-language freshness signal without exposing operational timestamps. */
+export function relativeReconfirmed(value: Date | string, now = Date.now()) {
+  const reconfirmedAt = new Date(value).getTime();
+  if (!Number.isFinite(reconfirmedAt)) return "recently";
+
+  const elapsedDays = Math.max(0, Math.floor((now - reconfirmedAt) / MILLISECONDS_PER_DAY));
+  if (elapsedDays === 0) return "today";
+  if (elapsedDays === 1) return "yesterday";
+  return `${elapsedDays} days ago`;
+}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { ApproximateMap, type MapListing } from "@/components/ApproximateMap";
 import { trpc } from "@/lib/trpc";
-import { daysUntilRefresh } from "@/lib/listingFreshness";
+import { daysUntilRefresh, relativeReconfirmed } from "@/lib/listingFreshness";
 import { resolveListingDetailAccess } from "@/lib/roleAccess";
 import { publicWalkthroughForDetail } from "@/lib/publicWalkthrough";
 import { AgentAccountPanel } from "@/pages/AgentAccountPanel";
@@ -11,7 +11,7 @@ import { PremiumWalkthroughRail } from "@/components/PremiumWalkthroughRail";
 import { NonProductionWalkthroughDemo } from "@/components/NonProductionWalkthroughDemo";
 import { SeekerMatchAlerts } from "@/components/SeekerMatchAlerts";
 import { SeekerAppointmentHistory, ViewingAppointmentRequest } from "@/components/ViewingAppointmentConcierge";
-import { BadgeCheck, Building2, CircleAlert, Clock3, MapPinned, Menu, MessageCircle, ShieldCheck, Sparkles, Video, X } from "lucide-react";
+import { BadgeCheck, Building2, CircleAlert, Clock3, MapPinned, Menu, MessageCircle, Share2, ShieldCheck, Sparkles, Video, X } from "lucide-react";
 import { toast } from "sonner";
 import "./launch-refinements.css";
 
@@ -54,13 +54,14 @@ function ListingCard({ listing, onOpen }: { listing: Listing; onOpen: () => void
   const days = daysUntilRefresh(listing.lastReconfirmed);
   return <article className={`listing-card ${listing.featured ? "is-featured" : ""}`}>
     <div className="listing-card-top"><div><span className="listing-city">{listing.city} / {listing.neighborhood}</span><h3>{listing.title}</h3><p>{listing.propertyType}{listing.householdFit ? ` · ${listing.householdFit}` : ""}</p></div>{listing.featured && <span className="featured-tag"><Sparkles size={13} /> Featured pin</span>}</div>
+    <div className="listing-source"><Building2 size={15} /><span><small>Listed by</small><b>Managing Agent · {listing.agent.name}</b></span></div>
     <div className="listing-total"><span>Total Move-In Cash Required</span><strong>{formatXaf(listing.costs.totalMoveInCashRequired)}</strong><small>Not only the monthly rent.</small></div>
     {listing.trust.guaranteedTotalCash && <div className="guarantee-seal"><ShieldCheck size={15} /><span><b>Guaranteed Total Cash</b><small>No upheld price or unofficial-fee dispute on record.</small></span></div>}
     {listing.neighborhoodEssentials && <div className="listing-essentials"><span>{listing.neighborhoodEssentials.roadAccess === "tarred_to_gate" ? "Tarred to gate" : listing.neighborhoodEssentials.roadAccess === "dirt_track_to_gate" ? "Dirt-track approach" : "Road assessed"}</span>{listing.neighborhoodEssentials.junctionName && <span>{listing.neighborhoodEssentials.junctionMinutes ?? "?"} min to {listing.neighborhoodEssentials.junctionName}</span>}</div>}
     {listing.trust.badges.length > 0 && <div className="listing-badges">{listing.trust.badges.map(badge => <span key={badge.code}><BadgeCheck size={12} /> {badge.label}</span>)}</div>}
     {publicWalkthroughForDetail(listing.walkthrough) && <div className="listing-walkthrough-available"><Video size={14} /><span>{listing.title.startsWith("TEST DATA") ? "Test Walk-Thru available" : "Approved Walk-Thru available"}</span></div>}
     <div className="listing-split"><span>Monthly rent <b>{formatXaf(listing.costs.monthlyRent)}</b></span><span><MapPinned size={14} /> {listing.map.radiusM}m landmark area</span></div>
-    <div className="listing-trust-row"><span className={listing.verificationStatus === "physical_verified" ? "trust-positive" : "trust-neutral"}>{listing.verificationStatus === "physical_verified" ? <BadgeCheck size={15} /> : <Clock3 size={15} />}{listing.verificationStatus === "physical_verified" ? "Physical verification" : "Availability reconfirmed"}</span><span>Refreshes in {days} day{days === 1 ? "" : "s"}</span></div>
+    <div className="listing-trust-row"><span className={listing.verificationStatus === "physical_verified" ? "trust-positive" : "trust-neutral"}>{listing.verificationStatus === "physical_verified" ? <BadgeCheck size={15} /> : <Clock3 size={15} />}{listing.verificationStatus === "physical_verified" ? "Physical verification" : "Availability reconfirmed"}</span><span className="freshness-relative"><Clock3 size={14} /> Reconfirmed {relativeReconfirmed(listing.lastReconfirmed)} <small>· {days} day{days === 1 ? "" : "s"} left</small></span></div>
     <button className="card-action" onClick={onOpen}>View every cost <span>→</span></button>
   </article>;
 }
@@ -82,6 +83,26 @@ function ListingDetail({ listing, onClose }: { listing: Listing; onClose: () => 
     }
   };
 
+  const shareProperty = async () => {
+    const url = `${window.location.origin}/property/${encodeURIComponent(listing.id)}`;
+    const shareData = { title: `${listing.title} · Affordable Housing Cameroon`, text: `Total Move-In Cash Required: ${formatXaf(listing.costs.totalMoveInCashRequired)}.`, url };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        toast.success("Share link copied", { description: "This link shows a public preview in WhatsApp before opening AHC." });
+        return;
+      }
+      window.prompt("Copy this AHC property link", url);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      toast.error("We could not prepare the share link.");
+    }
+  };
+
   return <div className="modal-backdrop" role="presentation" onMouseDown={onClose}><section className="listing-modal" role="dialog" aria-modal="true" aria-label={`Details for ${listing.title}`} onMouseDown={event => event.stopPropagation()}>
     <button className="modal-close" onClick={onClose} aria-label="Close listing details"><X size={19} /></button>
     <div className="modal-eyebrow">{listing.id} · {listing.city} / {listing.neighborhood}</div><h2>{listing.title}</h2>
@@ -95,7 +116,7 @@ function ListingDetail({ listing, onClose }: { listing: Listing; onClose: () => 
     <div className="listing-disclosures"><div><b>What “paid listing” means</b><span>The agent paid for Agent Access and a Listing Pass before the listing entered moderator review. It is not a guarantee that the home, price, or agent is risk-free.</span></div><div><b>AHC does not hold your rent or deposit</b><span>AHC is not an escrow, rent-collection, or deposit-holding service. Do not send tenancy money to AHC or to anyone claiming to collect it for AHC.</span></div><div><b>Protect your visit</b><span>Do not send a deposit before you inspect the home, agree terms in writing, and receive a receipt. AHC never asks seekers to pay an Agent or Owner a platform fee; report any unofficial AHC-fee demand here.</span></div></div>
     <div className="freshness-callout"><ShieldCheck size={18} /><div><b>{listing.verificationStatus === "physical_verified" ? "Physical verification badge" : "Freshness check"}</b><span>Last reconfirmed {new Date(listing.lastReconfirmed).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}. This listing leaves public search after 14 days without agent reconfirmation.</span></div></div>
     <ViewingAppointmentRequest listing={listing} />
-    {!reporting ? <><p className="form-note">AHC records only this authenticated contact intent before opening WhatsApp. It does not read your messages or claim a booking or payment outcome.</p><div className="modal-actions"><button className="button-secondary" onClick={() => setReporting(true)}>Report an issue</button><button className="button-primary" onClick={contact}><MessageCircle size={17} /> Chat on WhatsApp</button></div></> : <form className="report-form" onSubmit={event => { event.preventDefault(); reportMutation.mutate({ listingId: listing.id, reason: reportReason, note }, { onSuccess: () => { setReporting(false); setNote(""); } }); }}><label>What needs review?<select value={reportReason} onChange={event => setReportReason(event.target.value as typeof reportReason)}><option value="inaccurate_cost">Inaccurate Total Move-In Cash</option><option value="unavailable">Home is no longer available</option><option value="misleading_details">Listing details do not match</option><option value="unofficial_fee">Someone requested an unofficial AHC fee</option><option value="other">Another issue</option></select></label><label>What happened?<textarea required minLength={10} value={note} onChange={event => setNote(event.target.value)} placeholder="For example: the agent requested 12 months’ advance instead of the listed amount..." /></label><p className="report-safety-note">Three distinct inaccurate-cost or unavailable-listing reports automatically remove this listing from public search pending Admin review. Unofficial-fee reports are separately queued for payment-fraud review.</p><div><button type="button" className="text-button" onClick={() => setReporting(false)}>Cancel</button><button className="button-primary" disabled={reportMutation.isPending}>{reportMutation.isPending ? "Sending report…" : "Send report"}</button></div></form>}
+    {!reporting ? <><p className="form-note">AHC records only this authenticated contact intent before opening WhatsApp. It does not read your messages or claim a booking or payment outcome.</p><div className="modal-actions"><button className="button-secondary share-property-button" onClick={shareProperty}><Share2 size={16} /> Share preview</button><button className="button-secondary" onClick={() => setReporting(true)}>Report an issue</button><button className="button-primary" onClick={contact}><MessageCircle size={17} /> Chat on WhatsApp</button></div></> : <form className="report-form" onSubmit={event => { event.preventDefault(); reportMutation.mutate({ listingId: listing.id, reason: reportReason, note }, { onSuccess: () => { setReporting(false); setNote(""); } }); }}><label>What needs review?<select value={reportReason} onChange={event => setReportReason(event.target.value as typeof reportReason)}><option value="inaccurate_cost">Inaccurate Total Move-In Cash</option><option value="unavailable">Home is no longer available</option><option value="misleading_details">Listing details do not match</option><option value="unofficial_fee">Someone requested an unofficial AHC fee</option><option value="other">Another issue</option></select></label><label>What happened?<textarea required minLength={10} value={note} onChange={event => setNote(event.target.value)} placeholder="For example: the agent requested 12 months’ advance instead of the listed amount..." /></label><p className="report-safety-note">Three distinct inaccurate-cost or unavailable-listing reports automatically remove this listing from public search pending Admin review. Unofficial-fee reports are separately queued for payment-fraud review.</p><div><button type="button" className="text-button" onClick={() => setReporting(false)}>Cancel</button><button className="button-primary" disabled={reportMutation.isPending}>{reportMutation.isPending ? "Sending report…" : "Send report"}</button></div></form>}
   </section></div>;
 }
 

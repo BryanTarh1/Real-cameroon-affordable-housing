@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
+import sharp from "sharp";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
@@ -13,6 +14,11 @@ import { createWhatsAppLeadEvent, getPublicListingContact, registerWalkthroughVi
 import { authenticateLocalRequest } from "./localAuth";
 import { storagePut } from "../storage";
 import { isSocialPreviewBot, propertySpaRedirect } from "./sharedPropertyLink";
+import { buildPropertyOpenGraphDocument } from "./openGraphPropertyPreview";
+
+function escapeMarkup(value: string) {
+  return value.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character] ?? character));
+}
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -31,10 +37,6 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
     }
   }
   throw new Error(`No available port found starting from ${startPort}`);
-}
-
-function escapeMarkup(value: string) {
-  return value.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character] ?? character));
 }
 
 async function startServer() {
@@ -102,6 +104,19 @@ async function startServer() {
     res.setHeader("Cache-Control", "public, max-age=3600");
     res.type("image/svg+xml").send(`<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="#132c34"/><rect x="72" y="68" width="12" height="494" fill="#d78a1d"/><text x="124" y="150" fill="#f7f3e9" font-family="Arial, sans-serif" font-size="34" letter-spacing="3">AFFORDABLE HOUSING CAMEROON</text><text x="124" y="250" fill="#f7f3e9" font-family="Georgia, serif" font-size="58">${title}</text><text x="124" y="320" fill="#cbd7d4" font-family="Arial, sans-serif" font-size="32">${location} · approximate landmark area</text><text x="124" y="460" fill="#d78a1d" font-family="Arial, sans-serif" font-size="28" letter-spacing="2">TOTAL MOVE-IN CASH REQUIRED</text><text x="124" y="530" fill="#f7f3e9" font-family="Georgia, serif" font-size="64">${total} XAF</text></svg>`);
   });
+  app.get("/api/public/listings/:listingId/share-card.png", async (req, res) => {
+    const listing = await getPublicListingContact(req.params.listingId);
+    if (!listing) {
+      res.status(404).type("image/png").send(await sharp({ create: { width: 1200, height: 630, channels: 3, background: "#132c34" } }).png().toBuffer());
+      return;
+    }
+    const total = new Intl.NumberFormat("en-US").format(listing.costs.totalMoveInCashRequired);
+    const title = escapeMarkup(listing.title);
+    const location = escapeMarkup(`${listing.neighborhood}, ${listing.city}`);
+    const previewSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="#f7f3e9"/><rect width="1200" height="200" fill="#132c34"/><path d="M830 98 960 18l130 80v175H830z" fill="#d78a1d" opacity=".95"/><path d="M860 119 960 58l100 61v118H860z" fill="#f7f3e9"/><path d="M930 142h60v95h-60z" fill="#132c34"/><rect x="72" y="66" width="14" height="486" fill="#d78a1d"/><text x="122" y="125" fill="#f7f3e9" font-family="Arial, sans-serif" font-size="28" font-weight="700" letter-spacing="3">AFFORDABLE HOUSING CAMEROON</text><text x="122" y="310" fill="#132c34" font-family="Georgia, serif" font-size="60">${title}</text><text x="122" y="370" fill="#476068" font-family="Arial, sans-serif" font-size="30">${location} · approximate landmark area</text><text x="122" y="465" fill="#b96c12" font-family="Arial, sans-serif" font-size="25" font-weight="700" letter-spacing="2">TOTAL MOVE-IN CASH REQUIRED</text><text x="122" y="535" fill="#132c34" font-family="Georgia, serif" font-size="64">${total} XAF</text></svg>`;
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.type("image/png").send(await sharp(Buffer.from(previewSvg)).png().toBuffer());
+  });
   app.get("/property/:listingId", async (req, res, next) => {
     if (!isSocialPreviewBot(req.get("user-agent") ?? "")) {
       res.redirect(302, propertySpaRedirect(req.params.listingId));
@@ -110,11 +125,7 @@ async function startServer() {
     const listing = await getPublicListingContact(req.params.listingId);
     if (!listing) return next();
     const origin = `${req.protocol}://${req.get("host")}`;
-    const propertyUrl = `${origin}/property/${encodeURIComponent(listing.id)}`;
-    const imageUrl = `${origin}/api/public/listings/${encodeURIComponent(listing.id)}/share-card.svg`;
-    const title = `${listing.title} · ${listing.neighborhood}, ${listing.city}`;
-    const description = `Total Move-In Cash Required: ${new Intl.NumberFormat("en-US").format(listing.costs.totalMoveInCashRequired)} XAF. Approximate landmark area only. Open AHC for availability and sign-in-protected details.`;
-    res.status(200).type("html").send(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${escapeMarkup(title)} | AHC</title><meta name="description" content="${escapeMarkup(description)}"><meta property="og:type" content="website"><meta property="og:site_name" content="Affordable Housing Cameroon"><meta property="og:title" content="${escapeMarkup(title)}"><meta property="og:description" content="${escapeMarkup(description)}"><meta property="og:url" content="${escapeMarkup(propertyUrl)}"><meta property="og:image" content="${escapeMarkup(imageUrl)}"><meta name="twitter:card" content="summary_large_image"></head><body><p>Open <a href="${escapeMarkup(propertyUrl)}">this AHC property listing</a>.</p></body></html>`);
+    res.status(200).type("html").send(buildPropertyOpenGraphDocument(listing, origin));
   });
   app.get("/api/listings/:listingId/whatsapp", async (req, res) => {
     const user = await authenticateLocalRequest(req);
