@@ -23,7 +23,9 @@ import {
   decideListingReview,
   decideVerificationOrder,
   getAdminCashFlowAudit,
+  getAdminOfficialServiceReceipt,
   getAgentPaidStatus,
+  getAgentOfficialServiceReceipt,
   getAgentProfile,
   getLocalCredentialByEmail,
   getPlatformSettings,
@@ -239,6 +241,8 @@ export const appRouter = router({
     listings: protectedProcedure.query(({ ctx }) => listAgentListings(ensureUserId(ctx.user?.id))),
     paidStatus: protectedProcedure.query(({ ctx }) => getAgentPaidStatus(ensureUserId(ctx.user?.id))),
     paymentOrders: protectedProcedure.query(({ ctx }) => listAgentPaymentOrders(ensureUserId(ctx.user?.id))),
+    officialServiceReceipt: protectedProcedure.input(z.object({ orderId: z.string().min(6).max(32) }))
+      .query(({ ctx, input }) => getAgentOfficialServiceReceipt(ensureUserId(ctx.user?.id), input.orderId)),
     createPaymentOrder: protectedProcedure.input(z.object({
       type: z.enum(["agent_access", "listing_pass", "featured_pin", "physical_verification"]),
       listingId: z.string().min(4).max(32).optional(),
@@ -369,6 +373,8 @@ export const appRouter = router({
     trustReports: adminProcedure.query(() => listAdminTrustReports()),
     leadEvents: adminProcedure.query(() => listAdminLeadEvents()),
     paymentQueue: adminProcedure.query(() => listOperationsPaymentQueue()),
+    officialServiceReceipt: adminProcedure.input(z.object({ orderId: z.string().min(6).max(32) }))
+      .query(({ input }) => getAdminOfficialServiceReceipt(input.orderId)),
     reviewQueue: adminProcedure.query(() => listOperationsReviewQueue()),
     reviewHistory: adminProcedure.input(z.object({ listingId: z.string().min(4).max(32) })).query(({ input }) => listReviewHistory(input.listingId)),
     assignReview: adminProcedure.input(z.object({ listingId: z.string().min(4).max(32), moderatorUserId: z.number().int().positive() }))

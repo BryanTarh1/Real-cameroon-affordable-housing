@@ -425,3 +425,11 @@
 ## Final Admin governance acceptance check
 
 - [x] Confirm Bryan can access protected Admin commercial settings, official service-order reconciliation, cash-flow audit, commission approval, trust reports, and role management without exposing those controls to a Field Moderator.
+
+## Printable receipts, beginner guide, and responsive readiness
+
+- [x] Define the protected AHC platform-service receipt data, non-custodial wording, and Admin issuance boundary.
+- [x] Add a printable confirmed-service receipt view to Admin payment reconciliation without exposing tenancy-money functionality.
+- [x] Create a simple-English beginner operational guide of fewer than 10 pages and verify its printable output.
+- [x] Review and improve key public and protected workflows at mobile, tablet, and desktop viewports.
+- [x] Add regression coverage, validate the deliverables, checkpoint the release, and provide the updated project version.

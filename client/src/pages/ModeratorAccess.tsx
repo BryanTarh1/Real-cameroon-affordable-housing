@@ -1,12 +1,14 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { AgentAccountPanel } from "./AgentAccountPanel";
 import "./launch-refinements.css";
+import "./staff-access.css";
 
 export default function ModeratorAccess() {
   const { isAuthenticated, user } = useAuth();
   const hasUnassignedAccount = isAuthenticated && user?.role === "user";
 
   return <main className="operations-page"><section className="agent-drawer operations-access-panel" aria-label="Field Moderator access">
+    <header className="staff-access-brand"><span className="staff-access-emblem" aria-hidden="true"><i /><i /><i /></span><span><small>Affordable Housing Cameroon</small><b>Secure staff route</b></span><em>Field work</em></header>
     <span className="section-overline">AHC / Field Moderator</span>
     <h1>Sign in to field operations.</h1>
     <p>Field Moderators review submitted listings, record on-site inspection outcomes and private evidence, and earn the recorded share only after verification evidence and any required audit receive Admin approval. Platform service-order reconciliation is an Admin-only finance control. This work area is for staff intentionally assigned by an AHC Admin.</p>

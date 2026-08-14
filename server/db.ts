@@ -1,4 +1,4 @@
-import { and, desc, eq, lt, ne, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, lt, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { nanoid } from "nanoid";
 import {
@@ -925,6 +925,39 @@ export async function listAgentPaymentOrders(userId: number) {
   }).from(paymentOrders).where(eq(paymentOrders.userId, userId)).orderBy(desc(paymentOrders.createdAt));
 }
 
+function officialServiceReceiptFields() {
+  return {
+    orderId: paymentOrders.id,
+    serviceType: paymentOrders.type,
+    amountXaf: paymentOrders.amountXaf,
+    provider: paymentOrders.provider,
+    providerReference: paymentOrders.providerReference,
+    officialReceiptCode: paymentOrders.officialReceiptCode,
+    receiptIssuedAt: paymentOrders.receiptIssuedAt,
+    reconciledAt: paymentOrders.reconciledAt,
+    payerName: agentProfiles.publicName,
+    accountName: users.name,
+    accountEmail: users.email,
+    listingTitle: listings.title,
+  };
+}
+
+export async function getAgentOfficialServiceReceipt(userId: number, orderId: string) {
+  const db = await getDb();
+  if (!db) return null;
+  return (await db.select(officialServiceReceiptFields()).from(paymentOrders)
+    .innerJoin(users, eq(users.id, paymentOrders.userId))
+    .leftJoin(agentProfiles, eq(agentProfiles.userId, paymentOrders.userId))
+    .leftJoin(listings, eq(listings.id, paymentOrders.listingId))
+    .where(and(
+      eq(paymentOrders.id, orderId),
+      eq(paymentOrders.userId, userId),
+      eq(paymentOrders.status, "confirmed"),
+      isNotNull(paymentOrders.officialReceiptCode),
+      isNotNull(paymentOrders.receiptIssuedAt),
+    )).limit(1))[0] ?? null;
+}
+
 export async function getAgentPaidStatus(userId: number) {
   const db = await getDb();
   if (!db) return { profile: undefined, availableCredits: 0 };
@@ -956,6 +989,21 @@ export async function listOperationsPaymentQueue() {
     agentName: agentProfiles.publicName, agencyName: agentProfiles.agencyName,
   }).from(paymentOrders).leftJoin(agentProfiles, eq(agentProfiles.userId, paymentOrders.userId))
     .where(eq(paymentOrders.status, "reference_submitted")).orderBy(paymentOrders.submittedAt);
+}
+
+export async function getAdminOfficialServiceReceipt(orderId: string) {
+  const db = await getDb();
+  if (!db) return null;
+  return (await db.select(officialServiceReceiptFields()).from(paymentOrders)
+    .innerJoin(users, eq(users.id, paymentOrders.userId))
+    .leftJoin(agentProfiles, eq(agentProfiles.userId, paymentOrders.userId))
+    .leftJoin(listings, eq(listings.id, paymentOrders.listingId))
+    .where(and(
+      eq(paymentOrders.id, orderId),
+      eq(paymentOrders.status, "confirmed"),
+      isNotNull(paymentOrders.officialReceiptCode),
+      isNotNull(paymentOrders.receiptIssuedAt),
+    )).limit(1))[0] ?? null;
 }
 
 export async function reconcilePaymentOrder(operatorUserId: number, orderId: string, decision: "confirmed" | "rejected", note: string) {

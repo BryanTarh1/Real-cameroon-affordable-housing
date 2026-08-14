@@ -7,7 +7,9 @@ vi.mock("./db", async importOriginal => {
     ...actual,
     createListing: vi.fn(),
     createPaymentOrder: vi.fn(),
+    getAdminOfficialServiceReceipt: vi.fn(),
     getAgentProfile: vi.fn(),
+    getAgentOfficialServiceReceipt: vi.fn(),
     reconcilePaymentOrder: vi.fn(),
     submitPaymentReference: vi.fn(),
   };
@@ -64,6 +66,19 @@ describe("AHC payment reconciliation and listing-credit API guards", () => {
     })).resolves.toEqual({ status: "confirmed" });
 
     expect(database.reconcilePaymentOrder).toHaveBeenCalledWith(64, "PAY-ACCESS-62", "confirmed", "MTN reference matched the received merchant evidence.");
+  });
+
+  it("exposes printable official receipts only after confirmation, to the paying agent or an Admin", async () => {
+    const receipt = { orderId: "PAY-ACCESS-62", officialReceiptCode: "AHC-2026-ACCESS62", amountXaf: 3_000, serviceType: "agent_access" };
+    vi.mocked(database.getAgentOfficialServiceReceipt).mockResolvedValue(receipt as never);
+    vi.mocked(database.getAdminOfficialServiceReceipt).mockResolvedValue(receipt as never);
+
+    await expect(callerFor(agent).agent.officialServiceReceipt({ orderId: "PAY-ACCESS-62" })).resolves.toEqual(receipt);
+    await expect(callerFor(admin).admin.officialServiceReceipt({ orderId: "PAY-ACCESS-62" })).resolves.toEqual(receipt);
+    await expect(callerFor(moderator).admin.officialServiceReceipt({ orderId: "PAY-ACCESS-62" })).rejects.toThrow();
+
+    expect(database.getAgentOfficialServiceReceipt).toHaveBeenCalledWith(agent.id, "PAY-ACCESS-62");
+    expect(database.getAdminOfficialServiceReceipt).toHaveBeenCalledWith("PAY-ACCESS-62");
   });
 
   it("does not allow a listing to enter review when the data guard reports no approved Listing Pass", async () => {
