@@ -449,3 +449,13 @@
 - [x] Make the truthful Managing Agent and listing freshness cues more prominent on primary property cards while preserving the unified Agent pathway.
 - [x] Improve small-device Leaflet map height, control placement, and bottom actions for comfortable touch use.
 - [x] Add regression coverage, validate crawler and responsive behavior, checkpoint the update, and provide the new project version.
+
+## Pricing and public verification clarity review
+
+- [x] Inspect configured AHC platform-service prices and public listing publication/verification rules, then provide an owner-facing assessment of price level and badge meaning.
+
+## Explicit verification labels and proposed pricing model
+
+- [x] Change public cards so non-physically-verified listings clearly say they have not yet received an on-site Field Moderator visit.
+- [x] Assess the proposed 5,000 XAF verification fee, 10,000/25,000 XAF monthly plans, and 2,500 XAF seven-day featured listing price against the current model and recommend a pilot launch structure.
+- [x] Add regression coverage, validate the public label, checkpoint the update, and report the completed commercial assessment.
