@@ -476,3 +476,4 @@
 ## Automated platform-service payment verification design
 
 - [x] Design a provider-aware, webhook-led verification workflow for AHC platform-service payments that preserves Admin exception review, fraud controls, auditability, and the non-custodial tenancy boundary.
+- [x] Recommend the first AHC payment-collection route and document its provider-onboarding, verification, and fallback gates before implementation.

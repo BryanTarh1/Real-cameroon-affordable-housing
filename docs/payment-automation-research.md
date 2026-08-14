@@ -9,6 +9,10 @@
   - The guide explicitly advises verification using the transaction reference after completion; a webhook is an event signal, not the sole basis for granting an entitlement.
 - Notch Pay Collect guide: <https://developer.notchpay.co/accept-payments/collect>
   - The hosted-checkout flow returns a payment reference to the merchant callback URL, but its documentation still requires the merchant server to query the provider transaction endpoint and require the completed status before updating local records.
+- Kora Cameroon Mobile Money announcement: <https://www.korahq.com/blog/mobile-money-in-cote-divoire-and-cameroon-xaf-xof>
+  - Kora states that its Cameroon XAF capability accepts both MTN MoMo and Orange Money through Checkout or API, subject to merchant onboarding/compliance and feature activation.
+- Orange Money Web Payment overview: <https://developer.orange.com/apis/om-webpay>
+  - Orange presents its Web Payment / M Payment API as a direct merchant integration option and lists Cameroon among its merchant-availability markets; commercial activation needs to be confirmed directly with Orange.
 
 ## AHC design implication
 

@@ -104,6 +104,34 @@ AHC should select **one provider for the first release** after confirming mercha
 
 Once a provider is chosen, the next implementation work is to add provider-payment fields and an immutable event ledger, create the server-only checkout and webhook procedures, introduce `needs_admin_review` as a protected Admin queue, add idempotency and webhook tests, and then use the provider sandbox before enabling live payments.
 
+## Recommended first route: hosted checkout with Kora
+
+AHC should start with **Kora Checkout for Cameroon XAF**, subject to successful merchant onboarding and written confirmation of current terms. Kora publicly states that its Cameroon capability can accept both MTN MoMo and Orange Money in XAF through Checkout or API, and that the feature is enabled after its onboarding and compliance process. [4] This is a stronger first release choice than integrating direct MTN MoMo alone because it gives Agents access to the two local wallet rails through one initial checkout integration, while the provider handles the wallet-facing authorization experience.
+
+| Decision criterion | Kora Checkout first | Direct MTN MoMo first |
+|---|---|---|
+| Agent wallet coverage | One integration can cover stated MTN MoMo and Orange Money Cameroon XAF flows. | Covers MTN wallet users; Orange Money requires a separate integration. |
+| Initial engineering | Hosted payment page, callback, webhook verification, and one provider client. | Merchant collection integration, direct wallet flows, and a later second rail to reach Orange users. |
+| Sensitive payment interface | Provider-hosted; AHC does not collect wallet PINs or OTPs. | AHC must handle more of the wallet-flow orchestration while still keeping secrets server-side. |
+| Launch risk | Still requires merchant KYC and commercial confirmation, but has a clearer two-wallet launch path. | Direct provider relationship may be strategically valuable but is a narrower initial acceptance path. |
+| Long-term option | Keep a provider adapter so direct MTN/Orange integrations can replace or supplement Checkout later. | More provider-specific work before broad local wallet coverage. |
+
+The recommendation is not a guarantee about availability, fees, settlement timing, or onboarding approval. AHC should obtain Kora’s current Cameroon merchant agreement and test credentials before coding against production. If Kora cannot onboard AHC on acceptable terms, the fallback is direct MTN MoMo collection as the first rail, while retaining the same provider-adapter and automated-verification design for a later Orange Money addition.
+
+### Implementation gates
+
+| Gate | Required evidence before the next gate |
+|---|---|
+| Merchant readiness | Registered merchant details, settlement destination, compliance documents, and explicit confirmation that Cameroon XAF MTN MoMo and Orange Money Checkout are enabled. |
+| Commercial acceptance | Written confirmation of per-transaction fees, settlement schedule, refund process, supported payment limits, and the account owner responsible for provider disputes. |
+| Technical sandbox | Test API keys, signed-webhook specification, payment-status lookup, and successful tests for success, cancellation, expiry, duplicate callback, and wrong-amount events. |
+| Controlled release | Start with one low-risk AHC service such as Featured placement; retain the manual Admin route as fallback. |
+| Broad release | Confirm clean reconciliation, support process, and exception queue behaviour before enabling plans and verification orders. |
+
+## Additional References
+
+[4]: https://www.korahq.com/blog/mobile-money-in-cote-divoire-and-cameroon-xaf-xof "Kora — Introducing Mobile Money in Côte d'Ivoire and Cameroon (XAF/XOF)"
+
 ## References
 
 [1]: https://momodeveloper.mtn.com/ "MTN MoMo Developer Portal"
