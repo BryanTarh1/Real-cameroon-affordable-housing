@@ -401,3 +401,16 @@
 - [x] Remove obsolete Owner-specific declarations, trust labels, review queues, and acceptance guidance without weakening protected staff controls.
 - [x] Add regression coverage and validate that every supplier uses the Agent workspace and protected publishing workflow.
 - [x] Checkpoint the unified Agent workflow and provide the completed product update.
+
+## Field Moderator commission visibility
+
+- [x] Inspect whether Robinson has eligible held-commission data and whether the Operations workspace renders its commission state.
+- [x] Add a protected read-only commission status view or clear empty state if the current Moderator workspace lacks one.
+- [x] Add regression coverage and validate that commission payout remains Admin-controlled rather than automatic.
+- [ ] Checkpoint the commission-visibility result and resume the role acceptance walkthrough.
+
+## Commission panel version alignment
+
+- [x] Identify that the user was on an earlier dynamic preview rather than the freshly restarted build where the protected commission panel was verified.
+- [ ] Make the tested commission-status panel available on the user-facing version without altering commission data.
+- [ ] Confirm the visible panel with the user and checkpoint the corrected acceptance flow.
