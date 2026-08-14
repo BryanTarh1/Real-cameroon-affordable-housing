@@ -10,11 +10,13 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { archiveStaleListingHandler } from "../listingFreshness";
-import { createWhatsAppLeadEvent, getPublicListingContact, registerWalkthroughVideo } from "../db";
+import { createWhatsAppLeadEvent, getPublicListingContact, listFreshPublicListings, registerWalkthroughVideo } from "../db";
 import { authenticateLocalRequest } from "./localAuth";
+import { ENV } from "./env";
 import { storagePut } from "../storage";
 import { isSocialPreviewBot, propertySpaRedirect } from "./sharedPropertyLink";
 import { buildPropertyOpenGraphDocument } from "./openGraphPropertyPreview";
+import { buildSanitizedLocalTestingSnapshot, isAuthorizedLocalTestingExport } from "../localTestingSnapshot";
 
 function escapeMarkup(value: string) {
   return value.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character] ?? character));
@@ -42,6 +44,7 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  let lastLocalTestingSnapshotAt = 0;
   app.set("trust proxy", 1);
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
@@ -49,6 +52,32 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   app.post("/api/scheduled/archive-stale-listings", archiveStaleListingHandler);
+  app.get("/api/local-testing/snapshot", async (req, res) => {
+    const token = ENV.localTestingExportToken;
+    if (!token || token.length < 32) {
+      res.status(503).json({ error: "The local testing export is not configured." });
+      return;
+    }
+    if (!isAuthorizedLocalTestingExport(req.get("authorization"), token)) {
+      res.status(401).json({ error: "A valid local testing export token is required." });
+      return;
+    }
+    const now = Date.now();
+    if (now - lastLocalTestingSnapshotAt < 60_000) {
+      res.status(429).json({ error: "Wait at least one minute between local testing snapshots." });
+      return;
+    }
+    try {
+      const snapshot = buildSanitizedLocalTestingSnapshot(await listFreshPublicListings());
+      lastLocalTestingSnapshotAt = now;
+      res.setHeader("Cache-Control", "no-store");
+      res.setHeader("Content-Disposition", `attachment; filename="ahc-local-testing-${now}.json"`);
+      res.status(200).json(snapshot);
+    } catch (error) {
+      console.error("Local testing snapshot failed", error);
+      res.status(500).json({ error: "The local testing snapshot could not be prepared." });
+    }
+  });
   app.post("/api/operations/verification-orders/:verificationOrderId/walkthrough", express.raw({ type: ["video/mp4", "video/webm"], limit: "35mb" }), async (req, res) => {
     const user = await authenticateLocalRequest(req);
     if (!user || user.isBanned) {

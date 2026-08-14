@@ -477,3 +477,9 @@
 
 - [x] Design a provider-aware, webhook-led verification workflow for AHC platform-service payments that preserves Admin exception review, fraud controls, auditability, and the non-custodial tenancy boundary.
 - [x] Recommend the first AHC payment-collection route and document its provider-onboarding, verification, and fallback gates before implementation.
+
+## Secure production-data testing access
+
+- [ ] Design and, where safely possible, prepare a one-way least-privilege production-to-local testing data workflow without exposing live database credentials or permitting local writes to production.
+- [x] Add and validate the token-protected sanitised snapshot endpoint, the separate local `ahc_local_test` schema, and the XAMPP command-line importer templates.
+- [ ] Bind the user’s XAMPP scripts folder, import the local schema, place the user-controlled token in the local configuration, and validate the first laptop pull.

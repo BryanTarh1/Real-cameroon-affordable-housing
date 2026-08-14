@@ -1,0 +1,16 @@
+<?php
+/**
+ * Copy this file to a folder OUTSIDE XAMPP's htdocs directory, rename it to
+ * config.local.php, and replace the placeholders. Never commit the real file.
+ */
+return [
+    'export_url' => 'https://affordableho-8aahm5dj.manus.space/api/local-testing/snapshot',
+    'bearer_token' => 'PASTE_THE_SAME_LONG_EXPORT_TOKEN_STORED_IN_AHC_HERE',
+    'mysql' => [
+        'host' => '127.0.0.1',
+        'port' => 3306,
+        'database' => 'ahc_local_test',
+        'username' => 'ahc_local_sync',
+        'password' => 'CREATE_A_LOCAL_ONLY_PASSWORD',
+    ],
+];
