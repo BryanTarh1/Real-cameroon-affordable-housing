@@ -7,7 +7,7 @@ const PASSWORDS = {
   agentPaid: "Agent#2026!",
   agentSecondPaid: "AgentDouala#2026!",
   agentPending: "AgentPending#2026!",
-  owner: "Owner#2026!",
+  agentNew: "NewAgent#2026!",
   moderator: "Moderator#2026!",
   admin: "Admin#2026!",
 };
@@ -83,12 +83,12 @@ async function main() {
       role: "user",
       password: PASSWORDS.agentPending,
     });
-    const ownerId = await insertUser(connection, {
-      openId: "demo_owner_ahc_2026",
-      name: "Ateh — DEMO Owner Applicant",
-      email: `owner${DEMO_DOMAIN}`,
+    const newAgentId = await insertUser(connection, {
+      openId: "demo_agent_new_ahc_2026",
+      name: "Ateh — DEMO New Agent Applicant",
+      email: `agent-new${DEMO_DOMAIN}`,
       role: "user",
-      password: PASSWORDS.owner,
+      password: PASSWORDS.agentNew,
     });
     const seekerId = await insertUser(connection, {
       openId: "demo_seeker_ahc_2026",
@@ -99,11 +99,11 @@ async function main() {
     });
 
     await connection.execute(
-      "INSERT INTO `agent_profiles` (`userId`, `publicName`, `agencyName`, `whatsappPhone`, `subscriptionTier`, `subscriptionStatus`, `subscriptionExpiresAt`) VALUES (?, ?, ?, ?, 'growth', 'active', ?)",
+      "INSERT INTO `agent_profiles` (`userId`, `publicName`, `agencyName`, `whatsappPhone`, `subscriptionTier`, `subscriptionStatus`, `subscriptionExpiresAt`, `welcomeBundleUsedAt`) VALUES (?, ?, ?, ?, 'growth', 'active', ?, DATE_SUB(NOW(), INTERVAL 30 DAY))",
       [agentId, "Ebot — DEMO Paid Agent", "DEMO Test Realty Yaoundé", "237690000001", addDays(30)],
     );
     await connection.execute(
-      "INSERT INTO `agent_profiles` (`userId`, `publicName`, `agencyName`, `whatsappPhone`, `subscriptionTier`, `subscriptionStatus`, `subscriptionExpiresAt`) VALUES (?, ?, ?, ?, 'agency', 'active', ?)",
+      "INSERT INTO `agent_profiles` (`userId`, `publicName`, `agencyName`, `whatsappPhone`, `subscriptionTier`, `subscriptionStatus`, `subscriptionExpiresAt`, `welcomeBundleUsedAt`) VALUES (?, ?, ?, ?, 'agency', 'active', ?, DATE_SUB(NOW(), INTERVAL 60 DAY))",
       [secondPaidAgentId, "Mireille — DEMO Douala Agent", "DEMO Coastal Homes", "237690000007", addDays(60)],
     );
     await connection.execute(
@@ -119,7 +119,7 @@ async function main() {
       [agentId, "/manus-storage/ahc-test-evidence-exterior_345e18db.png", "/manus-storage/ahc-test-evidence-living-room_b47fb09f.png", adminId],
     );
     await connection.execute(
-      "INSERT INTO `platform_settings` (`id`, `agentAccessFeeXaf`, `listingPassFeeXaf`, `featuredPinFeeXaf`, `physicalVerificationFeeXaf`, `fieldModeratorShareBps`, `updatedByUserId`) VALUES (1, 3000, 1000, 3000, 7500, 8000, ?) ON DUPLICATE KEY UPDATE `updatedByUserId` = VALUES(`updatedByUserId`)",
+      "INSERT INTO `platform_settings` (`id`, `agentAccessFeeXaf`, `listingPassFeeXaf`, `starterAccessFeeXaf`, `proAccessFeeXaf`, `featuredPinFeeXaf`, `routeBatchVerificationFeeXaf`, `physicalVerificationFeeXaf`, `fieldModeratorShareBps`, `updatedByUserId`) VALUES (1, 3000, 1000, 10000, 25000, 2500, 5000, 7500, 8000, ?) ON DUPLICATE KEY UPDATE `agentAccessFeeXaf` = VALUES(`agentAccessFeeXaf`), `starterAccessFeeXaf` = VALUES(`starterAccessFeeXaf`), `proAccessFeeXaf` = VALUES(`proAccessFeeXaf`), `featuredPinFeeXaf` = VALUES(`featuredPinFeeXaf`), `routeBatchVerificationFeeXaf` = VALUES(`routeBatchVerificationFeeXaf`), `physicalVerificationFeeXaf` = VALUES(`physicalVerificationFeeXaf`), `fieldModeratorShareBps` = VALUES(`fieldModeratorShareBps`), `updatedByUserId` = VALUES(`updatedByUserId`)",
       [adminId],
     );
 
@@ -153,29 +153,29 @@ async function main() {
       );
     }
     await connection.execute(
-      "INSERT INTO `listing_promotions` (`listingId`, `type`, `status`, `amountXaf`, `startsAt`, `endsAt`, `providerReference`) VALUES (?, 'featured_pin', 'active', 3000, NOW(), ?, 'TEST-PIN-2026-001')",
-      [publishedId, addDays(14)],
+      "INSERT INTO `listing_promotions` (`listingId`, `type`, `status`, `amountXaf`, `startsAt`, `endsAt`, `providerReference`) VALUES (?, 'featured_pin', 'active', 2500, NOW(), ?, 'TEST-PIN-2026-001')",
+      [publishedId, addDays(7)],
     );
 
     await connection.execute(
-      "INSERT INTO `payment_orders` (`id`, `userId`, `type`, `status`, `amountXaf`, `provider`, `providerReference`, `submittedAt`, `reconciledAt`, `reconciledByUserId`, `reconciliationNote`, `expiresAt`) VALUES ('demo-agent-access-confirmed', ?, 'agent_access', 'confirmed', 3000, 'mtn_momo', 'TEST-MOMO-ACCESS-001', NOW(), NOW(), ?, 'TEST DATA: confirmed for agent-access workflow.', ?)",
+      "INSERT INTO `payment_orders` (`id`, `userId`, `type`, `status`, `amountXaf`, `provider`, `providerReference`, `submittedAt`, `reconciledAt`, `reconciledByUserId`, `reconciliationNote`, `expiresAt`) VALUES ('demo-welcome-bundle-confirmed', ?, 'welcome_bundle', 'confirmed', 3000, 'mtn_momo', 'TEST-MOMO-WELCOME-001', DATE_SUB(NOW(), INTERVAL 30 DAY), DATE_SUB(NOW(), INTERVAL 30 DAY), ?, 'TEST DATA: first-month Welcome Bundle used with five listing credits.', DATE_SUB(NOW(), INTERVAL 1 DAY))",
+      [agentId, adminId],
+    );
+    await connection.execute(
+      "INSERT INTO `payment_orders` (`id`, `userId`, `type`, `status`, `amountXaf`, `provider`, `providerReference`, `submittedAt`, `reconciledAt`, `reconciledByUserId`, `reconciliationNote`, `expiresAt`) VALUES ('demo-starter-access-confirmed', ?, 'starter_access', 'confirmed', 10000, 'orange_money', 'TEST-OM-STARTER-001', NOW(), NOW(), ?, 'TEST DATA: month-two Starter Access with five listing credits.', ?)",
       [agentId, adminId, addDays(30)],
     );
     await connection.execute(
-      "INSERT INTO `payment_orders` (`id`, `userId`, `type`, `status`, `amountXaf`, `provider`, `providerReference`, `submittedAt`, `reconciledAt`, `reconciledByUserId`, `reconciliationNote`, `expiresAt`) VALUES ('demo-listing-pass-confirmed', ?, 'listing_pass', 'confirmed', 1000, 'orange_money', 'TEST-OM-PASS-001', NOW(), NOW(), ?, 'TEST DATA: confirmed listing credit.', ?)",
-      [agentId, adminId, addDays(90)],
-    );
-    await connection.execute(
-      "INSERT INTO `payment_orders` (`id`, `userId`, `type`, `status`, `amountXaf`, `provider`, `providerReference`, `submittedAt`, `reconciliationNote`, `expiresAt`) VALUES ('demo-payment-awaiting-review', ?, 'physical_verification', 'reference_submitted', 7500, 'mtn_momo', 'TEST-MOMO-VERIFY-001', NOW(), 'TEST DATA: awaiting Field Moderator reconciliation.', ?)",
+      "INSERT INTO `payment_orders` (`id`, `userId`, `type`, `status`, `amountXaf`, `provider`, `providerReference`, `submittedAt`, `reconciliationNote`, `expiresAt`) VALUES ('demo-payment-awaiting-review', ?, 'physical_verification_route_batch', 'reference_submitted', 5000, 'mtn_momo', 'TEST-MOMO-VERIFY-001', NOW(), 'TEST DATA: awaiting Admin payment reconciliation for a route-batch field verification.', ?)",
       [agentId, addDays(7)],
     );
     await connection.execute(
-      "INSERT INTO `payment_orders` (`id`, `userId`, `listingId`, `type`, `status`, `amountXaf`, `provider`, `providerReference`, `submittedAt`, `reconciledAt`, `reconciledByUserId`, `reconciliationNote`, `expiresAt`) VALUES ('demo-verify-confirmed', ?, ?, 'physical_verification', 'confirmed', 7500, 'mtn_momo', 'TEST-MOMO-VERIFY-002', NOW(), NOW(), ?, 'TEST DATA: confirmed field verification payment.', ?)",
+      "INSERT INTO `payment_orders` (`id`, `userId`, `listingId`, `type`, `status`, `amountXaf`, `provider`, `providerReference`, `submittedAt`, `reconciledAt`, `reconciledByUserId`, `reconciliationNote`, `expiresAt`) VALUES ('demo-verify-confirmed', ?, ?, 'physical_verification_individual', 'confirmed', 7500, 'mtn_momo', 'TEST-MOMO-VERIFY-002', NOW(), NOW(), ?, 'TEST DATA: confirmed individual field verification payment.', ?)",
       [agentId, publishedId, adminId, addDays(30)],
     );
     await connection.execute(
-      "INSERT INTO `listing_credits` (`userId`, `paymentOrderId`, `status`, `expiresAt`) VALUES (?, 'demo-listing-pass-confirmed', 'available', ?)",
-      [agentId, addDays(90)],
+      "INSERT INTO `listing_credits` (`userId`, `paymentOrderId`, `status`, `expiresAt`) VALUES (?, 'demo-starter-access-confirmed', 'available', ?), (?, 'demo-starter-access-confirmed', 'available', ?), (?, 'demo-starter-access-confirmed', 'available', ?), (?, 'demo-starter-access-confirmed', 'available', ?), (?, 'demo-starter-access-confirmed', 'available', ?)",
+      [agentId, addDays(30), agentId, addDays(30), agentId, addDays(30), agentId, addDays(30), agentId, addDays(30)],
     );
 
     const reviewEvents = [
@@ -194,7 +194,7 @@ async function main() {
     }
 
     const [verificationResult] = await connection.execute(
-      "INSERT INTO `verification_orders` (`listingId`, `requestedByUserId`, `assignedModeratorUserId`, `status`, `amountXaf`, `evidenceNote`, `verifiedAt`, `expiresAt`, `providerReference`) VALUES (?, ?, ?, 'passed', 7500, 'TEST DATA: landmark, availability, and cost disclosure checked during field visit.', NOW(), ?, 'TEST-MOMO-VERIFY-002')",
+      "INSERT INTO `verification_orders` (`listingId`, `requestedByUserId`, `assignedModeratorUserId`, `status`, `serviceType`, `amountXaf`, `evidenceNote`, `verifiedAt`, `expiresAt`, `providerReference`) VALUES (?, ?, ?, 'passed', 'individual', 7500, 'TEST DATA: landmark, availability, and cost disclosure checked during field visit.', NOW(), ?, 'TEST-MOMO-VERIFY-002')",
       [publishedId, agentId, moderatorId, addDays(30)],
     );
     const verificationOrderId = verificationResult.insertId;
@@ -277,10 +277,10 @@ async function main() {
     await connection.commit();
     console.table([
       { actor: "Tarh", role: "Seeker", purpose: "Protected listing and lead-intent test", email: `seeker${DEMO_DOMAIN}`, password: PASSWORDS.seeker },
-      { actor: "Ebot", role: "Paid Agent", purpose: "Active Growth access and one listing credit", email: `agent${DEMO_DOMAIN}`, password: PASSWORDS.agentPaid },
-      { actor: "Mireille", role: "Paid Douala Agent", purpose: "Second active supply owner for varied inventory", email: `agent-douala${DEMO_DOMAIN}`, password: PASSWORDS.agentSecondPaid },
+      { actor: "Ebot", role: "Paid Agent", purpose: "Active Starter access with five listing credits", email: `agent${DEMO_DOMAIN}`, password: PASSWORDS.agentPaid },
+      { actor: "Mireille", role: "Paid Douala Agent", purpose: "Active Pro supplier with priority ranking and a 20-listing limit", email: `agent-douala${DEMO_DOMAIN}`, password: PASSWORDS.agentSecondPaid },
       { actor: "Nadege", role: "Pending-payment Agent", purpose: "Payment gate and no-paid-access test", email: `agent-pending${DEMO_DOMAIN}`, password: PASSWORDS.agentPending },
-      { actor: "Ateh", role: "New Agent applicant", purpose: "Unified Agent profile setup test", email: `owner${DEMO_DOMAIN}`, password: PASSWORDS.owner },
+      { actor: "Ateh", role: "New Agent applicant", purpose: "Unified Agent profile setup and Welcome Bundle eligibility test", email: `agent-new${DEMO_DOMAIN}`, password: PASSWORDS.agentNew },
       { actor: "Robinson", role: "Field Moderator", purpose: "Evidence and Operations-only test", email: `moderator${DEMO_DOMAIN}`, password: PASSWORDS.moderator },
       { actor: "Bryan", role: "Admin", purpose: "Role governance and protected Admin test", email: `admin${DEMO_DOMAIN}`, password: PASSWORDS.admin },
     ]);

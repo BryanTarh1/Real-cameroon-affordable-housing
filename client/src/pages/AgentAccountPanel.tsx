@@ -23,7 +23,16 @@ export function AgentAccountPanel({ audience = "agent", onAuthenticated }: { aud
   const [workProofUrl, setWorkProofUrl] = useState("");
   const utils = trpc.useUtils();
   const onSuccess = async () => {
-    await utils.auth.me.invalidate();
+    // These endpoint keys do not include a user id. Clear them on every local
+    // session transition so an Agent who signs out and signs back in never sees
+    // a previous account's listing-credit balance, orders, or inventory.
+    await Promise.all([
+      utils.auth.me.invalidate(),
+      utils.agent.profile.invalidate(),
+      utils.agent.paidStatus.invalidate(),
+      utils.agent.paymentOrders.invalidate(),
+      utils.agent.listings.invalidate(),
+    ]);
     toast.success("AHC account ready", { description: audience === "agent" ? "You can now complete your agent profile." : audience === "seeker" ? "You can now open the property details." : audience === "admin" ? "Your Admin role will be checked before the Admin workspace opens." : "Your staff role will be checked before Operations opens." });
     onAuthenticated?.();
   };

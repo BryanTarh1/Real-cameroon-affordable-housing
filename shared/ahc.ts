@@ -2,14 +2,38 @@ export const FRESHNESS_WINDOW_DAYS = 14;
 export const APPROXIMATE_RADIUS_MIN_M = 200;
 export const APPROXIMATE_RADIUS_MAX_M = 500;
 
+/**
+ * Commercial constants are duplicated here only as the safe fallback contract.
+ * Administrators may alter live XAF amounts in governed platform settings, but not
+ * the entitlement counts, first-month rule, or capped Pro inventory policy.
+ */
+export const WELCOME_BUNDLE_CREDITS = 5;
+export const STARTER_PLAN_CREDITS = 5;
+export const PRO_ACTIVE_LISTING_LIMIT = 20;
+
 export const AHC_PAID_OFFERS = {
-  agentAccess: { amountXaf: 3_000, validityDays: 30, label: "Agent Access" },
-  listingPass: { amountXaf: 1_000, validityDays: 90, label: "Listing Pass" },
-  featuredPin: { amountXaf: 3_000, validityDays: 14, label: "Featured Landmark Pin" },
-  physicalVerification: { amountXaf: 7_500, validityDays: 30, label: "Physical Verification" },
+  welcomeBundle: { amountXaf: 3_000, validityDays: 30, label: "New-Agent Welcome Bundle", listingCredits: WELCOME_BUNDLE_CREDITS, subscriptionTier: "access", priorityRanking: false },
+  starterAccess: { amountXaf: 10_000, validityDays: 30, label: "Starter Access", listingCredits: STARTER_PLAN_CREDITS, subscriptionTier: "growth", priorityRanking: false },
+  proAccess: { amountXaf: 25_000, validityDays: 30, label: "Pro Access", listingCredits: 0, subscriptionTier: "agency", priorityRanking: true, activeListingLimit: PRO_ACTIVE_LISTING_LIMIT },
+  featuredPin: { amountXaf: 2_500, validityDays: 7, label: "Featured Landmark Pin", listingCredits: 0 },
+  physicalVerificationRouteBatch: { amountXaf: 5_000, validityDays: 30, label: "Route-batch Physical Verification", listingCredits: 0 },
+  physicalVerificationIndividual: { amountXaf: 7_500, validityDays: 30, label: "Individual Physical Verification", listingCredits: 0 },
+  /** Historic orders remain reconcilable and receiptable during the commercial transition. */
+  legacyAgentAccess: { amountXaf: 3_000, validityDays: 30, label: "Legacy Agent Access", listingCredits: 1, subscriptionTier: "access", priorityRanking: false },
+  legacyListingPass: { amountXaf: 1_000, validityDays: 90, label: "Legacy Listing Pass", listingCredits: 1 },
+  legacyPhysicalVerification: { amountXaf: 7_500, validityDays: 30, label: "Legacy Physical Verification", listingCredits: 0 },
 } as const;
 
-export type PaidOfferType = "agent_access" | "listing_pass" | "featured_pin" | "physical_verification";
+export type PaidOfferType =
+  | "welcome_bundle"
+  | "starter_access"
+  | "pro_access"
+  | "featured_pin"
+  | "physical_verification_route_batch"
+  | "physical_verification_individual"
+  | "agent_access"
+  | "listing_pass"
+  | "physical_verification";
 
 export const DEFAULT_FIELD_MODERATOR_SHARE_BPS = 8_000;
 export const BASIS_POINTS_DENOMINATOR = 10_000;
@@ -55,10 +79,15 @@ export function getAgentAccessState(
 
 export function getPaidOffer(type: PaidOfferType) {
   const offerByType = {
-    agent_access: AHC_PAID_OFFERS.agentAccess,
-    listing_pass: AHC_PAID_OFFERS.listingPass,
+    welcome_bundle: AHC_PAID_OFFERS.welcomeBundle,
+    starter_access: AHC_PAID_OFFERS.starterAccess,
+    pro_access: AHC_PAID_OFFERS.proAccess,
     featured_pin: AHC_PAID_OFFERS.featuredPin,
-    physical_verification: AHC_PAID_OFFERS.physicalVerification,
+    physical_verification_route_batch: AHC_PAID_OFFERS.physicalVerificationRouteBatch,
+    physical_verification_individual: AHC_PAID_OFFERS.physicalVerificationIndividual,
+    agent_access: AHC_PAID_OFFERS.legacyAgentAccess,
+    listing_pass: AHC_PAID_OFFERS.legacyListingPass,
+    physical_verification: AHC_PAID_OFFERS.legacyPhysicalVerification,
   } as const;
   return offerByType[type];
 }

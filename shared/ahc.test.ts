@@ -9,6 +9,7 @@ import {
   getPaidOffer,
   isListingFresh,
   normalizeCameroonWhatsAppPhone,
+  PRO_ACTIVE_LISTING_LIMIT,
 } from "./ahc";
 
 describe("AHC affordability and trust rules", () => {
@@ -39,11 +40,18 @@ describe("AHC affordability and trust rules", () => {
     expect([point.latitude, point.longitude]).not.toEqual([3.848, 11.502]);
   });
 
-  it("maps every paid product to a clear, small pilot price", () => {
-    expect(getPaidOffer("agent_access")).toEqual(AHC_PAID_OFFERS.agentAccess);
-    expect(getPaidOffer("listing_pass").amountXaf).toBe(1_000);
-    expect(getPaidOffer("featured_pin").validityDays).toBe(14);
-    expect(getPaidOffer("physical_verification").amountXaf).toBe(7_500);
+  it("maps approved Welcome and recurring plans to their declared entitlement contract", () => {
+    expect(getPaidOffer("welcome_bundle")).toEqual(AHC_PAID_OFFERS.welcomeBundle);
+    expect(getPaidOffer("welcome_bundle")).toMatchObject({ amountXaf: 3_000, validityDays: 30, listingCredits: 5, priorityRanking: false });
+    expect(getPaidOffer("starter_access")).toMatchObject({ amountXaf: 10_000, listingCredits: 5, priorityRanking: false });
+    expect(getPaidOffer("pro_access")).toMatchObject({ amountXaf: 25_000, priorityRanking: true, activeListingLimit: 20 });
+    expect(PRO_ACTIVE_LISTING_LIMIT).toBe(20);
+  });
+
+  it("preserves the approved short promotion and two verification service prices", () => {
+    expect(getPaidOffer("featured_pin")).toMatchObject({ amountXaf: 2_500, validityDays: 7 });
+    expect(getPaidOffer("physical_verification_route_batch").amountXaf).toBe(5_000);
+    expect(getPaidOffer("physical_verification_individual").amountXaf).toBe(7_500);
   });
 
   it("requires unexpired Agent Access before an agent can submit or reconfirm inventory", () => {
@@ -69,6 +77,7 @@ describe("AHC affordability and trust rules", () => {
   });
 
   it("allocates a durable 80/20 field-verification commission split without losing the XAF remainder", () => {
+    expect(calculateFieldVerificationCommission(5_000)).toEqual({ grossAmountXaf: 5_000, fieldModeratorShareBps: 8_000, fieldModeratorAmountXaf: 4_000, platformAmountXaf: 1_000 });
     expect(calculateFieldVerificationCommission(7_500)).toEqual({ grossAmountXaf: 7_500, fieldModeratorShareBps: 8_000, fieldModeratorAmountXaf: 6_000, platformAmountXaf: 1_500 });
     expect(calculateFieldVerificationCommission(101, 8_000)).toEqual({ grossAmountXaf: 101, fieldModeratorShareBps: 8_000, fieldModeratorAmountXaf: 80, platformAmountXaf: 21 });
   });

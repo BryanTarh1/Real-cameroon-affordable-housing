@@ -244,7 +244,7 @@ export const appRouter = router({
     officialServiceReceipt: protectedProcedure.input(z.object({ orderId: z.string().min(6).max(32) }))
       .query(({ ctx, input }) => getAgentOfficialServiceReceipt(ensureUserId(ctx.user?.id), input.orderId)),
     createPaymentOrder: protectedProcedure.input(z.object({
-      type: z.enum(["agent_access", "listing_pass", "featured_pin", "physical_verification"]),
+      type: z.enum(["welcome_bundle", "starter_access", "pro_access", "featured_pin", "physical_verification_route_batch", "physical_verification_individual"]),
       listingId: z.string().min(4).max(32).optional(),
     })).mutation(({ ctx, input }) => createPaymentOrder(
       ensureUserId(ctx.user?.id), input.type as PaidOfferType, input.listingId,
@@ -277,8 +277,14 @@ export const appRouter = router({
       .mutation(({ ctx, input }) => reconfirmAgentListing(ensureUserId(ctx.user?.id), input.listingId)),
     requestFeaturedPin: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
       .mutation(({ ctx, input }) => createPromotionRequest(ensureUserId(ctx.user?.id), input.listingId)),
-    requestPhysicalVerification: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
-      .mutation(({ ctx, input }) => createPaymentOrder(ensureUserId(ctx.user?.id), "physical_verification", input.listingId)),
+    requestPhysicalVerification: protectedProcedure.input(z.object({
+      listingId: z.string().min(4).max(32),
+      serviceType: z.enum(["route_batch", "individual"]),
+    })).mutation(({ ctx, input }) => createPaymentOrder(
+      ensureUserId(ctx.user?.id),
+      input.serviceType === "route_batch" ? "physical_verification_route_batch" : "physical_verification_individual",
+      input.listingId,
+    )),
     viewingAppointments: router({
       list: protectedProcedure.query(({ ctx }) => listAgentViewingAppointments(ensureUserId(ctx.user?.id))),
       respond: protectedProcedure.input(z.object({
@@ -355,8 +361,10 @@ export const appRouter = router({
     settings: adminProcedure.query(() => getPlatformSettings()),
     updateSettings: adminProcedure.input(z.object({
       agentAccessFeeXaf: z.number().int().min(0).max(100_000),
-      listingPassFeeXaf: z.number().int().min(0).max(100_000),
+      starterAccessFeeXaf: z.number().int().min(0).max(100_000),
+      proAccessFeeXaf: z.number().int().min(0).max(100_000),
       featuredPinFeeXaf: z.number().int().min(0).max(100_000),
+      routeBatchVerificationFeeXaf: z.number().int().min(0).max(100_000),
       physicalVerificationFeeXaf: z.number().int().min(0).max(100_000),
       fieldModeratorShareBps: z.number().int().min(0).max(10_000),
     })).mutation(({ ctx, input }) => updatePlatformSettings(ensureUserId(ctx.user?.id), input)),

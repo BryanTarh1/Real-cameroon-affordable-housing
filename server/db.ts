@@ -30,7 +30,7 @@ import {
   viewingAppointmentEvents,
   viewingAppointments,
 } from "../drizzle/schema";
-import { calculateFieldVerificationCommission, calculateTotalMoveInCash, createWhatsAppListingLink, DEFAULT_FIELD_MODERATOR_SHARE_BPS, FRESHNESS_WINDOW_DAYS, getAgentAccessState, getPaidOffer, type PaidOfferType } from "../shared/ahc";
+import { calculateFieldVerificationCommission, calculateTotalMoveInCash, createWhatsAppListingLink, DEFAULT_FIELD_MODERATOR_SHARE_BPS, FRESHNESS_WINDOW_DAYS, getAgentAccessState, getPaidOffer, PRO_ACTIVE_LISTING_LIMIT, type PaidOfferType } from "../shared/ahc";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -162,7 +162,23 @@ export async function upgradeLocalCredentialPasswordHash(userId: number, passwor
   await db.update(localCredentials).set({ passwordHash }).where(eq(localCredentials.userId, userId));
 }
 
-const DEFAULT_PLATFORM_SETTINGS = { id: 1, agentAccessFeeXaf: 3_000, listingPassFeeXaf: 1_000, featuredPinFeeXaf: 3_000, physicalVerificationFeeXaf: 7_500, fieldModeratorShareBps: DEFAULT_FIELD_MODERATOR_SHARE_BPS };
+const DEFAULT_PLATFORM_SETTINGS = {
+  id: 1,
+  /** Welcome Bundle price; column name remains migration-safe. */
+  agentAccessFeeXaf: 3_000,
+  /** Retained for historic Listing Pass receipts only. */
+  listingPassFeeXaf: 1_000,
+  starterAccessFeeXaf: 10_000,
+  proAccessFeeXaf: 25_000,
+  featuredPinFeeXaf: 2_500,
+  routeBatchVerificationFeeXaf: 5_000,
+  physicalVerificationFeeXaf: 7_500,
+  fieldModeratorShareBps: DEFAULT_FIELD_MODERATOR_SHARE_BPS,
+};
+
+type PlatformCommercialSettingsInput = Pick<typeof DEFAULT_PLATFORM_SETTINGS,
+  "agentAccessFeeXaf" | "starterAccessFeeXaf" | "proAccessFeeXaf" | "featuredPinFeeXaf"
+  | "routeBatchVerificationFeeXaf" | "physicalVerificationFeeXaf" | "fieldModeratorShareBps">;
 
 export async function getPlatformSettings() {
   const db = await getDb();
@@ -173,7 +189,7 @@ export async function getPlatformSettings() {
   return (await db.select().from(platformSettings).where(eq(platformSettings.id, 1)).limit(1))[0]!;
 }
 
-export async function updatePlatformSettings(actorUserId: number, input: Omit<typeof DEFAULT_PLATFORM_SETTINGS, "id">) {
+export async function updatePlatformSettings(actorUserId: number, input: PlatformCommercialSettingsInput) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   if (input.fieldModeratorShareBps < 0 || input.fieldModeratorShareBps > 10_000) throw new Error("Field Moderator share must be between 0 and 10,000 basis points.");
@@ -249,7 +265,8 @@ export async function getAdminCashFlowAudit() {
   const orders = await db.select({ type: paymentOrders.type, amountXaf: paymentOrders.amountXaf }).from(paymentOrders).where(eq(paymentOrders.status, "confirmed"));
   const commissions = await db.select({ fieldModeratorAmountXaf: fieldVerificationCommissions.fieldModeratorAmountXaf, platformAmountXaf: fieldVerificationCommissions.platformAmountXaf })
     .from(fieldVerificationCommissions).where(sql`${fieldVerificationCommissions.status} IN ('accrued', 'paid')`);
-  return { confirmedRevenueXaf: orders.reduce((sum, order) => sum + order.amountXaf, 0), physicalVerificationRevenueXaf: orders.filter(order => order.type === "physical_verification").reduce((sum, order) => sum + order.amountXaf, 0), platformCommissionAccruedXaf: commissions.reduce((sum, item) => sum + item.platformAmountXaf, 0), fieldModeratorCommissionAccruedXaf: commissions.reduce((sum, item) => sum + item.fieldModeratorAmountXaf, 0), orders };
+  const physicalVerificationOrderTypes = new Set(["physical_verification", "physical_verification_route_batch", "physical_verification_individual"]);
+  return { confirmedRevenueXaf: orders.reduce((sum, order) => sum + order.amountXaf, 0), physicalVerificationRevenueXaf: orders.filter(order => physicalVerificationOrderTypes.has(order.type)).reduce((sum, order) => sum + order.amountXaf, 0), platformCommissionAccruedXaf: commissions.reduce((sum, item) => sum + item.platformAmountXaf, 0), fieldModeratorCommissionAccruedXaf: commissions.reduce((sum, item) => sum + item.fieldModeratorAmountXaf, 0), orders };
 }
 
 export async function listFieldModeratorCommissions(moderatorUserId: number) {
@@ -419,7 +436,11 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
     .leftJoin(listingWalkthroughVideos, and(eq(listingWalkthroughVideos.listingId, listings.id), eq(listingWalkthroughVideos.status, "published")))
     .leftJoin(listingNeighborhoodAssessments, eq(listingNeighborhoodAssessments.listingId, listings.id))
     .where(and(eq(listings.status, "published"), sql`${listings.lastReconfirmed} >= ${cutoff}`))
-    .orderBy(desc(listings.isFeatured), desc(listings.lastReconfirmed));
+    .orderBy(
+      desc(listings.isFeatured),
+      desc(sql`CASE WHEN ${agentProfiles.subscriptionTier} = 'agency' AND ${agentProfiles.subscriptionStatus} = 'active' AND ${agentProfiles.subscriptionExpiresAt} >= NOW() THEN 1 ELSE 0 END`),
+      desc(listings.lastReconfirmed),
+    );
 
   const needle = filters.search?.trim().toLowerCase();
   return rows.map(mapListing).filter((listing) => {
@@ -696,12 +717,22 @@ export async function createListing(input: CreateListingInput) {
       }
       throw new Error("Renew Agent Access before submitting new listings or reconfirming availability.");
     }
-    const credit = (await tx.select().from(listingCredits).where(and(
+    const isPro = agent.subscriptionTier === "agency";
+    if (isPro) {
+      const activeListings = await tx.select({ id: listings.id }).from(listings).where(and(
+        eq(listings.agentUserId, input.agentUserId),
+        sql`${listings.status} IN ('under_review', 'changes_requested', 'published', 'needs_reconfirmation')`,
+      ));
+      if (activeListings.length >= PRO_ACTIVE_LISTING_LIMIT) {
+        throw new Error(`Pro Access supports up to ${PRO_ACTIVE_LISTING_LIMIT} active listings. Archive or resolve an existing listing before submitting another.`);
+      }
+    }
+    const credit = isPro ? undefined : (await tx.select().from(listingCredits).where(and(
       eq(listingCredits.userId, input.agentUserId),
       sql`${listingCredits.status} IN ('available', 'restored')`,
       sql`(${listingCredits.expiresAt} IS NULL OR ${listingCredits.expiresAt} >= ${now})`,
     )).orderBy(listingCredits.createdAt).limit(1))[0];
-    if (!credit) throw new Error("Purchase and reconcile a Listing Pass before submitting a new listing.");
+    if (!isPro && !credit) throw new Error("Your Welcome Bundle or Starter Access includes five listing credits. Reconcile a qualifying plan before submitting a new listing.");
     await tx.insert(listings).values({
       id, title: input.title, city: input.city, neighborhood: input.neighborhood, landmark: input.landmark,
       propertyType: input.propertyType, householdFit: input.householdFit ?? null, availableFrom: new Date(input.availableFrom),
@@ -709,8 +740,10 @@ export async function createListing(input: CreateListingInput) {
       publicLatitude: String(input.publicLatitude), publicLongitude: String(input.publicLongitude), mapRadiusM: input.mapRadiusM,
     });
     await tx.insert(listingCosts).values({ listingId: id, ...input.costs });
-    await tx.update(listingCredits).set({ status: "consumed", usedForListingId: id, consumedAt: now })
-      .where(eq(listingCredits.id, credit.id));
+    if (credit) {
+      await tx.update(listingCredits).set({ status: "consumed", usedForListingId: id, consumedAt: now })
+        .where(eq(listingCredits.id, credit.id));
+    }
     await tx.insert(listingReviewEvents).values({
       listingId: id, action: "submitted", toStatus: "under_review", actorUserId: input.agentUserId,
       reason: "Paid listing credit consumed; ready for moderator review.",
@@ -879,12 +912,54 @@ export async function createPaymentOrder(userId: number, type: PaidOfferType, li
   const offer = getPaidOffer(type);
   const settings = await getPlatformSettings();
   const amountByType = {
+    welcome_bundle: settings.agentAccessFeeXaf,
+    starter_access: settings.starterAccessFeeXaf,
+    pro_access: settings.proAccessFeeXaf,
     agent_access: settings.agentAccessFeeXaf,
     listing_pass: settings.listingPassFeeXaf,
     featured_pin: settings.featuredPinFeeXaf,
+    physical_verification_route_batch: settings.routeBatchVerificationFeeXaf,
+    physical_verification_individual: settings.physicalVerificationFeeXaf,
     physical_verification: settings.physicalVerificationFeeXaf,
   } as const;
   const amountXaf = amountByType[type];
+
+  if (type === "welcome_bundle") {
+    const profile = (await db.select().from(agentProfiles).where(eq(agentProfiles.userId, userId)).limit(1))[0];
+    if (!profile) throw new Error("Create your Agent profile before purchasing the New-Agent Welcome Bundle.");
+    const priorPaidAccess = (await db.select({ id: paymentOrders.id }).from(paymentOrders).where(and(
+      eq(paymentOrders.userId, userId),
+      eq(paymentOrders.status, "confirmed"),
+      sql`${paymentOrders.type} IN ('agent_access', 'welcome_bundle', 'starter_access', 'pro_access')`,
+    )).limit(1))[0];
+    if (profile.welcomeBundleUsedAt || priorPaidAccess) {
+      throw new Error("The 3,000 XAF New-Agent Welcome Bundle is available only for your first paid month. Choose Starter or Pro Access.");
+    }
+  }
+
+  if (type === "starter_access" || type === "pro_access") {
+    const profile = (await db.select().from(agentProfiles).where(eq(agentProfiles.userId, userId)).limit(1))[0];
+    if (!profile) throw new Error("Create your Agent profile before purchasing recurring Agent Access.");
+    const hasPriorPaidAccess = (await db.select({ id: paymentOrders.id }).from(paymentOrders).where(and(
+      eq(paymentOrders.userId, userId),
+      eq(paymentOrders.status, "confirmed"),
+      sql`${paymentOrders.type} IN ('agent_access', 'welcome_bundle', 'starter_access', 'pro_access')`,
+    )).limit(1))[0];
+    if (!hasPriorPaidAccess) throw new Error("Your first paid month begins with the 3,000 XAF New-Agent Welcome Bundle.");
+    const firstMonthStillActive = Boolean(
+      profile.welcomeBundleUsedAt
+      && profile.subscriptionStatus === "active"
+      && profile.subscriptionExpiresAt
+      && profile.subscriptionExpiresAt.getTime() >= Date.now(),
+    );
+    if (firstMonthStillActive) throw new Error("Starter and Pro Access become available after your first Welcome Bundle month ends.");
+  }
+
+  const requiresListing = type === "featured_pin"
+    || type === "physical_verification"
+    || type === "physical_verification_route_batch"
+    || type === "physical_verification_individual";
+  if (requiresListing && !listingId) throw new Error("Select one of your listings before requesting this paid service.");
 
   if (listingId) {
     const ownedListing = (await db.select({ id: listings.id, status: listings.status }).from(listings)
@@ -972,9 +1047,17 @@ export async function getAgentPaidStatus(userId: number) {
     eq(listingCredits.userId, userId), sql`${listingCredits.status} IN ('available', 'restored')`,
     sql`(${listingCredits.expiresAt} IS NULL OR ${listingCredits.expiresAt} >= NOW())`,
   ));
+  const activeListingRows = effectiveProfile?.subscriptionTier === "agency"
+    ? await db.select({ id: listings.id }).from(listings).where(and(
+      eq(listings.agentUserId, userId),
+      sql`${listings.status} IN ('under_review', 'changes_requested', 'published', 'needs_reconfirmation')`,
+    ))
+    : [];
   return {
     profile: effectiveProfile,
     availableCredits: creditRows.length,
+    activeListingCount: activeListingRows.length,
+    activeListingLimit: effectiveProfile?.subscriptionTier === "agency" ? PRO_ACTIVE_LISTING_LIMIT : null,
     access: access ?? { active: false, daysRemaining: 0, renewalRecommended: false, shouldMarkExpired: false, suspensionReason: "Renew Agent Access before submitting new listings or reconfirming availability." },
   };
 }
@@ -1013,6 +1096,18 @@ export async function reconcilePaymentOrder(operatorUserId: number, orderId: str
     const order = (await tx.select().from(paymentOrders).where(eq(paymentOrders.id, orderId)).limit(1))[0];
     if (!order || order.status !== "reference_submitted") throw new Error("Only submitted payment references can be reconciled.");
     const now = new Date();
+    if (decision === "confirmed" && order.type === "welcome_bundle") {
+      const profile = (await tx.select().from(agentProfiles).where(eq(agentProfiles.userId, order.userId)).limit(1))[0];
+      const priorPaidAccess = (await tx.select({ id: paymentOrders.id }).from(paymentOrders).where(and(
+        eq(paymentOrders.userId, order.userId),
+        eq(paymentOrders.status, "confirmed"),
+        sql`${paymentOrders.id} <> ${order.id}`,
+        sql`${paymentOrders.type} IN ('agent_access', 'welcome_bundle', 'starter_access', 'pro_access')`,
+      )).limit(1))[0];
+      if (!profile || profile.welcomeBundleUsedAt || priorPaidAccess) {
+        throw new Error("The New-Agent Welcome Bundle may be confirmed only once, before any recurring paid access.");
+      }
+    }
     const officialReceiptCode = decision === "confirmed"
       ? `AHC-${now.getUTCFullYear()}-${order.id.slice(-8)}`
       : null;
@@ -1024,10 +1119,27 @@ export async function reconcilePaymentOrder(operatorUserId: number, orderId: str
 
     const offer = getPaidOffer(order.type);
     const expiresAt = new Date(now.getTime() + offer.validityDays * 24 * 60 * 60 * 1000);
-    if (order.type === "agent_access") {
-      await tx.update(agentProfiles).set({ subscriptionStatus: "active", subscriptionExpiresAt: expiresAt })
-        .where(eq(agentProfiles.userId, order.userId));
-      await tx.insert(listingCredits).values({ userId: order.userId, paymentOrderId: order.id, expiresAt });
+    const accessEntitlementByType: Partial<Record<PaidOfferType, {
+      subscriptionTier: "access" | "growth" | "agency";
+      listingCredits: number;
+      marksWelcomeBundleUsed: boolean;
+    }>> = {
+      welcome_bundle: { subscriptionTier: "access", listingCredits: 5, marksWelcomeBundleUsed: true },
+      starter_access: { subscriptionTier: "growth", listingCredits: 5, marksWelcomeBundleUsed: false },
+      pro_access: { subscriptionTier: "agency", listingCredits: 0, marksWelcomeBundleUsed: false },
+      agent_access: { subscriptionTier: "access", listingCredits: 1, marksWelcomeBundleUsed: false },
+    };
+    const accessEntitlement = accessEntitlementByType[order.type];
+    if (accessEntitlement) {
+      await tx.update(agentProfiles).set({
+        subscriptionStatus: "active",
+        subscriptionTier: accessEntitlement.subscriptionTier,
+        subscriptionExpiresAt: expiresAt,
+        ...(accessEntitlement.marksWelcomeBundleUsed ? { welcomeBundleUsedAt: now } : {}),
+      }).where(eq(agentProfiles.userId, order.userId));
+      for (let creditIndex = 0; creditIndex < accessEntitlement.listingCredits; creditIndex += 1) {
+        await tx.insert(listingCredits).values({ userId: order.userId, paymentOrderId: order.id, expiresAt });
+      }
     }
     if (order.type === "listing_pass") {
       await tx.insert(listingCredits).values({ userId: order.userId, paymentOrderId: order.id, expiresAt });
@@ -1039,9 +1151,15 @@ export async function reconcilePaymentOrder(operatorUserId: number, orderId: str
       });
       await tx.update(listings).set({ isFeatured: true, featuredUntil: expiresAt }).where(eq(listings.id, order.listingId));
     }
-    if (order.type === "physical_verification" && order.listingId) {
+    const verificationServiceByOrderType: Partial<Record<PaidOfferType, "route_batch" | "individual">> = {
+      physical_verification: "individual",
+      physical_verification_route_batch: "route_batch",
+      physical_verification_individual: "individual",
+    };
+    const verificationServiceType = verificationServiceByOrderType[order.type];
+    if (verificationServiceType && order.listingId) {
       await tx.insert(verificationOrders).values({
-        listingId: order.listingId, requestedByUserId: order.userId, status: "paid", amountXaf: order.amountXaf,
+        listingId: order.listingId, requestedByUserId: order.userId, status: "paid", serviceType: verificationServiceType, amountXaf: order.amountXaf,
         providerReference: order.providerReference,
       });
     }

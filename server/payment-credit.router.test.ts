@@ -34,16 +34,29 @@ const submission = {
 describe("AHC payment reconciliation and listing-credit API guards", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("keeps an agent-owned payment order in the reference-submission flow", async () => {
-    vi.mocked(database.createPaymentOrder).mockResolvedValue({ id: "PAY-ACCESS-62", status: "awaiting_reference" } as never);
+  it("keeps the first-month Welcome Bundle in the agent-owned reference-submission flow", async () => {
+    vi.mocked(database.createPaymentOrder).mockResolvedValue({ id: "PAY-WELCOME-62", status: "awaiting_reference" } as never);
     vi.mocked(database.submitPaymentReference).mockResolvedValue({ success: true });
     const caller = callerFor(agent);
 
-    await expect(caller.agent.createPaymentOrder({ type: "agent_access" })).resolves.toMatchObject({ id: "PAY-ACCESS-62", status: "awaiting_reference" });
-    await expect(caller.agent.submitPaymentReference({ orderId: "PAY-ACCESS-62", provider: "mtn_momo", reference: "MOMO-TEST-981" })).resolves.toEqual({ success: true });
+    await expect(caller.agent.createPaymentOrder({ type: "welcome_bundle" })).resolves.toMatchObject({ id: "PAY-WELCOME-62", status: "awaiting_reference" });
+    await expect(caller.agent.submitPaymentReference({ orderId: "PAY-WELCOME-62", provider: "mtn_momo", reference: "MOMO-TEST-981" })).resolves.toEqual({ success: true });
 
-    expect(database.createPaymentOrder).toHaveBeenCalledWith(agent.id, "agent_access", undefined);
-    expect(database.submitPaymentReference).toHaveBeenCalledWith(agent.id, "PAY-ACCESS-62", "mtn_momo", "MOMO-TEST-981");
+    expect(database.createPaymentOrder).toHaveBeenCalledWith(agent.id, "welcome_bundle", undefined);
+    expect(database.submitPaymentReference).toHaveBeenCalledWith(agent.id, "PAY-WELCOME-62", "mtn_momo", "MOMO-TEST-981");
+  });
+
+  it("exposes only the approved recurring plans and verification variants to the Agent route", async () => {
+    vi.mocked(database.createPaymentOrder).mockResolvedValue({ id: "PAY-PLAN-62", status: "awaiting_reference" } as never);
+    const caller = callerFor(agent);
+
+    await expect(caller.agent.createPaymentOrder({ type: "starter_access" })).resolves.toMatchObject({ id: "PAY-PLAN-62" });
+    await expect(caller.agent.createPaymentOrder({ type: "pro_access" })).resolves.toMatchObject({ id: "PAY-PLAN-62" });
+    await expect(caller.agent.requestPhysicalVerification({ listingId: "LIST-62", serviceType: "route_batch" })).resolves.toMatchObject({ id: "PAY-PLAN-62" });
+
+    expect(database.createPaymentOrder).toHaveBeenCalledWith(agent.id, "starter_access", undefined);
+    expect(database.createPaymentOrder).toHaveBeenCalledWith(agent.id, "pro_access", undefined);
+    expect(database.createPaymentOrder).toHaveBeenCalledWith(agent.id, "physical_verification_route_batch", "LIST-62");
   });
 
   it("rejects arbitrary tenancy-money order types so the platform cannot become an escrow or rent-collection flow", async () => {
@@ -81,11 +94,11 @@ describe("AHC payment reconciliation and listing-credit API guards", () => {
     expect(database.getAdminOfficialServiceReceipt).toHaveBeenCalledWith("PAY-ACCESS-62");
   });
 
-  it("does not allow a listing to enter review when the data guard reports no approved Listing Pass", async () => {
+  it("does not allow a listing to enter review when the data guard reports no available commercial credit", async () => {
     vi.mocked(database.getAgentProfile).mockResolvedValue({ publicName: "Payment Agent" } as never);
-    vi.mocked(database.createListing).mockRejectedValue(new Error("An approved Listing Pass is required before this listing can enter moderator review."));
+    vi.mocked(database.createListing).mockRejectedValue(new Error("Your Welcome Bundle or Starter Access includes five listing credits. Reconcile a qualifying plan before submitting a new listing."));
 
-    await expect(callerFor(agent).agent.submitListing(submission)).rejects.toThrow("approved Listing Pass");
+    await expect(callerFor(agent).agent.submitListing(submission)).rejects.toThrow("Welcome Bundle or Starter Access");
     expect(database.createListing).toHaveBeenCalledWith(expect.objectContaining({ agentUserId: agent.id, title: submission.title }));
   });
 });

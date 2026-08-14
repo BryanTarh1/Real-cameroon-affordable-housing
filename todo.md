@@ -459,3 +459,16 @@
 - [x] Change public cards so non-physically-verified listings clearly say they have not yet received an on-site Field Moderator visit.
 - [x] Assess the proposed 5,000 XAF verification fee, 10,000/25,000 XAF monthly plans, and 2,500 XAF seven-day featured listing price against the current model and recommend a pilot launch structure.
 - [x] Add regression coverage, validate the public label, checkpoint the update, and report the completed commercial assessment.
+
+## Unchanged-price profit model
+
+- [x] Build a transparent monthly AHC profit model using current fees, illustrative paid-activity scenarios, direct Field Moderator payouts, payment-collection costs, and stated operating-cost assumptions before any commercial-setting change.
+
+## Approved welcome bundle and recurring plans
+
+- [x] Implement the approved pricing model across persisted commercial entitlements, server controls, staff settings, Agent purchase flow, fixtures, and regression coverage.
+- [x] Define and expose a 3,000 XAF first-month New-Agent Welcome Bundle with five listing credits, normal Starter benefits, and no priority ranking.
+- [x] Introduce second-month 10,000 XAF Starter (five credits) and 25,000 XAF Pro (priority ranking and up to 20 active listings) recurring access options.
+- [x] Set featured placement to 2,500 XAF for seven days and define 5,000 XAF route-batch / 7,500 XAF individual physical verification orders with their 80/20 splits.
+- [x] Update non-production commercial fixtures and Admin/Agent workflows without weakening the non-custodial payment boundary.
+- [x] Add regression coverage, validate the commercial flows, checkpoint the pricing release, and document how the first-to-second-month transition works.

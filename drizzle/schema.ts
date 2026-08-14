@@ -60,6 +60,8 @@ export const agentProfiles = mysqlTable("agent_profiles", {
   subscriptionTier: mysqlEnum("subscriptionTier", ["access", "growth", "agency"]).default("access").notNull(),
   subscriptionStatus: mysqlEnum("subscriptionStatus", ["pending_payment", "active", "past_due", "suspended", "expired"]).default("pending_payment").notNull(),
   subscriptionExpiresAt: timestamp("subscriptionExpiresAt"),
+  /** Set once, on confirmed first-month Welcome Bundle reconciliation. */
+  welcomeBundleUsedAt: timestamp("welcomeBundleUsedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -97,9 +99,14 @@ export const onboardingApplications = mysqlTable("onboarding_applications", {
 /** Singleton platform configuration. Only administrators can adjust commercial rules. */
 export const platformSettings = mysqlTable("platform_settings", {
   id: int("id").primaryKey(),
+  /** Welcome Bundle fee; retained column name preserves the original migration history. */
   agentAccessFeeXaf: int("agentAccessFeeXaf").default(3_000).notNull(),
+  /** Retained only for historic Listing Pass receipts during the pricing transition. */
   listingPassFeeXaf: int("listingPassFeeXaf").default(1_000).notNull(),
-  featuredPinFeeXaf: int("featuredPinFeeXaf").default(3_000).notNull(),
+  starterAccessFeeXaf: int("starterAccessFeeXaf").default(10_000).notNull(),
+  proAccessFeeXaf: int("proAccessFeeXaf").default(25_000).notNull(),
+  featuredPinFeeXaf: int("featuredPinFeeXaf").default(2_500).notNull(),
+  routeBatchVerificationFeeXaf: int("routeBatchVerificationFeeXaf").default(5_000).notNull(),
   physicalVerificationFeeXaf: int("physicalVerificationFeeXaf").default(7_500).notNull(),
   fieldModeratorShareBps: int("fieldModeratorShareBps").default(8_000).notNull(),
   updatedByUserId: int("updatedByUserId").references(() => users.id, { onDelete: "set null" }),
@@ -194,7 +201,7 @@ export const paymentOrders = mysqlTable("payment_orders", {
   id: varchar("id", { length: 32 }).primaryKey(),
   userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
   listingId: varchar("listingId", { length: 32 }).references(() => listings.id, { onDelete: "set null" }),
-  type: mysqlEnum("type", ["agent_access", "listing_pass", "featured_pin", "physical_verification"]).notNull(),
+  type: mysqlEnum("type", ["agent_access", "listing_pass", "featured_pin", "physical_verification", "welcome_bundle", "starter_access", "pro_access", "physical_verification_route_batch", "physical_verification_individual"]).notNull(),
   status: mysqlEnum("status", ["awaiting_reference", "reference_submitted", "confirmed", "rejected", "expired", "cancelled"]).default("awaiting_reference").notNull(),
   amountXaf: int("amountXaf").notNull(),
   provider: mysqlEnum("provider", ["mtn_momo", "orange_money", "other"]).default("mtn_momo").notNull(),
@@ -246,6 +253,7 @@ export const verificationOrders = mysqlTable("verification_orders", {
   requestedByUserId: int("requestedByUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
   assignedModeratorUserId: int("assignedModeratorUserId").references(() => users.id, { onDelete: "set null" }),
   status: mysqlEnum("status", ["pending_payment", "paid", "scheduled", "passed", "failed", "cancelled"]).default("pending_payment").notNull(),
+  serviceType: mysqlEnum("serviceType", ["route_batch", "individual"]).default("individual").notNull(),
   amountXaf: int("amountXaf").notNull(),
   evidenceNote: text("evidenceNote"),
   verifiedAt: timestamp("verifiedAt"),
