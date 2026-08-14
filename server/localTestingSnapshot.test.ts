@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildSanitizedLocalTestingSnapshot, isAuthorizedLocalTestingExport } from "./localTestingSnapshot";
 
 const TOKEN = "local-testing-token-that-is-at-least-thirty-two-characters";
+const configuredExportToken = process.env.AHC_LOCAL_TEST_EXPORT_TOKEN;
 
 describe("local testing snapshot safeguards", () => {
   it("requires a correctly formed matching bearer token", () => {
@@ -25,5 +26,15 @@ describe("local testing snapshot safeguards", () => {
     expect(snapshot.listings[0]).not.toHaveProperty("agent");
     expect(snapshot.listings[0]).not.toHaveProperty("walkthrough");
     expect(JSON.stringify(snapshot)).not.toContain("private.example");
+  });
+
+  it.skipIf(!configuredExportToken)("accepts the configured token at the lightweight local snapshot endpoint", async () => {
+    const response = await fetch("http://127.0.0.1:3000/api/local-testing/snapshot", {
+      headers: { Authorization: `Bearer ${configuredExportToken}` },
+    });
+
+    expect(response.status).toBe(200);
+    const snapshot = await response.json();
+    expect(snapshot.classification).toBe("sanitized-local-testing-only");
   });
 });

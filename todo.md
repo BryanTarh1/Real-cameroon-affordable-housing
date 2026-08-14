@@ -483,3 +483,8 @@
 - [ ] Design and, where safely possible, prepare a one-way least-privilege production-to-local testing data workflow without exposing live database credentials or permitting local writes to production.
 - [x] Add and validate the token-protected sanitised snapshot endpoint, the separate local `ahc_local_test` schema, and the XAMPP command-line importer templates.
 - [ ] Bind the user’s XAMPP scripts folder, import the local schema, place the user-controlled token in the local configuration, and validate the first laptop pull.
+- [ ] Repair the local XAMPP/MariaDB privilege-table inconsistency (`db` / `global_priv`) before creating the least-privilege local importer account.
+- [ ] Use the existing local XAMPP root login only as a documented temporary fallback for the isolated `ahc_local_test` importer until the local MariaDB privilege tables are fully rebuilt.
+- [ ] Identify and configure the active local XAMPP MySQL service port before validating the first sanitised snapshot pull.
+- [ ] Replace the mismatched snapshot token with one user-controlled value configured both in the protected AHC endpoint and the local private configuration file.
+- [ ] Verify and align the deployed snapshot endpoint’s token environment with the local importer after an HTTP 401 from the public domain.
