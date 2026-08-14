@@ -472,3 +472,7 @@
 - [x] Set featured placement to 2,500 XAF for seven days and define 5,000 XAF route-batch / 7,500 XAF individual physical verification orders with their 80/20 splits.
 - [x] Update non-production commercial fixtures and Admin/Agent workflows without weakening the non-custodial payment boundary.
 - [x] Add regression coverage, validate the commercial flows, checkpoint the pricing release, and document how the first-to-second-month transition works.
+
+## Automated platform-service payment verification design
+
+- [x] Design a provider-aware, webhook-led verification workflow for AHC platform-service payments that preserves Admin exception review, fraud controls, auditability, and the non-custodial tenancy boundary.
