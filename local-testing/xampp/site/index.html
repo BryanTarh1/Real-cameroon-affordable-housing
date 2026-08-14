@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>AHC Local Test · Sanitised Snapshot</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#results">Skip to listings</a>
+    <header class="site-header">
+      <div class="brand-block">
+        <p class="eyebrow">LOCAL TEST ENVIRONMENT</p>
+        <h1>Affordable Housing<br /><span>Cameroon</span></h1>
+      </div>
+      <div class="environment-note" aria-label="Local testing data notice">
+        <span class="status-dot" aria-hidden="true"></span>
+        <div>
+          <strong>Sanitised local snapshot</strong>
+          <small id="snapshot-meta">Loading local database…</small>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="local-test-title">
+        <div>
+          <p class="eyebrow">COURTYARD ATLAS · LOCAL VIEW</p>
+          <h2 id="local-test-title">Search trusted homes without touching production.</h2>
+          <p class="hero-copy">This XAMPP test version reads only the local <code>ahc_local_test.sanitized_listings</code> table. It contains no accounts, contact details, payment records, field evidence, exact addresses, or production write access.</p>
+        </div>
+        <aside class="trust-panel">
+          <p class="eyebrow">WHAT YOU CAN TEST</p>
+          <ul>
+            <li>Move-in cash comparison</li>
+            <li>Local cards and filters</li>
+            <li>Trust labels and freshness</li>
+            <li>Approximate map areas</li>
+          </ul>
+        </aside>
+      </section>
+
+      <section class="search-bar" aria-label="Local listing filters">
+        <label>
+          <span>City</span>
+          <select id="city-filter">
+            <option value="">All cities</option>
+          </select>
+        </label>
+        <label>
+          <span>Bedrooms</span>
+          <select id="bedrooms-filter">
+            <option value="">Any size</option>
+            <option value="1">1 bedroom</option>
+            <option value="2">2 bedrooms</option>
+            <option value="3">3+ bedrooms</option>
+          </select>
+        </label>
+        <label class="wide-filter">
+          <span>Maximum move-in cash</span>
+          <select id="cost-filter">
+            <option value="">Any budget</option>
+            <option value="100000">100,000 XAF</option>
+            <option value="200000">200,000 XAF</option>
+            <option value="300000">300,000 XAF</option>
+            <option value="500000">500,000 XAF</option>
+          </select>
+        </label>
+        <button id="reset-filters" type="button">Reset filters</button>
+      </section>
+
+      <section class="results-heading" aria-live="polite">
+        <div>
+          <p class="eyebrow">LOCAL INVENTORY</p>
+          <h2 id="results">Homes in the current snapshot</h2>
+        </div>
+        <p id="result-count">Loading…</p>
+      </section>
+
+      <section id="listing-grid" class="listing-grid" aria-live="polite" aria-busy="true"></section>
+      <p id="empty-state" class="empty-state" hidden>No local listings match those filters.</p>
+
+      <section class="local-boundary" aria-labelledby="boundary-title">
+        <p class="eyebrow">TESTING BOUNDARY</p>
+        <h2 id="boundary-title">What this local version deliberately does not do</h2>
+        <div class="boundary-grid">
+          <p><strong>No account actions.</strong> Sign-in, account creation, payment orders, verification evidence, and staff operations remain in the protected main AHC application.</p>
+          <p><strong>No direct contact.</strong> Phone numbers, WhatsApp destinations, private property photos, exact compound doors, and owner or Agent identities are excluded.</p>
+          <p><strong>No production writes.</strong> The local importer only downloads an approved public-data snapshot. The web page only reads the isolated local MySQL table.</p>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="listing-dialog" aria-labelledby="dialog-title">
+      <button id="close-dialog" class="dialog-close" type="button" aria-label="Close details">×</button>
+      <div id="dialog-content"></div>
+    </dialog>
+
+    <template id="listing-card-template">
+      <article class="listing-card">
+        <div class="listing-image" aria-hidden="true"><span class="image-label">LOCAL DATA<br />ONLY</span></div>
+        <div class="card-content">
+          <div class="card-topline"><span class="verification-label"></span><span class="featured-label" hidden>FEATURED</span></div>
+          <h3></h3>
+          <p class="location"></p>
+          <p class="freshness"></p>
+          <div class="cash-seal"><span>Total move-in cash</span><strong></strong></div>
+          <dl class="cost-summary"></dl>
+          <button type="button" class="details-button">Inspect local data</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>

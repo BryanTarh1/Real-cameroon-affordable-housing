@@ -1,0 +1,23 @@
+flowchart TB
+  Seeker[Seeker\nBrowse first] --> Public[Public marketplace\nSearch, map, cost cards]
+  Supplier[Agent / supplier\nPaid access] --> Agent[Agent workspace\nListings, credits, freshness]
+  Moderator[Field Moderator\nAdmin-provisioned] --> Ops[Operations workspace\nEvidence and verification]
+  Admin[Admin\nProvisioned] --> Gov[Admin workspace\nGovernance and reconciliation]
+
+  Public --> App[AHC React application]
+  Agent --> App
+  Ops --> App
+  Gov --> App
+
+  App --> API[Express + tRPC API\nRole and payment controls]
+  API --> DB[(Managed AHC database)]
+  API --> Media[Protected media / share-card service]
+  API --> WhatsApp[Tracked WhatsApp deep links]
+  API --> Snapshot[Sanitised local test\nsnapshot endpoint]
+
+  classDef people fill:#f7f3e9,stroke:#d78a1d,color:#132c34;
+  classDef work fill:#132c34,stroke:#d78a1d,color:#ffffff;
+  classDef data fill:#e7efe9,stroke:#3c7a57,color:#132c34;
+  class Seeker,Supplier,Moderator,Admin people;
+  class Public,Agent,Ops,Gov,App,API,Media,WhatsApp,Snapshot work;
+  class DB data;

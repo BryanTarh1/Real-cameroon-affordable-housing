@@ -490,3 +490,9 @@
 - [x] Verify and align the deployed snapshot endpoint’s token environment with the local importer after an HTTP 401 from the public domain.
 - [x] Confirm and observe the protected snapshot endpoint’s retry cooldown after the first successful token validation generated an HTTP 429 response.
 - [x] Correct the local importer configuration from the unavailable `ahc_local_sync` account to the documented temporary local-root fallback and confirm its isolated database access.
+
+## Final local test package and comprehensive SRS
+
+- [x] Create a 15–17 page Word Software Requirements Specification covering the full AHC platform, roles, trust rules, commercial workflow, and validated local snapshot testing setup.
+- [x] Build and package a standalone XAMPP local test interface (`index.php`, CSS, JavaScript, and PHP data endpoint) that reads only the isolated `ahc_local_test.sanitized_listings` database.
+- [x] Validate the local test package, assemble a safe downloadable archive, and deliver it with the Word SRS.

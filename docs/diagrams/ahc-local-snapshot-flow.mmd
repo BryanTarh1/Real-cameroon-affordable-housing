@@ -1,0 +1,15 @@
+flowchart LR
+  Live[(Live AHC database\nNever exposed)] --> API[AHC server]
+  API -->|Maps only approved\npublic listing fields| Snapshot[Token-protected\nsanitised snapshot]
+  Token[User-controlled\nbearer token] --> Snapshot
+  Snapshot -->|HTTPS, one request\nper 60 seconds| Importer[Local PHP importer]
+  Importer --> Local[(Local MySQL\nahc_local_test)]
+  Local --> LocalUI[Local XAMPP test UI\nread-only cards and filters]
+  LocalUI -. no production writes .-> Live
+
+  classDef secure fill:#132c34,stroke:#d78a1d,color:#ffffff;
+  classDef data fill:#e7efe9,stroke:#3c7a57,color:#132c34;
+  classDef warning fill:#f7f3e9,stroke:#d78a1d,color:#132c34;
+  class API,Snapshot,Importer,LocalUI secure;
+  class Live,Local data;
+  class Token warning;
