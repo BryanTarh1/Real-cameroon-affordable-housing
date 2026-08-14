@@ -433,3 +433,7 @@
 - [x] Create a simple-English beginner operational guide of fewer than 10 pages and verify its printable output.
 - [x] Review and improve key public and protected workflows at mobile, tablet, and desktop viewports.
 - [x] Add regression coverage, validate the deliverables, checkpoint the release, and provide the updated project version.
+
+## Direct guide delivery
+
+- [x] Remove the beginner operating-guide source and generated file from the website project, retain a standalone Word copy outside the project, and deliver it directly to the owner.
