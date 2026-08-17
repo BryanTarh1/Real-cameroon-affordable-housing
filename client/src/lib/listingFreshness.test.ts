@@ -19,8 +19,15 @@ describe("Agent listing freshness", () => {
 
   it("uses simple relative freshness language on public property cards", () => {
     const now = new Date("2026-08-05T12:00:00.000Z").getTime();
-    expect(relativeReconfirmed("2026-08-05T08:00:00.000Z", now)).toBe("today");
-    expect(relativeReconfirmed("2026-08-04T11:59:00.000Z", now)).toBe("yesterday");
-    expect(relativeReconfirmed("2026-08-02T12:00:00.000Z", now)).toBe("3 days ago");
+    expect(relativeReconfirmed("2026-08-05T08:00:00.000Z", "en", now)).toBe("today");
+    expect(relativeReconfirmed("2026-08-04T11:59:00.000Z", "en", now)).toBe("yesterday");
+    expect(relativeReconfirmed("2026-08-02T12:00:00.000Z", "en", now)).toBe("3 days ago");
+  });
+
+  it("uses French dates and relative freshness wording when French is selected", () => {
+    const now = new Date("2026-08-05T12:00:00.000Z").getTime();
+    expect(formatReconfirmedDate(reconfirmedAt, "fr")).toContain("août");
+    expect(relativeReconfirmed("2026-08-05T08:00:00.000Z", "fr", now)).toBe("aujourd’hui");
+    expect(relativeReconfirmed("2026-08-03T12:00:00.000Z", "fr", now)).toBe("il y a 2 jours");
   });
 });

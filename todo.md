@@ -542,3 +542,13 @@
 - [x] Identify and suppress the protected query issued during anonymous public-home browsing.
 - [x] Preserve sign-in prompts only for explicitly protected actions, without global redirect or console-error noise.
 - [x] Add regression coverage and validate an anonymous public-home session in the browser.
+
+## Owner-only test-account credential reference
+- [x] Verify the current non-production account roster and distinguish test credentials from real-user password data.
+- [x] Create an owner-only Word reference covering role access, available demo credentials, and password-reset guidance.
+- [x] Review and deliver the document without exposing real-user credentials.
+
+## Complete public French translation
+- [x] Audit the public marketplace, preview, sign-in prompts, and account-entry copy that currently remains English after locale switching.
+- [x] Expand the locale dictionary and bind all visible public text to it.
+- [x] Add locale-completeness regression coverage and validate English and French rendering in the browser.
