@@ -25,6 +25,7 @@ vi.mock("./pages/OperationsBatches", () => ({ default: () => "Field Moderator ro
 vi.mock("./pages/AcceptanceWalkthrough", () => ({ default: () => "Owner acceptance walkthrough" }));
 vi.mock("./pages/ModeratorAccess", () => ({ default: () => "Field Moderator sign in" }));
 vi.mock("./pages/AgentWorkspacePage", () => ({ default: () => "Standalone Agent profile dashboard" }));
+vi.mock("./pages/CustomerDashboard", () => ({ default: () => "Customer-owned dashboard" }));
 vi.mock("./contexts/ThemeContext", () => ({ ThemeProvider: ({ children }: { children: unknown }) => children, useTheme: () => ({ theme: "light", toggleTheme: vi.fn(), switchable: true }) }));
 vi.mock("./components/ErrorBoundary", () => ({ default: ({ children }: { children: unknown }) => children }));
 vi.mock("./components/CommissionLedgerCsvExport", () => ({ CommissionLedgerCsvExport: () => null }));
@@ -53,14 +54,16 @@ describe("protected workspace routes", () => {
     auth.logout.mockResolvedValue(undefined);
   });
 
-  it("shows an Admin sign-in boundary for anonymous and ordinary users without rendering management controls", async () => {
+  it("redirects anonymous and ordinary users away from a manually edited Admin hash without rendering management controls", async () => {
     renderAt("/admin", null);
-    await waitFor(() => expect(screen.getByText("Admin sign in")).toBeTruthy());
+    await waitFor(() => expect(window.location.hash).toBe("#/"));
+    expect(screen.getByText("Public marketplace")).toBeTruthy();
     expect(screen.queryByText("Admin management controls")).toBeNull();
 
     cleanup();
     renderAt("/admin", "user");
-    await waitFor(() => expect(screen.getByText("Admin sign in")).toBeTruthy());
+    await waitFor(() => expect(window.location.hash).toBe("#/agent"));
+    expect(screen.getByText("Standalone Agent profile dashboard")).toBeTruthy();
     expect(screen.queryByText("Admin management controls")).toBeNull();
   });
 
@@ -70,20 +73,32 @@ describe("protected workspace routes", () => {
     expect(screen.queryByText("Public marketplace")).toBeNull();
   });
 
-  it("opens the Agent workspace as a standalone route rather than the public marketplace", () => {
+  it("allows only a signed-in standard user into the Agent workspace and redirects other direct hash attempts safely", async () => {
     renderAt("/agent", null);
+    await waitFor(() => expect(window.location.hash).toBe("#/"));
+    expect(screen.getByText("Public marketplace")).toBeTruthy();
+
+    cleanup();
+    renderAt("/agent", "user");
     expect(screen.getByText("Standalone Agent profile dashboard")).toBeTruthy();
     expect(screen.queryByText("Public marketplace")).toBeNull();
+
+    cleanup();
+    renderAt("/agent", "moderator");
+    await waitFor(() => expect(window.location.hash).toBe("#/operations"));
+    expect(screen.getByText("Field Moderator operations")).toBeTruthy();
   });
 
-  it("keeps the owner acceptance walkthrough behind the explicit Admin session boundary", async () => {
+  it("keeps the owner acceptance walkthrough behind the Admin role and redirects every other hash attempt", async () => {
     renderAt("/acceptance", null);
-    await waitFor(() => expect(screen.getByText("Admin sign in")).toBeTruthy());
+    await waitFor(() => expect(window.location.hash).toBe("#/"));
+    expect(screen.getByText("Public marketplace")).toBeTruthy();
     expect(screen.queryByText("Owner acceptance walkthrough")).toBeNull();
 
     cleanup();
     renderAt("/acceptance", "user");
-    await waitFor(() => expect(screen.getByText("Admin sign in")).toBeTruthy());
+    await waitFor(() => expect(window.location.hash).toBe("#/agent"));
+    expect(screen.getByText("Standalone Agent profile dashboard")).toBeTruthy();
     expect(screen.queryByText("Owner acceptance walkthrough")).toBeNull();
 
     cleanup();
@@ -91,14 +106,16 @@ describe("protected workspace routes", () => {
     expect(screen.getByText("Owner acceptance walkthrough")).toBeTruthy();
   });
 
-  it("shows a Field Moderator sign-in entry for non-staff while allowing moderators and administrators", async () => {
+  it("redirects non-staff from Field Operations while allowing moderators and administrators", async () => {
     renderAt("/operations", null);
-    expect(screen.getByText("Field Moderator sign in")).toBeTruthy();
+    await waitFor(() => expect(window.location.hash).toBe("#/"));
+    expect(screen.getByText("Public marketplace")).toBeTruthy();
     expect(screen.queryByText("Field Moderator operations")).toBeNull();
 
     cleanup();
     renderAt("/operations", "user");
-    expect(screen.getByText("Field Moderator sign in")).toBeTruthy();
+    await waitFor(() => expect(window.location.hash).toBe("#/agent"));
+    expect(screen.getByText("Standalone Agent profile dashboard")).toBeTruthy();
     expect(screen.queryByText("Field Moderator operations")).toBeNull();
 
     cleanup();
@@ -110,14 +127,16 @@ describe("protected workspace routes", () => {
     expect(screen.getByText("Field Moderator operations")).toBeTruthy();
   });
 
-  it("restricts the geographic route board to Field Moderators and administrators", async () => {
+  it("redirects non-staff from the geographic route board while allowing Field Moderators and administrators", async () => {
     renderAt("/operations/batches", null);
-    await waitFor(() => expect(screen.getByText("Field Moderator sign in")).toBeTruthy());
+    await waitFor(() => expect(window.location.hash).toBe("#/"));
+    expect(screen.getByText("Public marketplace")).toBeTruthy();
     expect(screen.queryByText("Field Moderator route board")).toBeNull();
 
     cleanup();
     renderAt("/operations/batches", "user");
-    await waitFor(() => expect(screen.getByText("Field Moderator sign in")).toBeTruthy());
+    await waitFor(() => expect(window.location.hash).toBe("#/agent"));
+    expect(screen.getByText("Standalone Agent profile dashboard")).toBeTruthy();
     expect(screen.queryByText("Field Moderator route board")).toBeNull();
 
     cleanup();
@@ -127,6 +146,17 @@ describe("protected workspace routes", () => {
     cleanup();
     renderAt("/operations/batches", "admin");
     expect(screen.getByText("Field Moderator route board")).toBeTruthy();
+  });
+
+  it("protects the customer dashboard from anonymous hash edits while keeping each signed-in account scoped to its own data", async () => {
+    renderAt("/dashboard", null);
+    await waitFor(() => expect(window.location.hash).toBe("#/"));
+    expect(screen.getByText("Public marketplace")).toBeTruthy();
+    expect(screen.queryByText("Customer-owned dashboard")).toBeNull();
+
+    cleanup();
+    renderAt("/dashboard", "user");
+    expect(screen.getByText("Customer-owned dashboard")).toBeTruthy();
   });
 
   it("shows sign out only for an explicit AHC session and returns to the public hash route", async () => {

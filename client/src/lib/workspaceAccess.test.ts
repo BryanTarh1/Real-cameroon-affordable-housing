@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canAccessWorkspace } from "./workspaceAccess";
+import { canAccessWorkspace, workspaceHomeForRole } from "./workspaceAccess";
 
 describe("workspace route access", () => {
   it("allows only administrators into the Admin workspace", () => {
@@ -13,5 +13,13 @@ describe("workspace route access", () => {
     expect(canAccessWorkspace("admin", ["admin", "moderator"])).toBe(true);
     expect(canAccessWorkspace("moderator", ["admin", "moderator"])).toBe(true);
     expect(canAccessWorkspace("user", ["admin", "moderator"])).toBe(false);
+  });
+
+  it("returns each role to a safe allowed workspace rather than trusting a manually edited hash path", () => {
+    expect(workspaceHomeForRole("admin")).toBe("/admin");
+    expect(workspaceHomeForRole("moderator")).toBe("/operations");
+    expect(workspaceHomeForRole("user")).toBe("/agent");
+    expect(workspaceHomeForRole(null)).toBe("/");
+    expect(workspaceHomeForRole("unknown")).toBe("/");
   });
 });

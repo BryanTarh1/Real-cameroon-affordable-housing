@@ -626,3 +626,7 @@
 - [x] Add customer-managed email-notification preferences without sending or implying real email delivery until an email provider is separately configured.
 - [x] Add a clearly labelled test-only checkout simulator that exercises loading, success, retry, and error feedback without charging any payment method or creating a real platform-service order.
 - [x] Add schema migration, ownership tests, storage validation, and desktop/mobile regression coverage for the new dashboard extensions. TypeScript and 146 tests pass; signed-out desktop and mobile dashboard captures confirm the protected route’s responsive access boundary.
+
+## Global protected-route hardening
+- [x] Prevent direct hash-path changes from rendering any unauthorized Agent, Moderator, Admin, or customer workspace content; enforce role-appropriate redirects while retaining server-side authorization as the security boundary.
+- [x] Add route-access regression coverage for signed-out and wrong-role deep links, validate the protected-route layouts, and publish the safe workspace links. Desktop and mobile visual checks: anonymous deep links to Admin, Operations, route batches, Agent, customer dashboard, and acceptance each returned to the public marketplace without rendering a protected workspace. Full suite: 148 tests pass; production build succeeds.

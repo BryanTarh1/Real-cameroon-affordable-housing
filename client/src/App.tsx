@@ -4,7 +4,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { canAccessWorkspace } from "@/lib/workspaceAccess";
+import { canAccessWorkspace, workspaceHomeForRole } from "@/lib/workspaceAccess";
 import NotFound from "@/pages/NotFound";
 import { LayoutDashboard, LogOut } from "lucide-react";
 import { toast } from "sonner";
@@ -16,49 +16,57 @@ import { CommissionLedgerCsvExport } from "./components/CommissionLedgerCsvExpor
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Admin from "./pages/Admin";
-import AdminAccess from "./pages/AdminAccess";
-import ModeratorAccess from "./pages/ModeratorAccess";
 import Operations from "./pages/Operations";
 import OperationsBatches from "./pages/OperationsBatches";
 import AcceptanceWalkthrough from "./pages/AcceptanceWalkthrough";
 import AgentWorkspacePage from "./pages/AgentWorkspacePage";
 import CustomerDashboard from "./pages/CustomerDashboard";
 
-function AuthenticatedWorkspace({ allowedRoles, children, accessPanel }: { allowedRoles: readonly string[]; children: React.ReactNode; accessPanel: React.ReactNode }) {
+/**
+ * Hash paths are only navigation hints, never a permission grant. This guard waits
+ * for the signed session, blocks the workspace tree for anonymous/wrong-role users,
+ * then moves them to a route their current role may use. Server procedures retain
+ * the authoritative permission checks for every data/action request.
+ */
+function ProtectedHashWorkspace({ allowedRoles, children }: { allowedRoles: readonly string[]; children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  const isAllowed = canAccessWorkspace(user?.role, allowedRoles);
+  const [, navigate] = useLocation();
+  const isAllowed = !user?.isBanned && canAccessWorkspace(user?.role, allowedRoles);
 
-  if (loading) {
-    return <main className="operations-page" aria-busy="true" />;
+  useEffect(() => {
+    if (loading || isAllowed) return;
+    navigate(workspaceHomeForRole(user?.isBanned ? null : user?.role));
+  }, [isAllowed, loading, navigate, user?.isBanned, user?.role]);
+
+  if (loading || !isAllowed) {
+    return <main className="operations-page" aria-busy="true" aria-live="polite"><div className="agent-drawer operations-access-panel"><span className="section-overline">AHC / Protected route</span><h1>{loading ? "Checking secure access…" : "Redirecting to your permitted workspace…"}</h1><p>Changing a hash link does not change your account role or unlock a protected AHC workspace.</p></div></main>;
   }
 
-  return isAllowed ? <>{children}</> : <>{accessPanel}</>;
+  return <>{children}</>;
 }
 
 function AdminRoute() {
-  return <AuthenticatedWorkspace allowedRoles={["admin"]} accessPanel={<AdminAccess />}><Admin /></AuthenticatedWorkspace>;
+  return <ProtectedHashWorkspace allowedRoles={["admin"]}><Admin /></ProtectedHashWorkspace>;
 }
 
 function OperationsRoute() {
-  const { user, loading } = useAuth();
-  if (loading) return <main className="operations-page" aria-busy="true" />;
-  return canAccessWorkspace(user?.role, ["admin", "moderator"]) ? <Operations /> : <ModeratorAccess />;
+  return <ProtectedHashWorkspace allowedRoles={["admin", "moderator"]}><Operations /></ProtectedHashWorkspace>;
 }
 
 function OperationsBatchesRoute() {
-  return <AuthenticatedWorkspace allowedRoles={["admin", "moderator"]} accessPanel={<ModeratorAccess />}><OperationsBatches /></AuthenticatedWorkspace>;
+  return <ProtectedHashWorkspace allowedRoles={["admin", "moderator"]}><OperationsBatches /></ProtectedHashWorkspace>;
 }
 
 function AcceptanceWalkthroughRoute() {
-  return <AuthenticatedWorkspace allowedRoles={["admin"]} accessPanel={<AdminAccess />}><AcceptanceWalkthrough /></AuthenticatedWorkspace>;
+  return <ProtectedHashWorkspace allowedRoles={["admin"]}><AcceptanceWalkthrough /></ProtectedHashWorkspace>;
 }
 
 function AgentOnboardingRoute() {
-  return <AgentWorkspacePage />;
+  return <ProtectedHashWorkspace allowedRoles={["user"]}><AgentWorkspacePage /></ProtectedHashWorkspace>;
 }
 
 function CustomerDashboardRoute() {
-  return <CustomerDashboard />;
+  return <ProtectedHashWorkspace allowedRoles={["user", "moderator", "admin"]}><CustomerDashboard /></ProtectedHashWorkspace>;
 }
 
 function MarketplaceRoute() {
