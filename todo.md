@@ -558,3 +558,7 @@
 - [x] Persist the public language selection in local storage and restore it on later visits.
 - [x] Translate the standalone Agent dashboard and profile experience with the same shared locale system.
 - [x] Add reduced-motion-safe language-switch transitions, Agent access-status localization, and regression coverage for persistence and Agent locale support.
+
+## Language menu refinement
+- [x] Replace each English/French toggle with an accessible language-selection dropdown while preserving persisted shared locale behavior.
+- [x] Add regression coverage and validate the menu at desktop and mobile widths.

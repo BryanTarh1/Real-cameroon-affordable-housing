@@ -12,6 +12,8 @@ describe("standalone Agent workspace language support", () => {
     expect(portal).toContain("useMarketplaceLanguage()");
     expect(languageHook).toContain('AHC_LANGUAGE_STORAGE_KEY = "ahc-language"');
     expect(languageHook).toContain("window.addEventListener(\"storage\"");
+    expect(portal).toContain('className="language-select agent-language-select"');
+    expect(portal).toContain('<option value="en">English</option><option value="fr">Français</option>');
   });
 
   it("provides centralized French copy for the profile, identity, payments, and listings", () => {

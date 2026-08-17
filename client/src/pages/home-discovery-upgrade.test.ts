@@ -11,11 +11,13 @@ const languageHook = fs.readFileSync(path.resolve(process.cwd(), "client/src/hoo
 const globalCss = fs.readFileSync(path.resolve(process.cwd(), "client/src/index.css"), "utf8");
 
 describe("French discovery and media-first property flow", () => {
-  it("keeps a persistent English/French language control and translated headline labels", () => {
+  it("keeps a persistent English/French language-selection dropdown and translated headline labels", () => {
     expect(languageHook).toContain('AHC_LANGUAGE_STORAGE_KEY = "ahc-language"');
     expect(languageHook).toContain("localStorage.getItem(AHC_LANGUAGE_STORAGE_KEY)");
     expect(languageHook).toContain("localStorage.setItem(AHC_LANGUAGE_STORAGE_KEY, next)");
-    expect(home).toContain("toggleLanguage");
+    expect(home).toContain("setLanguage");
+    expect(home).toContain('className="language-select"');
+    expect(home).toContain('<option value="en">English</option><option value="fr">Français</option>');
     expect(home).toContain("marketplaceCopy[language]");
     expect(locale).toContain('export type PublicLanguage = "en" | "fr"');
     expect(locale).toContain("Montant total à prévoir");

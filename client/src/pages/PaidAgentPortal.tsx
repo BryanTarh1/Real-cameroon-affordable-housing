@@ -99,7 +99,7 @@ export function PaidAgentPortal({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const languageControl = <button type="button" className="language-toggle agent-language-toggle" onClick={() => setLanguage(language === "en" ? "fr" : "en")}>{language === "en" ? "Français" : "English"}</button>;
+  const languageControl = <select className="language-select agent-language-select" value={language} onChange={event => setLanguage(event.target.value as typeof language)} aria-label={language === "fr" ? "Choisir la langue" : "Select language"}><option value="en">English</option><option value="fr">Français</option></select>;
   if (loading) return <div className="agent-drawer"><span>{copy("loading")}</span></div>;
   if (!isAuthenticated) return <div className={`agent-drawer scroll language-transition ${isLanguageTransitioning ? "is-switching-language" : ""}`}><button className="drawer-close" onClick={onClose}><X size={19} /></button>{languageControl}<span className="section-overline">{copy("workspace")}</span><h2>{copy("signInTitle")}</h2><p>{copy("signInBody")}</p><AgentAccountPanel /><div className="agent-benefits"><span><Check size={16} /> {copy("welcomeCredits")}</span><span><Check size={16} /> {copy("monthTwo")}</span><span><Check size={16} /> {copy("moderatorApproval")}</span></div></div>;
   if (profile.isLoading) return <div className="agent-drawer"><span>{copy("preparing")}</span></div>;
