@@ -634,3 +634,7 @@
 ## Standard browser URL migration
 - [x] Replace hash-based AHC navigation with standard browser paths, preserve legacy hash links through safe migration redirects, and retain protected-route role enforcement on direct visits and refreshes.
 - [x] Update route, navigation, deep-link, and responsive regression coverage; validate standard URLs at desktop and mobile sizes; checkpoint and deliver the normal-looking production links. TypeScript, 150 tests, and production build pass; desktop/mobile checks confirm normal direct paths and former hash links safely land at permitted pages without rendering protected content.
+
+## Clean-link authorization security review
+- [x] Conduct a controlled, non-destructive audit of anonymous, cross-role, legacy-link, direct-request, and object-ownership authorization boundaries for the new browser-path routes.
+- [x] Remediate any verified authorization bypasses, add regression coverage, validate the fixes, and checkpoint the security review. The audit found and closed a private-storage proxy bypass, and it added server-side Agent API role enforcement. Anonymous clean-path checks redirect safely; TypeScript, 157 tests, and the production build pass.

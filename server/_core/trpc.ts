@@ -30,6 +30,19 @@ const requireUser = t.middleware(async opts => {
 
 export const protectedProcedure = t.procedure.use(requireUser);
 
+/**
+ * The Agent workspace is available to ordinary AHC accounts only. Staff use
+ * distinct Moderator and Admin procedure trees, even when calling APIs directly.
+ */
+export const agentWorkspaceProcedure = protectedProcedure.use(
+  t.middleware(async opts => {
+    if (!opts.ctx.user || opts.ctx.user.role !== "user") {
+      throw new TRPCError({ code: "FORBIDDEN", message: "The Agent workspace is unavailable for staff accounts." });
+    }
+    return opts.next({ ctx: opts.ctx });
+  }),
+);
+
 export const adminProcedure = t.procedure.use(
   t.middleware(async opts => {
     const { ctx, next } = opts;

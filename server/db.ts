@@ -1396,6 +1396,20 @@ export async function reconfirmAgentListing(userId: number, listingId: string) {
   });
 }
 
+/** Minimal media state used only by the storage proxy to avoid signing unpublished walkthroughs. */
+export async function getWalkthroughStorageAccess(storageKey: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return (await db.select({
+    capturedByUserId: listingWalkthroughVideos.capturedByUserId,
+    videoStatus: listingWalkthroughVideos.status,
+    listingStatus: listings.status,
+  }).from(listingWalkthroughVideos)
+    .innerJoin(listings, eq(listings.id, listingWalkthroughVideos.listingId))
+    .where(eq(listingWalkthroughVideos.storageKey, storageKey))
+    .limit(1))[0] ?? null;
+}
+
 export async function createPromotionRequest(userId: number, listingId: string) {
   return createPaymentOrder(userId, "featured_pin", listingId);
 }

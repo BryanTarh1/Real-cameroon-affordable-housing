@@ -6,7 +6,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { createLocalSessionToken, hashLocalPassword, isLegacyScryptPasswordHash, verifyLocalPassword } from "./_core/localAuth";
 import { ENV } from "./_core/env";
 import { systemRouter } from "./_core/systemRouter";
-import { adminProcedure, moderatorProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { adminProcedure, agentWorkspaceProcedure, moderatorProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import {
   assignListingReview,
   approveHeldCommission,
@@ -295,31 +295,31 @@ export const appRouter = router({
   }),
 
   agent: router({
-    profile: protectedProcedure.query(async ({ ctx }) => (await getAgentProfile(ensureUserId(ctx.user?.id))) ?? null),
-    setupProfile: protectedProcedure.input(z.object({
+    profile: agentWorkspaceProcedure.query(async ({ ctx }) => (await getAgentProfile(ensureUserId(ctx.user?.id))) ?? null),
+    setupProfile: agentWorkspaceProcedure.input(z.object({
       publicName: z.string().trim().min(2).max(100), agencyName: z.string().trim().max(120).optional(),
       whatsappPhone: z.string().trim().min(8).max(30),
     })).mutation(({ ctx, input }) => upsertAgentProfile({ userId: ensureUserId(ctx.user?.id), publicName: input.publicName, agencyName: input.agencyName || undefined, whatsappPhone: normalizeCameroonWhatsAppPhone(input.whatsappPhone) })),
-    listings: protectedProcedure.query(({ ctx }) => listAgentListings(ensureUserId(ctx.user?.id))),
-    qualityDashboard: protectedProcedure.query(({ ctx }) => getAgentQualityDashboard(ensureUserId(ctx.user?.id))),
-    paidStatus: protectedProcedure.query(({ ctx }) => getAgentPaidStatus(ensureUserId(ctx.user?.id))),
-    identityStatus: protectedProcedure.query(({ ctx }) => getAgentIdentityStatus(ensureUserId(ctx.user?.id))),
-    paymentOrders: protectedProcedure.query(({ ctx }) => listAgentPaymentOrders(ensureUserId(ctx.user?.id))),
-    officialServiceReceipt: protectedProcedure.input(z.object({ orderId: z.string().min(6).max(32) }))
+    listings: agentWorkspaceProcedure.query(({ ctx }) => listAgentListings(ensureUserId(ctx.user?.id))),
+    qualityDashboard: agentWorkspaceProcedure.query(({ ctx }) => getAgentQualityDashboard(ensureUserId(ctx.user?.id))),
+    paidStatus: agentWorkspaceProcedure.query(({ ctx }) => getAgentPaidStatus(ensureUserId(ctx.user?.id))),
+    identityStatus: agentWorkspaceProcedure.query(({ ctx }) => getAgentIdentityStatus(ensureUserId(ctx.user?.id))),
+    paymentOrders: agentWorkspaceProcedure.query(({ ctx }) => listAgentPaymentOrders(ensureUserId(ctx.user?.id))),
+    officialServiceReceipt: agentWorkspaceProcedure.input(z.object({ orderId: z.string().min(6).max(32) }))
       .query(({ ctx, input }) => getAgentOfficialServiceReceipt(ensureUserId(ctx.user?.id), input.orderId)),
-    createPaymentOrder: protectedProcedure.input(z.object({
+    createPaymentOrder: agentWorkspaceProcedure.input(z.object({
       type: z.enum(["welcome_bundle", "starter_access", "pro_access", "featured_pin", "physical_verification_route_batch", "physical_verification_individual"]),
       listingId: z.string().min(4).max(32).optional(),
     })).mutation(({ ctx, input }) => createPaymentOrder(
       ensureUserId(ctx.user?.id), input.type as PaidOfferType, input.listingId,
     )),
-    submitPaymentReference: protectedProcedure.input(z.object({
+    submitPaymentReference: agentWorkspaceProcedure.input(z.object({
       orderId: z.string().min(6).max(32), provider: z.enum(["mtn_momo", "orange_money"]),
       reference: z.string().trim().min(6).max(120),
     })).mutation(({ ctx, input }) => submitPaymentReference(
       ensureUserId(ctx.user?.id), input.orderId, input.provider as "mtn_momo" | "orange_money", input.reference,
     )),
-    submitListing: protectedProcedure.input(listingSubmissionSchema).mutation(async ({ ctx, input }) => {
+    submitListing: agentWorkspaceProcedure.input(listingSubmissionSchema).mutation(async ({ ctx, input }) => {
       const userId = ensureUserId(ctx.user?.id);
       const profile = await getAgentProfile(userId);
       if (!profile) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Create your agent profile before submitting a listing." });
@@ -337,9 +337,9 @@ export const appRouter = router({
       }
       return { id, status: "under_review" as const };
     }),
-    reconfirm: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
+    reconfirm: agentWorkspaceProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
       .mutation(({ ctx, input }) => reconfirmAgentListing(ensureUserId(ctx.user?.id), input.listingId)),
-    updateCosts: protectedProcedure.input(z.object({
+    updateCosts: agentWorkspaceProcedure.input(z.object({
       listingId: z.string().min(4).max(32),
       changeReason: z.string().trim().min(6).max(500),
       costs: z.object({
@@ -348,9 +348,9 @@ export const appRouter = router({
         serviceFee: z.number().int().min(0).max(10_000_000), firstMonthUtilities: z.number().int().min(0).max(5_000_000),
       }),
     })).mutation(({ ctx, input }) => updateAgentListingCosts({ agentUserId: ensureUserId(ctx.user?.id), ...input })),
-    requestFeaturedPin: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
+    requestFeaturedPin: agentWorkspaceProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
       .mutation(({ ctx, input }) => createPromotionRequest(ensureUserId(ctx.user?.id), input.listingId)),
-    requestPhysicalVerification: protectedProcedure.input(z.object({
+    requestPhysicalVerification: agentWorkspaceProcedure.input(z.object({
       listingId: z.string().min(4).max(32),
       serviceType: z.enum(["route_batch", "individual"]),
     })).mutation(({ ctx, input }) => createPaymentOrder(
@@ -359,25 +359,25 @@ export const appRouter = router({
       input.listingId,
     )),
     viewingAppointments: router({
-      list: protectedProcedure.query(({ ctx }) => listAgentViewingAppointments(ensureUserId(ctx.user?.id))),
-      respond: protectedProcedure.input(z.object({
+      list: agentWorkspaceProcedure.query(({ ctx }) => listAgentViewingAppointments(ensureUserId(ctx.user?.id))),
+      respond: agentWorkspaceProcedure.input(z.object({
         appointmentId: z.number().int().positive(),
         decision: z.enum(["confirmed", "declined"]),
         note: z.string().trim().min(4).max(500).optional(),
       }).superRefine((value, issue) => {
         if (value.decision === "declined" && !value.note) issue.addIssue({ code: z.ZodIssueCode.custom, message: "Record a brief reason when declining a viewing request." });
       })).mutation(({ ctx, input }) => respondToViewingAppointment({ agentUserId: ensureUserId(ctx.user?.id), ...input })),
-      reconfirmAvailability: protectedProcedure.input(z.object({ appointmentId: z.number().int().positive() }))
+      reconfirmAvailability: agentWorkspaceProcedure.input(z.object({ appointmentId: z.number().int().positive() }))
         .mutation(({ ctx, input }) => reconfirmViewingAppointmentAvailability({ agentUserId: ensureUserId(ctx.user?.id), appointmentId: input.appointmentId })),
-      cancel: protectedProcedure.input(z.object({ appointmentId: z.number().int().positive(), note: z.string().trim().min(4).max(500).optional() }))
+      cancel: agentWorkspaceProcedure.input(z.object({ appointmentId: z.number().int().positive(), note: z.string().trim().min(4).max(500).optional() }))
         .mutation(({ ctx, input }) => cancelViewingAppointment({ userId: ensureUserId(ctx.user?.id), appointmentId: input.appointmentId, actor: "agent", note: input.note })),
-      recordOutcome: protectedProcedure.input(z.object({
+      recordOutcome: agentWorkspaceProcedure.input(z.object({
         appointmentId: z.number().int().positive(), outcome: z.enum(["completed", "no_show"]), note: z.string().trim().min(4).max(500).optional(),
       })).mutation(({ ctx, input }) => recordViewingAppointmentOutcome({ agentUserId: ensureUserId(ctx.user?.id), ...input })),
     }),
     viewingSlots: router({
-      list: protectedProcedure.query(({ ctx }) => listAgentViewingSlots(ensureUserId(ctx.user?.id))),
-      create: protectedProcedure.input(z.object({
+      list: agentWorkspaceProcedure.query(({ ctx }) => listAgentViewingSlots(ensureUserId(ctx.user?.id))),
+      create: agentWorkspaceProcedure.input(z.object({
         listingId: z.string().min(4).max(32),
         startsAt: z.string().datetime(),
         endsAt: z.string().datetime(),
@@ -387,7 +387,7 @@ export const appRouter = router({
         startsAt: new Date(input.startsAt),
         endsAt: new Date(input.endsAt),
       })),
-      cancel: protectedProcedure.input(z.object({ slotId: z.number().int().positive() }))
+      cancel: agentWorkspaceProcedure.input(z.object({ slotId: z.number().int().positive() }))
         .mutation(({ ctx, input }) => cancelAgentViewingSlot({ agentUserId: ensureUserId(ctx.user?.id), slotId: input.slotId })),
     }),
   }),

@@ -1,5 +1,8 @@
 import type { Express } from "express";
+import { getWalkthroughStorageAccess } from "../db";
+import { canReadPrivateStorageKey, canReadWalkthroughStorageKey } from "../storageAccess";
 import { ENV } from "./env";
+import { authenticateLocalRequest } from "./localAuth";
 
 export function registerStorageProxy(app: Express) {
   app.get("/manus-storage/*", async (req, res) => {
@@ -7,6 +10,27 @@ export function registerStorageProxy(app: Express) {
     if (!key) {
       res.status(400).send("Missing storage key");
       return;
+    }
+
+    const user = await authenticateLocalRequest(req);
+    const privateAccess = canReadPrivateStorageKey(key, user);
+    if (privateAccess === false) {
+      res.status(403).send("Private file access is not permitted");
+      return;
+    }
+
+    if (key.startsWith("field-verifications/")) {
+      try {
+        const walkthrough = await getWalkthroughStorageAccess(key);
+        if (!walkthrough || !canReadWalkthroughStorageKey(walkthrough, user)) {
+          res.status(403).send("Walkthrough media access is not permitted");
+          return;
+        }
+      } catch (error) {
+        console.error("[StorageProxy] walkthrough access check failed:", error);
+        res.status(503).send("Media access is temporarily unavailable");
+        return;
+      }
     }
 
     if (!ENV.forgeApiUrl || !ENV.forgeApiKey) {

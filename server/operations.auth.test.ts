@@ -39,6 +39,11 @@ function createAdminContext(): TrpcContext {
 }
 
 describe("AHC moderator operations authorization", () => {
+  it("prevents staff accounts from reaching the Agent API directly", async () => {
+    const adminCaller = appRouter.createCaller(createAdminContext());
+    await expect(adminCaller.agent.profile()).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("prevents an ordinary agent from reading the listing review queue", async () => {
     const caller = appRouter.createCaller(createAgentContext());
 
