@@ -600,4 +600,4 @@
 - [x] Add an Agent quality dashboard based only on verifiable platform events, with no fabricated ratings, reviews, or response claims.
 - [x] Add a low-data marketplace mode that preserves core price, freshness, and safety information on constrained mobile connections.
 - [x] Add migrations, role-authorized procedures, focused Vitest coverage, and responsive validation across all seven remaining features.
-- [ ] Publish this checkpoint and activate the project-level 48-hour viewing-availability expiry schedule against the deployed site.
+- [x] Publish this checkpoint and activate the project-level 48-hour viewing-availability expiry schedule against the deployed site.
