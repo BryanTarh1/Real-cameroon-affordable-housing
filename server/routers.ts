@@ -12,6 +12,8 @@ import {
   approveHeldCommission,
   archiveStaleListings,
   clearLocalLoginFailures,
+  cancelAgentViewingSlot,
+  createAgentViewingSlot,
   createSeekerMatchAlertPreference,
   createLocalAgentAccount,
   createViewingAppointment,
@@ -50,8 +52,11 @@ import {
   listReviewHistory,
   listSeekerMatchAlertDeliveries,
   listSeekerMatchAlertPreferences,
+  listSeekerSavedListings,
+  listSeekerViewingSlots,
   listSeekerViewingAppointments,
   listAgentViewingAppointments,
+  listAgentViewingSlots,
   listAdminViewingAppointments,
   claimVerificationOrder,
   claimVerificationAudit,
@@ -60,6 +65,9 @@ import {
   reconcilePaymentOrder,
   releaseListingSafetyHold,
   recordLocalLoginFailure,
+  removeSeekerSavedListing,
+  requestViewingSlot,
+  saveSeekerListing,
   submitPaymentReference,
   setUserBan,
   setUserRole,
@@ -226,8 +234,23 @@ export const appRouter = router({
       revoke: protectedProcedure.input(z.object({ preferenceId: z.number().int().positive() }))
         .mutation(({ ctx, input }) => revokeSeekerMatchAlertPreference(ensureUserId(ctx.user?.id), input.preferenceId)),
     }),
+    shortlist: router({
+      list: protectedProcedure.query(({ ctx }) => listSeekerSavedListings(ensureUserId(ctx.user?.id))),
+      save: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
+        .mutation(({ ctx, input }) => saveSeekerListing(ensureUserId(ctx.user?.id), input.listingId)),
+      remove: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
+        .mutation(({ ctx, input }) => removeSeekerSavedListing(ensureUserId(ctx.user?.id), input.listingId)),
+    }),
     appointments: router({
       mine: protectedProcedure.query(({ ctx }) => listSeekerViewingAppointments(ensureUserId(ctx.user?.id))),
+      availableSlots: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
+        .query(({ input }) => listSeekerViewingSlots(input.listingId)),
+      requestSlot: protectedProcedure.input(z.object({
+        slotId: z.number().int().positive(),
+        contactPreference: z.enum(["whatsapp", "phone"]),
+        privateContact: z.string().trim().min(8).max(30),
+        seekerNote: z.string().trim().max(500).optional(),
+      })).mutation(({ ctx, input }) => requestViewingSlot({ seekerUserId: ensureUserId(ctx.user?.id), ...input })),
       request: protectedProcedure.input(appointmentRequestSchema).mutation(({ ctx, input }) => createViewingAppointment({
         seekerUserId: ensureUserId(ctx.user?.id),
         ...input,
@@ -305,6 +328,21 @@ export const appRouter = router({
       recordOutcome: protectedProcedure.input(z.object({
         appointmentId: z.number().int().positive(), outcome: z.enum(["completed", "no_show"]), note: z.string().trim().min(4).max(500).optional(),
       })).mutation(({ ctx, input }) => recordViewingAppointmentOutcome({ agentUserId: ensureUserId(ctx.user?.id), ...input })),
+    }),
+    viewingSlots: router({
+      list: protectedProcedure.query(({ ctx }) => listAgentViewingSlots(ensureUserId(ctx.user?.id))),
+      create: protectedProcedure.input(z.object({
+        listingId: z.string().min(4).max(32),
+        startsAt: z.string().datetime(),
+        endsAt: z.string().datetime(),
+      })).mutation(({ ctx, input }) => createAgentViewingSlot({
+        agentUserId: ensureUserId(ctx.user?.id),
+        listingId: input.listingId,
+        startsAt: new Date(input.startsAt),
+        endsAt: new Date(input.endsAt),
+      })),
+      cancel: protectedProcedure.input(z.object({ slotId: z.number().int().positive() }))
+        .mutation(({ ctx, input }) => cancelAgentViewingSlot({ agentUserId: ensureUserId(ctx.user?.id), slotId: input.slotId })),
     }),
   }),
 

@@ -36,7 +36,8 @@ describe("French discovery and media-first property flow", () => {
   it("does not invoke protected marketplace actions from an anonymous preview", () => {
     expect(home).toContain("if (!isAuthenticated) {");
     expect(locale).toContain('chatWhatsApp: "Chat on WhatsApp"');
-    expect(home).toContain("{isAuthenticated && <><ViewingAppointmentRequest listing={listing} language={language} />");
+    expect(home).toContain("<ViewingAppointmentRequest listing={listing} language={language}");
+    expect(home).toContain('className="protected-detail-gate shortlist-panel"');
     expect(home).toContain('onClick={contact}');
   });
 

@@ -583,3 +583,9 @@
 ## Merchant onboarding prerequisite
 - [x] Create an owner-run guide that separates AHC’s provider-independent payment controls from MTN and Orange merchant onboarding.
 - [ ] Complete MTN MoMo and Orange Money business/merchant onboarding before supplying protected credentials for live collection and provider callbacks.
+
+## Shortlist, viewings, and Moderator routes
+- [x] Add a seeker-owned saved shortlist with a privacy-safe side-by-side property comparison limited to public and seeker-authorized details.
+- [x] Add agent-managed viewing slots with explicit seeker request, agent confirmation/decline, cancellation, and stale-slot safeguards.
+- [x] Add a Moderator-only route planner that groups eligible verification work by approximate public landmark zones without exposing exact compounds.
+- [x] Add schema migrations, protected tRPC procedures, focused Vitest coverage, and responsive visual validation for all three workflows.

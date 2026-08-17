@@ -487,6 +487,32 @@ export const leadEvents = mysqlTable("lead_events", {
   index("lead_events_contact_idx").on(table.contactUserId, table.createdAt),
 ]);
 
+/** A private seeker-owned shortlist. Entries expose no contacts or exact directions. */
+export const savedListings = mysqlTable("saved_listings", {
+  id: int("id").autoincrement().primaryKey(),
+  seekerUserId: int("seekerUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  listingId: varchar("listingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("saved_listings_seeker_listing_idx").on(table.seekerUserId, table.listingId),
+  index("saved_listings_seeker_created_idx").on(table.seekerUserId, table.createdAt),
+]);
+
+/** An Agent-owned time window. A slot reserves for one pending viewing request at a time. */
+export const viewingSlots = mysqlTable("viewing_slots", {
+  id: int("id").autoincrement().primaryKey(),
+  listingId: varchar("listingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
+  agentUserId: int("agentUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  startsAt: timestamp("startsAt").notNull(),
+  endsAt: timestamp("endsAt").notNull(),
+  status: mysqlEnum("status", ["open", "reserved", "cancelled", "expired"]).default("open").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  index("viewing_slots_listing_idx").on(table.listingId, table.status, table.startsAt),
+  index("viewing_slots_agent_idx").on(table.agentUserId, table.status, table.startsAt),
+]);
+
 /**
  * A private request to view a physically verified, live listing. Exact-property
  * directions are deliberately absent: the Agent receives the seeker contact only
@@ -495,6 +521,7 @@ export const leadEvents = mysqlTable("lead_events", {
 export const viewingAppointments = mysqlTable("viewing_appointments", {
   id: int("id").autoincrement().primaryKey(),
   listingId: varchar("listingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
+  slotId: int("slotId").references(() => viewingSlots.id, { onDelete: "set null" }),
   seekerUserId: int("seekerUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
   agentUserId: int("agentUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
   requestedStart: timestamp("requestedStart").notNull(),

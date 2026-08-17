@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarCheck2 } from "lucide-react";
+import { CalendarCheck2, Clock3 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { agentText } from "@/lib/agentWorkspaceLocale";
@@ -10,11 +10,84 @@ export function AgentViewingConcierge({ language }: { language: PublicLanguage }
   const utils = trpc.useUtils();
   const copy = (key: Parameters<typeof agentText>[1]) => agentText(language, key);
   const appointments = trpc.agent.viewingAppointments.list.useQuery();
+  const listings = trpc.agent.listings.useQuery();
+  const slots = trpc.agent.viewingSlots.list.useQuery();
   const [notes, setNotes] = useState<Record<number, string>>({});
-  const refresh = () => utils.agent.viewingAppointments.list.invalidate();
-  const respond = trpc.agent.viewingAppointments.respond.useMutation({ onSuccess: result => { refresh(); toast.success(result.status === "confirmed" ? copy("viewingConfirmed") : copy("viewingDeclined")); }, onError: error => toast.error(copy("unableUpdate"), { description: error.message }) });
-  const cancel = trpc.agent.viewingAppointments.cancel.useMutation({ onSuccess: () => { refresh(); toast.success(copy("viewingCancelled")); }, onError: error => toast.error(copy("unableCancel"), { description: error.message }) });
-  const outcome = trpc.agent.viewingAppointments.recordOutcome.useMutation({ onSuccess: result => { refresh(); toast.success(result.status === "completed" ? copy("completed") : copy("noShow")); }, onError: error => toast.error(copy("unableOutcome"), { description: error.message }) });
+  const [slotListingId, setSlotListingId] = useState("");
+  const [slotStart, setSlotStart] = useState("");
+  const refreshAppointments = () => utils.agent.viewingAppointments.list.invalidate();
+  const refreshSlots = () => slots.refetch();
 
-  return <section className="agent-section appointment-concierge"><h3><CalendarCheck2 size={17} /> {copy("concierge")}</h3><p>{copy("conciergeBody")}</p>{appointments.isLoading ? <p className="muted">{copy("loadingRequests")}</p> : appointments.data?.length ? <div className="agent-appointment-list">{appointments.data.map(appointment => { const note = notes[appointment.id] ?? ""; const canRecordOutcome = appointment.status === "confirmed" && new Date(appointment.requestedStart).getTime() <= Date.now(); return <article key={appointment.id}><div className="appointment-summary"><span className="section-overline">{appointment.status.replaceAll("_", " ")}</span><b>{appointment.listingTitle}</b><span>{appointment.seekerName} · {new Date(appointment.requestedStart).toLocaleString(language === "fr" ? "fr-FR" : "en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>{appointment.seekerNote && <small>{copy("seekerNote")}: {appointment.seekerNote}</small>}{appointment.seekerContact ? <strong>{appointment.contactPreference === "whatsapp" ? "WhatsApp" : "Phone"}: {appointment.seekerContact}</strong> : <small>{copy("privateUntilConfirm")}</small>}</div>{appointment.status === "requested" && <div className="appointment-actions"><textarea value={note} maxLength={500} onChange={event => setNotes(current => ({ ...current, [appointment.id]: event.target.value }))} placeholder={copy("confirmationNote")} /><div><button className="button-secondary" disabled={respond.isPending} onClick={() => respond.mutate({ appointmentId: appointment.id, decision: "confirmed", note: note || undefined })}>{copy("confirm")}</button><button className="text-button" disabled={respond.isPending || note.trim().length < 4} onClick={() => respond.mutate({ appointmentId: appointment.id, decision: "declined", note })}>{copy("decline")}</button></div></div>}{appointment.status === "confirmed" && <div className="appointment-actions"><button className="text-button" disabled={cancel.isPending} onClick={() => cancel.mutate({ appointmentId: appointment.id, note: copy("agentCancelled") })}>{copy("cancel")}</button>{canRecordOutcome && <div><button className="button-secondary" disabled={outcome.isPending} onClick={() => outcome.mutate({ appointmentId: appointment.id, outcome: "completed", note: note || undefined })}>{copy("markComplete")}</button><button className="text-button" disabled={outcome.isPending} onClick={() => outcome.mutate({ appointmentId: appointment.id, outcome: "no_show", note: note || undefined })}>{copy("recordNoShow")}</button></div>}</div>}</article>; })}</div> : <p className="muted">{copy("noRequests")}</p>}</section>;
+  const respond = trpc.agent.viewingAppointments.respond.useMutation({
+    onSuccess: result => {
+      refreshAppointments();
+      toast.success(result.status === "confirmed" ? copy("viewingConfirmed") : copy("viewingDeclined"));
+    },
+    onError: error => toast.error(copy("unableUpdate"), { description: error.message }),
+  });
+  const cancel = trpc.agent.viewingAppointments.cancel.useMutation({
+    onSuccess: () => {
+      refreshAppointments();
+      toast.success(copy("viewingCancelled"));
+    },
+    onError: error => toast.error(copy("unableCancel"), { description: error.message }),
+  });
+  const outcome = trpc.agent.viewingAppointments.recordOutcome.useMutation({
+    onSuccess: result => {
+      refreshAppointments();
+      toast.success(result.status === "completed" ? copy("completed") : copy("noShow"));
+    },
+    onError: error => toast.error(copy("unableOutcome"), { description: error.message }),
+  });
+  const createSlot = trpc.agent.viewingSlots.create.useMutation({
+    onSuccess: () => {
+      refreshSlots();
+      setSlotStart("");
+      toast.success(language === "fr" ? "Créneau publié" : "Viewing slot published");
+    },
+    onError: error => toast.error(language === "fr" ? "Impossible de publier ce créneau" : "Unable to publish this slot", { description: error.message }),
+  });
+  const cancelSlot = trpc.agent.viewingSlots.cancel.useMutation({
+    onSuccess: refreshSlots,
+    onError: error => toast.error(language === "fr" ? "Impossible d’annuler ce créneau" : "Unable to cancel this slot", { description: error.message }),
+  });
+
+  const activeListings = listings.data?.filter(listing => ["approved", "published"].includes(listing.status)) ?? [];
+  const locale = language === "fr" ? "fr-FR" : "en-GB";
+
+  return (
+    <>
+      <section className="agent-section appointment-concierge">
+        <h3><Clock3 size={17} /> {language === "fr" ? "Créneaux de visite" : "Viewing slots"}</h3>
+        <p>{language === "fr" ? "Proposez des heures précises. Les chercheurs envoient une demande ; vous gardez le contrôle de la confirmation." : "Offer specific times. Seekers send a request; you keep control of confirmation."}</p>
+        <div className="appointment-actions">
+          <select value={slotListingId} onChange={event => setSlotListingId(event.target.value)}>
+            <option value="">{language === "fr" ? "Choisir une annonce" : "Choose a listing"}</option>
+            {activeListings.map(listing => <option key={listing.id} value={listing.id}>{listing.title}</option>)}
+          </select>
+          <input type="datetime-local" value={slotStart} onChange={event => setSlotStart(event.target.value)} />
+          <button className="button-secondary" disabled={!slotListingId || !slotStart || createSlot.isPending} onClick={() => {
+            const start = new Date(slotStart);
+            createSlot.mutate({ listingId: slotListingId, startsAt: start.toISOString(), endsAt: new Date(start.getTime() + 60 * 60 * 1000).toISOString() });
+          }}>{language === "fr" ? "Publier 1 heure" : "Publish 1-hour slot"}</button>
+        </div>
+        {slots.data?.length ? <div className="agent-appointment-list">{slots.data.map(slot => <article key={slot.id}>
+          <div className="appointment-summary"><span className="section-overline">{slot.status}</span><b>{slot.listingTitle}</b><span>{new Date(slot.startsAt).toLocaleString(locale, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span></div>
+          {slot.status === "open" && <button className="text-button" disabled={cancelSlot.isPending} onClick={() => cancelSlot.mutate({ slotId: slot.id })}>{language === "fr" ? "Annuler le créneau" : "Cancel slot"}</button>}
+        </article>)}</div> : null}
+      </section>
+
+      <section className="agent-section appointment-concierge">
+        <h3><CalendarCheck2 size={17} /> {copy("concierge")}</h3><p>{copy("conciergeBody")}</p>
+        {appointments.isLoading ? <p className="muted">{copy("loadingRequests")}</p> : appointments.data?.length ? <div className="agent-appointment-list">{appointments.data.map(appointment => {
+          const note = notes[appointment.id] ?? "";
+          const canRecordOutcome = appointment.status === "confirmed" && new Date(appointment.requestedStart).getTime() <= Date.now();
+          return <article key={appointment.id}><div className="appointment-summary"><span className="section-overline">{appointment.status.replaceAll("_", " ")}</span><b>{appointment.listingTitle}</b><span>{appointment.seekerName} · {new Date(appointment.requestedStart).toLocaleString(locale, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>{appointment.seekerNote && <small>{copy("seekerNote")}: {appointment.seekerNote}</small>}{appointment.seekerContact ? <strong>{appointment.contactPreference === "whatsapp" ? "WhatsApp" : "Phone"}: {appointment.seekerContact}</strong> : <small>{copy("privateUntilConfirm")}</small>}</div>
+            {appointment.status === "requested" && <div className="appointment-actions"><textarea value={note} maxLength={500} onChange={event => setNotes(current => ({ ...current, [appointment.id]: event.target.value }))} placeholder={copy("confirmationNote")} /><div><button className="button-secondary" disabled={respond.isPending} onClick={() => respond.mutate({ appointmentId: appointment.id, decision: "confirmed", note: note || undefined })}>{copy("confirm")}</button><button className="text-button" disabled={respond.isPending || note.trim().length < 4} onClick={() => respond.mutate({ appointmentId: appointment.id, decision: "declined", note })}>{copy("decline")}</button></div></div>}
+            {appointment.status === "confirmed" && <div className="appointment-actions"><button className="text-button" disabled={cancel.isPending} onClick={() => cancel.mutate({ appointmentId: appointment.id, note: copy("agentCancelled") })}>{copy("cancel")}</button>{canRecordOutcome && <div><button className="button-secondary" disabled={outcome.isPending} onClick={() => outcome.mutate({ appointmentId: appointment.id, outcome: "completed", note: note || undefined })}>{copy("markComplete")}</button><button className="text-button" disabled={outcome.isPending} onClick={() => outcome.mutate({ appointmentId: appointment.id, outcome: "no_show", note: note || undefined })}>{copy("recordNoShow")}</button></div>}</div>}
+          </article>;
+        })}</div> : <p className="muted">{copy("noRequests")}</p>}
+      </section>
+    </>
+  );
 }

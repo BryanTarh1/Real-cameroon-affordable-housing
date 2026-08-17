@@ -21,6 +21,7 @@ import {
   platformSettings,
   reports,
   seekerMatchAlertPreferences,
+  savedListings,
   matchAlertDeliveries,
   ownerAlertOutbox,
   users,
@@ -30,6 +31,7 @@ import {
   verificationOrders,
   viewingAppointmentEvents,
   viewingAppointments,
+  viewingSlots,
 } from "../drizzle/schema";
 import { calculateFieldVerificationCommission, calculateTotalMoveInCash, createWhatsAppListingLink, DEFAULT_FIELD_MODERATOR_SHARE_BPS, FRESHNESS_WINDOW_DAYS, getAgentAccessState, getPaidOffer, PRO_ACTIVE_LISTING_LIMIT, type OwnerAlertEventType, type OwnerAlertStatus, type PaidOfferType } from "../shared/ahc";
 import { ENV } from "./_core/env";
@@ -609,6 +611,39 @@ export async function getPublicListingContact(listingId: string) {
   return items.find((item) => item.id === listingId) ?? null;
 }
 
+/** A seeker-owned shortlist that deliberately reuses public listing projections only. */
+export async function listSeekerSavedListings(seekerUserId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const saved = await db.select({ listingId: savedListings.listingId, savedAt: savedListings.createdAt })
+    .from(savedListings).where(eq(savedListings.seekerUserId, seekerUserId)).orderBy(desc(savedListings.createdAt));
+  if (!saved.length) return [];
+  const publicListings = await listFreshPublicListings();
+  const byId = new Map(publicListings.map((listing) => [listing.id, listing]));
+  return saved.flatMap((entry) => {
+    const listing = byId.get(entry.listingId);
+    return listing ? [{ ...listing, savedAt: entry.savedAt }] : [];
+  });
+}
+
+export async function saveSeekerListing(seekerUserId: number, listingId: string) {
+  const publicListing = (await listFreshPublicListings()).find((listing) => listing.id === listingId);
+  if (!publicListing) throw new Error("Only fresh public listings can be saved.");
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const existing = (await db.select({ id: savedListings.id }).from(savedListings)
+    .where(and(eq(savedListings.seekerUserId, seekerUserId), eq(savedListings.listingId, listingId))).limit(1))[0];
+  if (!existing) await db.insert(savedListings).values({ seekerUserId, listingId });
+  return { success: true } as const;
+}
+
+export async function removeSeekerSavedListing(seekerUserId: number, listingId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.delete(savedListings).where(and(eq(savedListings.seekerUserId, seekerUserId), eq(savedListings.listingId, listingId)));
+  return { success: true } as const;
+}
+
 const APPOINTMENT_ACTIVE_STATUSES = new Set(["requested", "confirmed"]);
 const APPOINTMENT_CONTACT_VISIBLE_STATUSES = new Set(["confirmed", "completed", "no_show"]);
 
@@ -638,6 +673,116 @@ async function getAppointmentEligibleListing(listingId: string, now = new Date()
     throw new Error("Viewing appointments are available only for fresh, physically verified live listings.");
   }
   return listing;
+}
+
+function assertViewingSlotWindow(startsAt: Date, endsAt: Date, now = new Date()) {
+  assertAppointmentWindow(startsAt, endsAt, now);
+  if (startsAt.getTime() - now.getTime() > 30 * 24 * 60 * 60 * 1000) {
+    throw new Error("Viewing slots can be created no more than 30 days ahead.");
+  }
+}
+
+export async function listSeekerViewingSlots(listingId: string) {
+  await getAppointmentEligibleListing(listingId);
+  const db = await getDb();
+  if (!db) return [];
+  const now = new Date();
+  return db.select({ id: viewingSlots.id, listingId: viewingSlots.listingId, startsAt: viewingSlots.startsAt, endsAt: viewingSlots.endsAt })
+    .from(viewingSlots)
+    .where(and(eq(viewingSlots.listingId, listingId), eq(viewingSlots.status, "open"), sql`${viewingSlots.startsAt} > ${now}`))
+    .orderBy(viewingSlots.startsAt);
+}
+
+export async function listAgentViewingSlots(agentUserId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: viewingSlots.id,
+    listingId: viewingSlots.listingId,
+    startsAt: viewingSlots.startsAt,
+    endsAt: viewingSlots.endsAt,
+    status: viewingSlots.status,
+    listingTitle: listings.title,
+  }).from(viewingSlots).innerJoin(listings, eq(viewingSlots.listingId, listings.id))
+    .where(eq(viewingSlots.agentUserId, agentUserId)).orderBy(desc(viewingSlots.startsAt));
+}
+
+export async function createAgentViewingSlot(input: { agentUserId: number; listingId: string; startsAt: Date; endsAt: Date }) {
+  assertViewingSlotWindow(input.startsAt, input.endsAt);
+  const listing = await getAppointmentEligibleListing(input.listingId);
+  if (listing.agentUserId !== input.agentUserId) throw new Error("You can create a viewing slot only for your own listing.");
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const existing = await db.select({ startsAt: viewingSlots.startsAt, endsAt: viewingSlots.endsAt })
+    .from(viewingSlots).where(and(eq(viewingSlots.listingId, input.listingId), ne(viewingSlots.status, "cancelled")));
+  if (existing.some((slot) => input.startsAt < slot.endsAt && input.endsAt > slot.startsAt)) {
+    throw new Error("This viewing slot overlaps an existing active slot.");
+  }
+  await db.insert(viewingSlots).values(input);
+  return { success: true } as const;
+}
+
+export async function cancelAgentViewingSlot(input: { agentUserId: number; slotId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const slot = (await db.select().from(viewingSlots).where(eq(viewingSlots.id, input.slotId)).limit(1))[0];
+  if (!slot || slot.agentUserId !== input.agentUserId) throw new Error("Viewing slot not found.");
+  if (slot.status === "reserved") throw new Error("A reserved viewing slot must be cancelled through its appointment.");
+  if (slot.status !== "open") throw new Error("This viewing slot can no longer be cancelled.");
+  await db.update(viewingSlots).set({ status: "cancelled" }).where(eq(viewingSlots.id, input.slotId));
+  return { success: true } as const;
+}
+
+export async function requestViewingSlot(input: {
+  seekerUserId: number;
+  slotId: number;
+  contactPreference: "whatsapp" | "phone";
+  privateContact: string;
+  seekerNote?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async (tx) => {
+    const slot = (await tx.select().from(viewingSlots).where(eq(viewingSlots.id, input.slotId)).limit(1))[0];
+    const now = new Date();
+    if (!slot || slot.status !== "open" || slot.startsAt <= now) throw new Error("This viewing slot is no longer available.");
+    const listing = await getAppointmentEligibleListing(slot.listingId, now);
+    if (listing.agentUserId === input.seekerUserId) throw new Error("You cannot request a viewing for your own listing.");
+    const seeker = (await tx.select({ isBanned: users.isBanned }).from(users).where(eq(users.id, input.seekerUserId)).limit(1))[0];
+    if (!seeker || seeker.isBanned) throw new Error("This account cannot request a viewing appointment.");
+    const active = await tx.select({ id: viewingAppointments.id, status: viewingAppointments.status })
+      .from(viewingAppointments)
+      .where(and(eq(viewingAppointments.listingId, slot.listingId), eq(viewingAppointments.seekerUserId, input.seekerUserId)));
+    if (active.some((appointment) => APPOINTMENT_ACTIVE_STATUSES.has(appointment.status))) {
+      throw new Error("You already have an active viewing request for this listing.");
+    }
+    const reservation = await tx.update(viewingSlots).set({ status: "reserved" })
+      .where(and(eq(viewingSlots.id, slot.id), eq(viewingSlots.status, "open")));
+    if (!reservation[0]?.affectedRows) throw new Error("This viewing slot has just been reserved by another seeker.");
+    await tx.insert(viewingAppointments).values({
+      listingId: slot.listingId,
+      slotId: slot.id,
+      seekerUserId: input.seekerUserId,
+      agentUserId: slot.agentUserId,
+      requestedStart: slot.startsAt,
+      requestedEnd: slot.endsAt,
+      contactPreference: input.contactPreference,
+      privateContact: input.privateContact,
+      seekerNote: input.seekerNote || null,
+    });
+    const appointment = (await tx.select().from(viewingAppointments)
+      .where(and(eq(viewingAppointments.slotId, slot.id), eq(viewingAppointments.seekerUserId, input.seekerUserId)))
+      .orderBy(desc(viewingAppointments.createdAt)).limit(1))[0];
+    if (!appointment) throw new Error("Unable to reserve the viewing slot.");
+    await tx.insert(viewingAppointmentEvents).values({
+      appointmentId: appointment.id,
+      action: "requested",
+      toStatus: "requested",
+      actorUserId: input.seekerUserId,
+      note: input.seekerNote || null,
+    });
+    return { id: appointment.id, status: appointment.status, requestedStart: appointment.requestedStart, requestedEnd: appointment.requestedEnd };
+  });
 }
 
 export async function createViewingAppointment(input: {
