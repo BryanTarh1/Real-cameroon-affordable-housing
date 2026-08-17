@@ -24,6 +24,7 @@ vi.mock("./pages/Operations", () => ({ default: () => "Field Moderator operation
 vi.mock("./pages/OperationsBatches", () => ({ default: () => "Field Moderator route board" }));
 vi.mock("./pages/AcceptanceWalkthrough", () => ({ default: () => "Owner acceptance walkthrough" }));
 vi.mock("./pages/ModeratorAccess", () => ({ default: () => "Field Moderator sign in" }));
+vi.mock("./pages/AgentWorkspacePage", () => ({ default: () => "Standalone Agent profile dashboard" }));
 vi.mock("./contexts/ThemeContext", () => ({ ThemeProvider: ({ children }: { children: unknown }) => children, useTheme: () => ({ theme: "light", toggleTheme: vi.fn(), switchable: true }) }));
 vi.mock("./components/ErrorBoundary", () => ({ default: ({ children }: { children: unknown }) => children }));
 vi.mock("./components/CommissionLedgerCsvExport", () => ({ CommissionLedgerCsvExport: () => null }));
@@ -66,6 +67,12 @@ describe("protected workspace routes", () => {
   it("renders Admin controls only for an administrator", () => {
     renderAt("/admin", "admin");
     expect(screen.getByText("Admin management controls")).toBeTruthy();
+    expect(screen.queryByText("Public marketplace")).toBeNull();
+  });
+
+  it("opens the Agent workspace as a standalone route rather than the public marketplace", () => {
+    renderAt("/agent", null);
+    expect(screen.getByText("Standalone Agent profile dashboard")).toBeTruthy();
     expect(screen.queryByText("Public marketplace")).toBeNull();
   });
 

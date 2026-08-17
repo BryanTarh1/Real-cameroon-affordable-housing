@@ -531,3 +531,9 @@
 ## Safe Agent identity-upload validation
 - [x] Validate the three-part Agent JPG upload using only synthetic TEST-ONLY images; never request or use real identity documents.
 - [x] Confirm private storage and authorization boundaries remain intact during the synthetic upload test.
+
+## Media-first property detail refinement
+- [x] Show media and Total Move-In Cash publicly before any sign-in requirement.
+- [x] Gate the itemised cost breakdown and approximate map behind the seeker sign-in completion flow.
+- [x] Confirm the hash-routed Agent workspace is a separate full page with its profile section visible.
+- [x] Add targeted regression coverage and validate the revised public-to-protected property flow.
