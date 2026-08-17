@@ -82,6 +82,7 @@ describe("AHC trust-workflow validation", () => {
       password: "Strong-password-2026",
       onboarding: {
         applicantType: "agent",
+        taxpayerNumber: "CM-TAX-2026-001",
         governmentIdUrl: "https://example.com/government-id.png",
         workProofUrl: "https://example.com/work-proof.png",
       },
@@ -94,6 +95,7 @@ describe("AHC trust-workflow validation", () => {
       passwordHash: "scrypt$trust-workflow$hash",
       onboarding: {
         applicantType: "agent",
+        taxpayerNumber: "CM-TAX-2026-001",
         governmentIdUrl: "https://example.com/government-id.png",
         workProofUrl: "https://example.com/work-proof.png",
       },

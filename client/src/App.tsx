@@ -21,6 +21,7 @@ import ModeratorAccess from "./pages/ModeratorAccess";
 import Operations from "./pages/Operations";
 import OperationsBatches from "./pages/OperationsBatches";
 import AcceptanceWalkthrough from "./pages/AcceptanceWalkthrough";
+import AgentWorkspacePage from "./pages/AgentWorkspacePage";
 
 function AuthenticatedWorkspace({ allowedRoles, children, accessPanel }: { allowedRoles: readonly string[]; children: React.ReactNode; accessPanel: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -52,7 +53,7 @@ function AcceptanceWalkthroughRoute() {
 }
 
 function AgentOnboardingRoute() {
-  return <Home startAgentOpen />;
+  return <AgentWorkspacePage />;
 }
 
 function MarketplaceRoute() {

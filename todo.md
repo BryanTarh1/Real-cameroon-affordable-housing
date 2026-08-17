@@ -506,3 +506,24 @@
 - [x] Add accessible show/hide password controls wherever users enter an AHC password, without weakening masked-by-default behavior or autocomplete guidance.
 - [x] Replace repeated Admin lead rows with one clear listing-level WhatsApp lead count that increases for every tracked click.
 - [x] Add regression coverage and visual validation for password visibility and cumulative lead-count presentation.
+
+## French discovery and Agent identity upgrade
+- [ ] Add a French-language interface option to public discovery and account-entry flows, without weakening existing English access.
+- [ ] Introduce image-first property quick views and a protected full-detail experience that shows media and total move-in cash before the itemised breakdown; require sign-in before revealing the map.
+- [ ] Extend Agent onboarding and profile records with taxpayer-number evidence and JPG government-ID front, back, and face-view uploads stored privately.
+- [ ] Restructure the Agent workspace into a standalone full-page experience with an Agent profile section.
+- [ ] Add migration, authorization, upload-format, multilingual, property-access, and responsive-interface regression coverage.
+
+## Recovery note
+- [ ] Re-implement and validate the website changes from the stable checkpoint after experimental inherited edits were rolled back.
+
+## August 2026 Agent identity and standalone-route hardening
+
+- [x] Resolve the server persistence syntax/runtime regression and validate the full TypeScript build.
+- [x] Add protected Agent-only JPG upload handling for government ID front, back, and face-view evidence using private storage keys.
+- [x] Expose a protected identity-completion status query without returning document URLs.
+- [x] Add Agent workspace profile identity status and responsive JPG upload controls.
+- [x] Replace the /agent marketplace drawer route with a standalone full-page Agent workspace.
+- [x] Add regression coverage for identity upload boundaries and update the strict taxpayer-number onboarding fixture.
+- [x] Run the complete Vitest suite: 99 tests passing; TypeScript validation clean.
+- [ ] Perform a live browser upload test with a real Agent session and three JPG files.

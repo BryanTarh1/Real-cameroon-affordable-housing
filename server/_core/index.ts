@@ -10,7 +10,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { archiveStaleListingHandler } from "../listingFreshness";
-import { createWhatsAppLeadEvent, getPublicListingContact, listFreshPublicListings, registerWalkthroughVideo, updateOwnerAlertStatus } from "../db";
+import { createWhatsAppLeadEvent, getPublicListingContact, listFreshPublicListings, registerWalkthroughVideo, updateOwnerAlertStatus, saveAgentIdentityDocument } from "../db";
 import { authenticateLocalRequest } from "./localAuth";
 import { ENV } from "./env";
 import { storagePut } from "../storage";
@@ -78,6 +78,26 @@ async function startServer() {
     } catch (error) {
       console.error("WhatsApp delivery webhook processing failed", error);
       res.status(500).json({ error: "WhatsApp delivery webhook processing failed." });
+    }
+  });
+  app.post("/api/agent/identity-document", express.raw({ type: ["image/jpeg", "image/jpg"], limit: "10mb" }), async (req, res) => {
+    const user = await authenticateLocalRequest(req);
+    const kind = typeof req.query.kind === "string" ? req.query.kind : "";
+    if (!user || user.isBanned || user.role !== "user" || !["front", "back", "face"].includes(kind)) {
+      res.status(401).json({ error: "Sign in as an Agent to upload identity documents." });
+      return;
+    }
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0 || !/^image\/(jpeg|jpg)$/i.test(req.get("content-type") || "")) {
+      res.status(415).json({ error: "Only non-empty JPG identity images are accepted." });
+      return;
+    }
+    try {
+      const storage = await storagePut(`private/agent-identity/${user.id}/${kind}-${Date.now()}.jpg`, req.body, "image/jpeg");
+      await saveAgentIdentityDocument({ userId: user.id, kind: kind as "front" | "back" | "face", storageKey: storage.key });
+      res.status(201).json({ uploaded: true, kind });
+    } catch (error) {
+      console.error("Agent identity upload failed", error);
+      res.status(500).json({ error: "The identity image could not be stored." });
     }
   });
   // Configure body parser with larger size limit for file uploads

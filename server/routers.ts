@@ -27,6 +27,7 @@ import {
   getAgentPaidStatus,
   getAgentOfficialServiceReceipt,
   getAgentProfile,
+  getAgentIdentityStatus,
   getOwnerAlertProviderStatus,
   getLocalCredentialByEmail,
   getPlatformSettings,
@@ -109,7 +110,7 @@ const localAccountSchema = z.object({
   email: z.string().trim().email().max(320),
   password: z.string().min(10).max(128),
   onboarding: z.object({
-    applicantType: z.literal("agent"), governmentIdUrl: z.string().url(), workProofUrl: z.string().url(),
+    applicantType: z.literal("agent"), taxpayerNumber: z.string().trim().min(4).max(64), governmentIdUrl: z.string().url().optional(), workProofUrl: z.string().url(),
   }).optional(),
 });
 
@@ -244,6 +245,7 @@ export const appRouter = router({
     })).mutation(({ ctx, input }) => upsertAgentProfile({ userId: ensureUserId(ctx.user?.id), publicName: input.publicName, agencyName: input.agencyName || undefined, whatsappPhone: normalizeCameroonWhatsAppPhone(input.whatsappPhone) })),
     listings: protectedProcedure.query(({ ctx }) => listAgentListings(ensureUserId(ctx.user?.id))),
     paidStatus: protectedProcedure.query(({ ctx }) => getAgentPaidStatus(ensureUserId(ctx.user?.id))),
+    identityStatus: protectedProcedure.query(({ ctx }) => getAgentIdentityStatus(ensureUserId(ctx.user?.id))),
     paymentOrders: protectedProcedure.query(({ ctx }) => listAgentPaymentOrders(ensureUserId(ctx.user?.id))),
     officialServiceReceipt: protectedProcedure.input(z.object({ orderId: z.string().min(6).max(32) }))
       .query(({ ctx, input }) => getAgentOfficialServiceReceipt(ensureUserId(ctx.user?.id), input.orderId)),

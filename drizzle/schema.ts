@@ -84,7 +84,12 @@ export const onboardingApplications = mysqlTable("onboarding_applications", {
   userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
   applicantType: mysqlEnum("applicantType", ["agent", "owner"]).notNull(),
   status: mysqlEnum("status", ["submitted", "approved", "changes_requested", "rejected"]).default("submitted").notNull(),
-  governmentIdUrl: text("governmentIdUrl").notNull(),
+  /** Legacy reference retained for compatibility; new onboarding stores private JPG keys below. */
+  governmentIdUrl: text("governmentIdUrl"),
+  taxpayerNumber: varchar("taxpayerNumber", { length: 80 }),
+  governmentIdFrontStorageKey: text("governmentIdFrontStorageKey"),
+  governmentIdBackStorageKey: text("governmentIdBackStorageKey"),
+  governmentIdFaceStorageKey: text("governmentIdFaceStorageKey"),
   workProofUrl: text("workProofUrl"),
   landTitleUrl: text("landTitleUrl"),
   occupancyRightUrl: text("occupancyRightUrl"),

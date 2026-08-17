@@ -226,7 +226,7 @@ export async function createLocalAgentAccount(input: {
   name: string;
   email: string;
   passwordHash: string;
-  onboarding?: { applicantType: "agent"; governmentIdUrl: string; workProofUrl: string };
+  onboarding?: { applicantType: "agent"; taxpayerNumber: string; workProofUrl: string; governmentIdUrl?: string };
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
@@ -1850,4 +1850,27 @@ export async function listReviewHistory(listingId: string, agentUserId?: number)
     if (!owned) throw new Error("Listing not found or you do not manage it.");
   }
   return db.select().from(listingReviewEvents).where(eq(listingReviewEvents.listingId, listingId)).orderBy(desc(listingReviewEvents.createdAt));
+}
+
+export async function saveAgentIdentityDocument(input: { userId: number; kind: "front" | "back" | "face"; storageKey: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const application = (await db.select({ id: onboardingApplications.id })
+    .from(onboardingApplications)
+    .where(and(eq(onboardingApplications.userId, input.userId), eq(onboardingApplications.applicantType, "agent")))
+    .limit(1))[0];
+  if (!application) throw new Error("Agent onboarding record not found.");
+  const column = input.kind === "front" ? { governmentIdFrontStorageKey: input.storageKey } : input.kind === "back" ? { governmentIdBackStorageKey: input.storageKey } : { governmentIdFaceStorageKey: input.storageKey };
+  await db.update(onboardingApplications).set(column).where(eq(onboardingApplications.id, application.id));
+}
+
+export async function getAgentIdentityStatus(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const row = (await db.select({ taxpayerNumber: onboardingApplications.taxpayerNumber, front: onboardingApplications.governmentIdFrontStorageKey, back: onboardingApplications.governmentIdBackStorageKey, face: onboardingApplications.governmentIdFaceStorageKey })
+    .from(onboardingApplications)
+    .where(and(eq(onboardingApplications.userId, userId), eq(onboardingApplications.applicantType, "agent")))
+    .limit(1))[0];
+  if (!row) return undefined;
+  return { taxpayerNumberPresent: Boolean(row.taxpayerNumber), idFrontUploaded: Boolean(row.front), idBackUploaded: Boolean(row.back), idFaceUploaded: Boolean(row.face) };
 }
