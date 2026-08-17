@@ -552,3 +552,9 @@
 - [x] Audit the public marketplace, preview, sign-in prompts, and account-entry copy that currently remains English after locale switching.
 - [x] Expand the locale dictionary and bind all visible public text to it.
 - [x] Add locale-completeness regression coverage and validate English and French rendering in the browser.
+
+## Reusable bilingual delivery workflow
+- [x] Create and validate a reusable skill documenting the AHC full-stack marketplace and bilingual-delivery workflow.
+- [x] Persist the public language selection in local storage and restore it on later visits.
+- [x] Translate the standalone Agent dashboard and profile experience with the same shared locale system.
+- [x] Add reduced-motion-safe language-switch transitions, Agent access-status localization, and regression coverage for persistence and Agent locale support.

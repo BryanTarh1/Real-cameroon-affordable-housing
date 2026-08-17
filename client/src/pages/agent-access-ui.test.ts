@@ -27,4 +27,27 @@ describe("paid agent workspace access messaging", () => {
     expect(state.notice).toContain("reconfirming availability");
     expect(state.renewalCta).toBe("Renew Agent Access");
   });
+
+  it("translates active and suspended access states for the French Agent workspace", () => {
+    expect(getAgentAccessUiState({
+      active: true,
+      daysRemaining: 1,
+      renewalRecommended: true,
+      suspensionReason: null,
+    }, "fr")).toEqual({
+      label: "ACCÈS ACTIF · 1 JOUR",
+      notice: "Votre accès se termine dans 1 jour. Renouvelez-le maintenant pour éviter une interruption des soumissions et des reconfirmations.",
+      renewalCta: "Renouveler l’accès Agent",
+    });
+
+    expect(getAgentAccessUiState({
+      active: false,
+      daysRemaining: 0,
+      renewalRecommended: false,
+      suspensionReason: "Renew Agent Access before submitting new listings or reconfirming availability.",
+    }, "fr")).toMatchObject({
+      label: "ACCÈS SUSPENDU",
+      renewalCta: "Renouveler l’accès Agent",
+    });
+  });
 });
