@@ -5,7 +5,7 @@ export function isSocialPreviewBot(userAgent: string) {
   return SOCIAL_PREVIEW_BOT.test(userAgent);
 }
 
-/** Keeps a durable public URL while routing ordinary browsers into the hash-based SPA. */
+/** Provides the normal browser path that opens a shared public listing in the AHC app. */
 export function propertySpaRedirect(listingId: string) {
-  return `/#/property/${encodeURIComponent(listingId)}`;
+  return `/property/${encodeURIComponent(listingId)}`;
 }

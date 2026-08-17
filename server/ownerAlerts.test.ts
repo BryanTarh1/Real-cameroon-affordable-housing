@@ -10,7 +10,7 @@ describe("AHC owner-only WhatsApp alert helpers", () => {
       language: "en",
       eventType: "payment_confirmed",
       referenceId: "PAY-ACCESS-42",
-      dashboardUrl: "https://affordableho-8aahm5dj.manus.space/#/admin",
+      dashboardUrl: "https://affordableho-8aahm5dj.manus.space/admin",
     });
 
     expect(payload).toEqual({
@@ -23,7 +23,7 @@ describe("AHC owner-only WhatsApp alert helpers", () => {
         components: [{ type: "body", parameters: [
           { type: "text", text: "AHC platform-service payment confirmed" },
           { type: "text", text: "PAY-ACCESS-42" },
-          { type: "text", text: "https://affordableho-8aahm5dj.manus.space/#/admin" },
+          { type: "text", text: "https://affordableho-8aahm5dj.manus.space/admin" },
         ] }],
       },
     });

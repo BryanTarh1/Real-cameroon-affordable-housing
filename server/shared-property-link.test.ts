@@ -9,9 +9,9 @@ describe("public shared-property link routing", () => {
     expect(isSocialPreviewBot("Mozilla/5.0 Chrome/126")).toBe(false);
   });
 
-  it("redirects a normal browser into the hash-routed SPA and safely encodes the property identifier", () => {
-    expect(propertySpaRedirect("demo-published-bastos")).toBe("/#/property/demo-published-bastos");
-    expect(propertySpaRedirect("listing / 4")).toBe("/#/property/listing%20%2F%204");
+  it("provides a normal browser path and safely encodes the property identifier", () => {
+    expect(propertySpaRedirect("demo-published-bastos")).toBe("/property/demo-published-bastos");
+    expect(propertySpaRedirect("listing / 4")).toBe("/property/listing%20%2F%204");
   });
 
   it("creates a WhatsApp-compatible public-only preview with a PNG card and no exact address", () => {

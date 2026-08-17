@@ -630,3 +630,7 @@
 ## Global protected-route hardening
 - [x] Prevent direct hash-path changes from rendering any unauthorized Agent, Moderator, Admin, or customer workspace content; enforce role-appropriate redirects while retaining server-side authorization as the security boundary.
 - [x] Add route-access regression coverage for signed-out and wrong-role deep links, validate the protected-route layouts, and publish the safe workspace links. Desktop and mobile visual checks: anonymous deep links to Admin, Operations, route batches, Agent, customer dashboard, and acceptance each returned to the public marketplace without rendering a protected workspace. Full suite: 148 tests pass; production build succeeds.
+
+## Standard browser URL migration
+- [x] Replace hash-based AHC navigation with standard browser paths, preserve legacy hash links through safe migration redirects, and retain protected-route role enforcement on direct visits and refreshes.
+- [x] Update route, navigation, deep-link, and responsive regression coverage; validate standard URLs at desktop and mobile sizes; checkpoint and deliver the normal-looking production links. TypeScript, 150 tests, and production build pass; desktop/mobile checks confirm normal direct paths and former hash links safely land at permitted pages without rendering protected content.

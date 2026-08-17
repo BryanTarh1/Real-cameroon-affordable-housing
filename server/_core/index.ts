@@ -15,7 +15,7 @@ import { createWhatsAppLeadEvent, getPublicListingContact, listFreshPublicListin
 import { authenticateLocalRequest } from "./localAuth";
 import { ENV } from "./env";
 import { storagePut } from "../storage";
-import { isSocialPreviewBot, propertySpaRedirect } from "./sharedPropertyLink";
+import { isSocialPreviewBot } from "./sharedPropertyLink";
 import { buildPropertyOpenGraphDocument } from "./openGraphPropertyPreview";
 import { buildSanitizedLocalTestingSnapshot, isAuthorizedLocalTestingExport } from "../localTestingSnapshot";
 import { extractMetaDeliveryStatuses, verifyMetaWebhookSignature } from "../ownerAlerts";
@@ -232,7 +232,7 @@ async function startServer() {
   });
   app.get("/property/:listingId", async (req, res, next) => {
     if (!isSocialPreviewBot(req.get("user-agent") ?? "")) {
-      res.redirect(302, propertySpaRedirect(req.params.listingId));
+      next();
       return;
     }
     const listing = await getPublicListingContact(req.params.listingId);

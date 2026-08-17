@@ -6,6 +6,16 @@ import { toast } from "sonner";
 import superjson from "superjson";
 import App from "./App";
 import "./index.css";
+import { legacyHashPathToBrowserPath } from "./lib/legacyHashRoutes";
+
+function migrateLegacyHashRoute() {
+  if (typeof window === "undefined") return;
+  const destination = legacyHashPathToBrowserPath(window.location.hash);
+  if (!destination) return;
+  window.history.replaceState(null, "", destination);
+}
+
+migrateLegacyHashRoute();
 
 const queryClient = new QueryClient();
 

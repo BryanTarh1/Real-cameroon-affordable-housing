@@ -79,7 +79,7 @@ export function buildOwnerAlertTemplatePayload(input: OwnerAlertTemplateInput) {
 }
 
 export function getOwnerAlertDashboardUrl(publicAppUrl: string) {
-  return `${publicAppUrl.replace(/\/+$/, "")}/#/admin`;
+  return `${publicAppUrl.replace(/\/+$/, "")}/admin`;
 }
 
 /** Validates Meta's `X-Hub-Signature-256` against the unparsed request body. */

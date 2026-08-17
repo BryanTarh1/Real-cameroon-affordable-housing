@@ -9,11 +9,12 @@ import NotFound from "@/pages/NotFound";
 import { LayoutDashboard, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { Route, Router as WouterRouter, Switch, useLocation, useRoute } from "wouter";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { CommissionLedgerCsvExport } from "./components/CommissionLedgerCsvExport";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { legacyHashPathToBrowserPath } from "./lib/legacyHashRoutes";
 import Home from "./pages/Home";
 import Admin from "./pages/Admin";
 import Operations from "./pages/Operations";
@@ -23,12 +24,12 @@ import AgentWorkspacePage from "./pages/AgentWorkspacePage";
 import CustomerDashboard from "./pages/CustomerDashboard";
 
 /**
- * Hash paths are only navigation hints, never a permission grant. This guard waits
+ * Browser paths are only navigation destinations, never a permission grant. This guard waits
  * for the signed session, blocks the workspace tree for anonymous/wrong-role users,
  * then moves them to a route their current role may use. Server procedures retain
  * the authoritative permission checks for every data/action request.
  */
-function ProtectedHashWorkspace({ allowedRoles, children }: { allowedRoles: readonly string[]; children: React.ReactNode }) {
+function ProtectedWorkspace({ allowedRoles, children }: { allowedRoles: readonly string[]; children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
   const isAllowed = !user?.isBanned && canAccessWorkspace(user?.role, allowedRoles);
@@ -46,27 +47,27 @@ function ProtectedHashWorkspace({ allowedRoles, children }: { allowedRoles: read
 }
 
 function AdminRoute() {
-  return <ProtectedHashWorkspace allowedRoles={["admin"]}><Admin /></ProtectedHashWorkspace>;
+  return <ProtectedWorkspace allowedRoles={["admin"]}><Admin /></ProtectedWorkspace>;
 }
 
 function OperationsRoute() {
-  return <ProtectedHashWorkspace allowedRoles={["admin", "moderator"]}><Operations /></ProtectedHashWorkspace>;
+  return <ProtectedWorkspace allowedRoles={["admin", "moderator"]}><Operations /></ProtectedWorkspace>;
 }
 
 function OperationsBatchesRoute() {
-  return <ProtectedHashWorkspace allowedRoles={["admin", "moderator"]}><OperationsBatches /></ProtectedHashWorkspace>;
+  return <ProtectedWorkspace allowedRoles={["admin", "moderator"]}><OperationsBatches /></ProtectedWorkspace>;
 }
 
 function AcceptanceWalkthroughRoute() {
-  return <ProtectedHashWorkspace allowedRoles={["admin"]}><AcceptanceWalkthrough /></ProtectedHashWorkspace>;
+  return <ProtectedWorkspace allowedRoles={["admin"]}><AcceptanceWalkthrough /></ProtectedWorkspace>;
 }
 
 function AgentOnboardingRoute() {
-  return <ProtectedHashWorkspace allowedRoles={["user"]}><AgentWorkspacePage /></ProtectedHashWorkspace>;
+  return <ProtectedWorkspace allowedRoles={["user"]}><AgentWorkspacePage /></ProtectedWorkspace>;
 }
 
 function CustomerDashboardRoute() {
-  return <ProtectedHashWorkspace allowedRoles={["user", "moderator", "admin"]}><CustomerDashboard /></ProtectedHashWorkspace>;
+  return <ProtectedWorkspace allowedRoles={["user", "moderator", "admin"]}><CustomerDashboard /></ProtectedWorkspace>;
 }
 
 function MarketplaceRoute() {
@@ -76,37 +77,6 @@ function MarketplaceRoute() {
 function SharedPropertyRoute() {
   const [, params] = useRoute("/property/:listingId");
   return <Home directListingId={params?.listingId} />;
-}
-
-/**
- * AHC’s public router uses URL fragments so a shared or refreshed public link
- * does not depend on a hosting-provider history fallback. Keeping this tiny
- * adapter local avoids the incompatible optional wouter hash-hook bundle that
- * can initialise against a different React dispatcher in the development
- * runtime.
- */
-function currentHashPath() {
-  if (typeof window === "undefined") return "/";
-  const hash = window.location.hash.replace(/^#/, "");
-  return hash.startsWith("/") ? hash : "/";
-}
-
-function useAhcHashLocation(): [string, (to: string) => void] {
-  const [location, setLocation] = useState(currentHashPath);
-
-  useEffect(() => {
-    const onHashChange = () => setLocation(currentHashPath());
-    window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
-  }, []);
-
-  const navigate = useCallback((to: string) => {
-    const destination = to.startsWith("/") ? to : `/${to}`;
-    if (currentHashPath() === destination) return;
-    window.location.hash = destination;
-  }, []);
-
-  return [location, navigate];
 }
 
 function Router() {
@@ -125,6 +95,54 @@ function Router() {
       <Route component={NotFound} />
     </Switch>
   );
+}
+
+/** Keeps older in-app anchors usable while preventing them from writing a hash into the visible URL. */
+function LegacyHashLinkBridge() {
+  const [location, navigate] = useLocation();
+
+  useEffect(() => {
+    document.querySelectorAll<HTMLAnchorElement>('a[href^="#"]').forEach(link => {
+      const href = link.getAttribute("href") ?? "";
+      const route = legacyHashPathToBrowserPath(href);
+      if (route) {
+        link.dataset.legacyRoute = route;
+        link.setAttribute("href", route);
+        return;
+      }
+      const section = href.length > 1 ? document.getElementById(decodeURIComponent(href.slice(1))) : null;
+      if (section) {
+        link.dataset.scrollTarget = section.id;
+        link.setAttribute("href", location);
+      }
+    });
+
+    const handleClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const link = target.closest<HTMLAnchorElement>("a[data-legacy-route], a[data-scroll-target]");
+      if (!link) return;
+
+      const route = link.dataset.legacyRoute;
+      if (route) {
+        event.preventDefault();
+        navigate(route);
+        return;
+      }
+
+      const section = link.dataset.scrollTarget ? document.getElementById(link.dataset.scrollTarget) : null;
+      if (!section) return;
+      event.preventDefault();
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    };
+
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, [location, navigate]);
+
+  return null;
 }
 
 /** Keeps local-session termination visible across every authenticated AHC route. */
@@ -165,7 +183,8 @@ export default function App() {
           <Toaster position="bottom-right" />
           <ThemeToggle />
           <CommissionLedgerCsvExport />
-          <WouterRouter hook={useAhcHashLocation}>
+          <WouterRouter>
+            <LegacyHashLinkBridge />
             <SessionControl />
             <Router />
           </WouterRouter>
