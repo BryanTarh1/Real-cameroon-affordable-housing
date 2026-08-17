@@ -10,6 +10,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { archiveStaleListingHandler } from "../listingFreshness";
+import { expireOverdueViewingAvailabilityHandler } from "../viewingAvailability";
 import { createWhatsAppLeadEvent, getPublicListingContact, listFreshPublicListings, registerWalkthroughVideo, updateOwnerAlertStatus, saveAgentIdentityDocument } from "../db";
 import { authenticateLocalRequest } from "./localAuth";
 import { ENV } from "./env";
@@ -106,6 +107,7 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   app.post("/api/scheduled/archive-stale-listings", archiveStaleListingHandler);
+  app.post("/api/scheduled/expire-overdue-viewing-availability", expireOverdueViewingAvailabilityHandler);
   app.get("/api/local-testing/snapshot", async (req, res) => {
     const token = ENV.localTestingExportToken;
     if (!token || token.length < 32) {

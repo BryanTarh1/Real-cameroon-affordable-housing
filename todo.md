@@ -589,3 +589,15 @@
 - [x] Add agent-managed viewing slots with explicit seeker request, agent confirmation/decline, cancellation, and stale-slot safeguards.
 - [x] Add a Moderator-only route planner that groups eligible verification work by approximate public landmark zones without exposing exact compounds.
 - [x] Add schema migrations, protected tRPC procedures, focused Vitest coverage, and responsive visual validation for all three workflows.
+
+## Ten-feature marketplace enhancement programme
+- [x] Reconcile the original ten proposed marketplace improvements against the preserved project history and confirm the four items not named in the current feature summary before implementation.
+- [x] Add a signed-in seeker budget-fit calculator that clearly distinguishes illustrative affordability guidance from lending, financial, or tenancy approval.
+- [x] Add a 48-hour viewing-request availability-reconfirmation safeguard with privacy-safe state transitions and accountable Agent action.
+- [x] Add immutable, seeker-visible price-history and material-change disclosures that do not expose private internal audit evidence.
+- [x] Add a server-side duplicate-listing risk detector and protected staff review workflow without automatic punitive action on uncertain matches.
+- [x] Add a structured post-viewing outcome flow for authenticated seekers without public ratings, testimonials, or fabricated reviews.
+- [x] Add an Agent quality dashboard based only on verifiable platform events, with no fabricated ratings, reviews, or response claims.
+- [x] Add a low-data marketplace mode that preserves core price, freshness, and safety information on constrained mobile connections.
+- [x] Add migrations, role-authorized procedures, focused Vitest coverage, and responsive validation across all seven remaining features.
+- [ ] Publish this checkpoint and activate the project-level 48-hour viewing-availability expiry schedule against the deployed site.

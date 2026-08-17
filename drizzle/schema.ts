@@ -187,6 +187,44 @@ export const listingCosts = mysqlTable("listing_costs", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+/** An immutable, seeker-visible ledger of public cost changes and the Agent's stated reason. */
+export const listingPriceHistory = mysqlTable("listing_price_history", {
+  id: int("id").autoincrement().primaryKey(),
+  listingId: varchar("listingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
+  previousMonthlyRent: int("previousMonthlyRent").notNull(),
+  previousAdvanceMonths: int("previousAdvanceMonths").notNull(),
+  previousSecurityDeposit: int("previousSecurityDeposit").notNull(),
+  previousAgencyFee: int("previousAgencyFee").notNull(),
+  previousServiceFee: int("previousServiceFee").notNull(),
+  previousFirstMonthUtilities: int("previousFirstMonthUtilities").notNull(),
+  monthlyRent: int("monthlyRent").notNull(),
+  advanceMonths: int("advanceMonths").notNull(),
+  securityDeposit: int("securityDeposit").notNull(),
+  agencyFee: int("agencyFee").notNull(),
+  serviceFee: int("serviceFee").notNull(),
+  firstMonthUtilities: int("firstMonthUtilities").notNull(),
+  changeReason: varchar("changeReason", { length: 500 }).notNull(),
+  changedByUserId: int("changedByUserId").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [index("listing_price_history_listing_idx").on(table.listingId, table.createdAt)]);
+
+/** A private, non-punitive review queue for pairs of supply that may be duplicates. */
+export const duplicateListingReviews = mysqlTable("duplicate_listing_reviews", {
+  id: int("id").autoincrement().primaryKey(),
+  listingId: varchar("listingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
+  candidateListingId: varchar("candidateListingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
+  confidenceScore: int("confidenceScore").notNull(),
+  signalSummary: varchar("signalSummary", { length: 500 }).notNull(),
+  status: mysqlEnum("status", ["open", "dismissed", "confirmed_duplicate"]).default("open").notNull(),
+  reviewedByUserId: int("reviewedByUserId").references(() => users.id, { onDelete: "set null" }),
+  reviewNote: text("reviewNote"),
+  reviewedAt: timestamp("reviewedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("duplicate_listing_pair_idx").on(table.listingId, table.candidateListingId),
+  index("duplicate_listing_review_queue_idx").on(table.status, table.createdAt),
+]);
+
 /** Monetization record for time-bounded featured map pins. */
 export const listingPromotions = mysqlTable("listing_promotions", {
   id: int("id").autoincrement().primaryKey(),
@@ -531,6 +569,10 @@ export const viewingAppointments = mysqlTable("viewing_appointments", {
   seekerNote: text("seekerNote"),
   agentNote: text("agentNote"),
   status: mysqlEnum("status", ["requested", "confirmed", "declined", "cancelled", "completed", "no_show", "expired"]).default("requested").notNull(),
+  /** A request needs a fresh Agent confirmation within forty-eight hours. */
+  availabilityStatus: mysqlEnum("availabilityStatus", ["pending", "confirmed", "expired"]).default("pending").notNull(),
+  availabilityConfirmationDueAt: timestamp("availabilityConfirmationDueAt").notNull(),
+  availabilityConfirmedAt: timestamp("availabilityConfirmedAt"),
   respondedAt: timestamp("respondedAt"),
   cancelledAt: timestamp("cancelledAt"),
   outcomeRecordedAt: timestamp("outcomeRecordedAt"),
@@ -540,6 +582,7 @@ export const viewingAppointments = mysqlTable("viewing_appointments", {
   index("viewing_appointments_listing_idx").on(table.listingId, table.status, table.requestedStart),
   index("viewing_appointments_seeker_idx").on(table.seekerUserId, table.status, table.requestedStart),
   index("viewing_appointments_agent_idx").on(table.agentUserId, table.status, table.requestedStart),
+  index("viewing_appointments_availability_idx").on(table.availabilityStatus, table.availabilityConfirmationDueAt),
 ]);
 
 /** Immutable, role-attributed record of every permitted appointment state change. */
@@ -554,6 +597,20 @@ export const viewingAppointmentEvents = mysqlTable("viewing_appointment_events",
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => [
   index("viewing_appointment_events_idx").on(table.appointmentId, table.createdAt),
+]);
+
+/** Private structured feedback after a viewing, not a public star rating or testimonial. */
+export const viewingAppointmentSeekerOutcomes = mysqlTable("viewing_appointment_seeker_outcomes", {
+  id: int("id").autoincrement().primaryKey(),
+  appointmentId: int("appointmentId").notNull().unique().references(() => viewingAppointments.id, { onDelete: "cascade" }),
+  listingId: varchar("listingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
+  seekerUserId: int("seekerUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  outcome: mysqlEnum("outcome", ["matched_listing", "price_differed", "already_rented", "did_not_attend"]).notNull(),
+  note: varchar("note", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  index("viewing_outcomes_listing_idx").on(table.listingId, table.outcome, table.createdAt),
+  index("viewing_outcomes_seeker_idx").on(table.seekerUserId, table.createdAt),
 ]);
 
 export type User = typeof users.$inferSelect;

@@ -29,6 +29,7 @@ import {
   getAgentPaidStatus,
   getAgentOfficialServiceReceipt,
   getAgentProfile,
+  getAgentQualityDashboard,
   getAgentIdentityStatus,
   getOwnerAlertProviderStatus,
   getLocalCredentialByEmail,
@@ -58,10 +59,13 @@ import {
   listAgentViewingAppointments,
   listAgentViewingSlots,
   listAdminViewingAppointments,
+  listDuplicateListingReviews,
+  listSeekerVisiblePriceHistory,
   claimVerificationOrder,
   claimVerificationAudit,
   completeVerificationAudit,
   reconfirmAgentListing,
+  reconfirmViewingAppointmentAvailability,
   reconcilePaymentOrder,
   releaseListingSafetyHold,
   recordLocalLoginFailure,
@@ -75,6 +79,9 @@ import {
   respondToViewingAppointment,
   cancelViewingAppointment,
   recordViewingAppointmentOutcome,
+  recordSeekerViewingOutcome,
+  decideDuplicateListingReview,
+  updateAgentListingCosts,
   updatePlatformSettings,
   upsertAgentProfile,
   upgradeLocalCredentialPasswordHash,
@@ -241,6 +248,8 @@ export const appRouter = router({
       remove: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
         .mutation(({ ctx, input }) => removeSeekerSavedListing(ensureUserId(ctx.user?.id), input.listingId)),
     }),
+    priceHistory: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
+      .query(({ input }) => listSeekerVisiblePriceHistory(input.listingId)),
     appointments: router({
       mine: protectedProcedure.query(({ ctx }) => listSeekerViewingAppointments(ensureUserId(ctx.user?.id))),
       availableSlots: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
@@ -257,6 +266,11 @@ export const appRouter = router({
       })),
       cancel: protectedProcedure.input(z.object({ appointmentId: z.number().int().positive(), note: z.string().trim().min(4).max(500).optional() }))
         .mutation(({ ctx, input }) => cancelViewingAppointment({ userId: ensureUserId(ctx.user?.id), appointmentId: input.appointmentId, actor: "seeker", note: input.note })),
+      recordSeekerOutcome: protectedProcedure.input(z.object({
+        appointmentId: z.number().int().positive(),
+        outcome: z.enum(["matched_listing", "price_differed", "already_rented", "did_not_attend"]),
+        note: z.string().trim().max(500).optional(),
+      })).mutation(({ ctx, input }) => recordSeekerViewingOutcome({ seekerUserId: ensureUserId(ctx.user?.id), ...input })),
     }),
   }),
 
@@ -267,6 +281,7 @@ export const appRouter = router({
       whatsappPhone: z.string().trim().min(8).max(30),
     })).mutation(({ ctx, input }) => upsertAgentProfile({ userId: ensureUserId(ctx.user?.id), publicName: input.publicName, agencyName: input.agencyName || undefined, whatsappPhone: normalizeCameroonWhatsAppPhone(input.whatsappPhone) })),
     listings: protectedProcedure.query(({ ctx }) => listAgentListings(ensureUserId(ctx.user?.id))),
+    qualityDashboard: protectedProcedure.query(({ ctx }) => getAgentQualityDashboard(ensureUserId(ctx.user?.id))),
     paidStatus: protectedProcedure.query(({ ctx }) => getAgentPaidStatus(ensureUserId(ctx.user?.id))),
     identityStatus: protectedProcedure.query(({ ctx }) => getAgentIdentityStatus(ensureUserId(ctx.user?.id))),
     paymentOrders: protectedProcedure.query(({ ctx }) => listAgentPaymentOrders(ensureUserId(ctx.user?.id))),
@@ -304,6 +319,15 @@ export const appRouter = router({
     }),
     reconfirm: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
       .mutation(({ ctx, input }) => reconfirmAgentListing(ensureUserId(ctx.user?.id), input.listingId)),
+    updateCosts: protectedProcedure.input(z.object({
+      listingId: z.string().min(4).max(32),
+      changeReason: z.string().trim().min(6).max(500),
+      costs: z.object({
+        monthlyRent: z.number().int().min(0).max(5_000_000), advanceMonths: z.number().int().min(0).max(24),
+        securityDeposit: z.number().int().min(0).max(10_000_000), agencyFee: z.number().int().min(0).max(10_000_000),
+        serviceFee: z.number().int().min(0).max(10_000_000), firstMonthUtilities: z.number().int().min(0).max(5_000_000),
+      }),
+    })).mutation(({ ctx, input }) => updateAgentListingCosts({ agentUserId: ensureUserId(ctx.user?.id), ...input })),
     requestFeaturedPin: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
       .mutation(({ ctx, input }) => createPromotionRequest(ensureUserId(ctx.user?.id), input.listingId)),
     requestPhysicalVerification: protectedProcedure.input(z.object({
@@ -323,6 +347,8 @@ export const appRouter = router({
       }).superRefine((value, issue) => {
         if (value.decision === "declined" && !value.note) issue.addIssue({ code: z.ZodIssueCode.custom, message: "Record a brief reason when declining a viewing request." });
       })).mutation(({ ctx, input }) => respondToViewingAppointment({ agentUserId: ensureUserId(ctx.user?.id), ...input })),
+      reconfirmAvailability: protectedProcedure.input(z.object({ appointmentId: z.number().int().positive() }))
+        .mutation(({ ctx, input }) => reconfirmViewingAppointmentAvailability({ agentUserId: ensureUserId(ctx.user?.id), appointmentId: input.appointmentId })),
       cancel: protectedProcedure.input(z.object({ appointmentId: z.number().int().positive(), note: z.string().trim().min(4).max(500).optional() }))
         .mutation(({ ctx, input }) => cancelViewingAppointment({ userId: ensureUserId(ctx.user?.id), appointmentId: input.appointmentId, actor: "agent", note: input.note })),
       recordOutcome: protectedProcedure.input(z.object({
@@ -354,6 +380,10 @@ export const appRouter = router({
     verificationBatches: moderatorProcedure.query(() => listModeratorVerificationBatches()),
     verificationEvidenceHistory: moderatorProcedure.query(() => listOperationsVerificationEvidence()),
     verificationAuditQueue: moderatorProcedure.query(() => listVerificationAuditQueue()),
+    duplicateListingReviews: moderatorProcedure.query(() => listDuplicateListingReviews()),
+    decideDuplicateListingReview: moderatorProcedure.input(z.object({
+      reviewId: z.number().int().positive(), decision: z.enum(["dismissed", "confirmed_duplicate"]), note: z.string().trim().min(6).max(500),
+    })).mutation(({ ctx, input }) => decideDuplicateListingReview({ reviewerUserId: ensureUserId(ctx.user?.id), ...input })),
     assignReview: moderatorProcedure.input(z.object({ listingId: z.string().min(4).max(32), moderatorUserId: z.number().int().positive() }))
       .mutation(({ ctx, input }) => assignListingReview(ensureUserId(ctx.user?.id), input.listingId, input.moderatorUserId)),
     decideReview: moderatorProcedure.input(z.object({

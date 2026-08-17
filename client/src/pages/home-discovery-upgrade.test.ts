@@ -9,6 +9,9 @@ const walkthroughRail = fs.readFileSync(path.resolve(process.cwd(), "client/src/
 const appointments = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/ViewingAppointmentConcierge.tsx"), "utf8");
 const languageHook = fs.readFileSync(path.resolve(process.cwd(), "client/src/hooks/useMarketplaceLanguage.ts"), "utf8");
 const globalCss = fs.readFileSync(path.resolve(process.cwd(), "client/src/index.css"), "utf8");
+const agentConcierge = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/AgentViewingConcierge.tsx"), "utf8");
+const agentQuality = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/AgentQualityDashboard.tsx"), "utf8");
+const costDisclosure = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/CostDisclosureForm.tsx"), "utf8");
 
 describe("French discovery and media-first property flow", () => {
   it("keeps a persistent English/French language-selection dropdown and translated headline labels", () => {
@@ -53,5 +56,21 @@ describe("French discovery and media-first property flow", () => {
     expect(walkthroughRail).toContain('language === "fr" ? "fr-FR" : "en-US"');
     expect(appointments).toContain("function appointmentStatusLabel");
     expect(appointments).toContain('requested: "Demandée"');
+  });
+
+  it("keeps budget guidance, price changes, and low-data choice in the public discovery workflow", () => {
+    expect(home).toContain("budgetFitOnly");
+    expect(home).toContain("monthlyIncome");
+    expect(home).toContain("availableSavings");
+    expect(home).toContain("marketplace.priceHistory");
+    expect(home).toContain("lowDataMode");
+    expect(home).toContain("Data saver on");
+  });
+
+  it("keeps availability reconfirmation, structured outcomes, and Agent quality linked to protected APIs", () => {
+    expect(appointments).toContain("recordSeekerOutcome");
+    expect(agentConcierge).toContain("reconfirmAvailability");
+    expect(agentQuality).toContain("agent.qualityDashboard");
+    expect(costDisclosure).toContain("agent.updateCosts");
   });
 });

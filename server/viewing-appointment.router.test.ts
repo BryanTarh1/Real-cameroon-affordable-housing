@@ -6,6 +6,8 @@ vi.mock("./db", async importOriginal => {
     ...actual,
     createViewingAppointment: vi.fn(),
     respondToViewingAppointment: vi.fn(),
+    reconfirmViewingAppointmentAvailability: vi.fn(),
+    recordSeekerViewingOutcome: vi.fn(),
   };
 });
 
@@ -59,5 +61,38 @@ describe("AHC viewing appointment concierge", () => {
     await expect(caller().agent.viewingAppointments.respond({ appointmentId: 73, decision: "declined" }))
       .rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(database.respondToViewingAppointment).not.toHaveBeenCalled();
+  });
+
+  it("passes an Agent availability reconfirmation through the protected workflow", async () => {
+    vi.mocked(database.reconfirmViewingAppointmentAvailability).mockResolvedValue({
+      id: 73,
+      availabilityStatus: "confirmed",
+    } as never);
+
+    await expect(caller().agent.viewingAppointments.reconfirmAvailability({ appointmentId: 73 }))
+      .resolves.toMatchObject({ availabilityStatus: "confirmed" });
+    expect(database.reconfirmViewingAppointmentAvailability).toHaveBeenCalledWith({
+      agentUserId: authenticatedUser.id,
+      appointmentId: 73,
+    });
+  });
+
+  it("keeps post-viewing outcomes structured and private to the authenticated seeker", async () => {
+    vi.mocked(database.recordSeekerViewingOutcome).mockResolvedValue({
+      appointmentId: 73,
+      outcome: "price_differed",
+    } as never);
+
+    await expect(caller().marketplace.appointments.recordSeekerOutcome({
+      appointmentId: 73,
+      outcome: "price_differed",
+      note: "The requested advance was higher than the listing showed.",
+    })).resolves.toMatchObject({ outcome: "price_differed" });
+    expect(database.recordSeekerViewingOutcome).toHaveBeenCalledWith({
+      seekerUserId: authenticatedUser.id,
+      appointmentId: 73,
+      outcome: "price_differed",
+      note: "The requested advance was higher than the listing showed.",
+    });
   });
 });

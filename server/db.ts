@@ -8,6 +8,7 @@ import {
   InsertUser,
   listingCosts,
   listingCredits,
+  listingPriceHistory,
   listingNeighborhoodAssessments,
   leadEvents,
   listingPromotions,
@@ -20,6 +21,7 @@ import {
   paymentOrders,
   platformSettings,
   reports,
+  duplicateListingReviews,
   seekerMatchAlertPreferences,
   savedListings,
   matchAlertDeliveries,
@@ -31,6 +33,7 @@ import {
   verificationOrders,
   viewingAppointmentEvents,
   viewingAppointments,
+  viewingAppointmentSeekerOutcomes,
   viewingSlots,
 } from "../drizzle/schema";
 import { calculateFieldVerificationCommission, calculateTotalMoveInCash, createWhatsAppListingLink, DEFAULT_FIELD_MODERATOR_SHARE_BPS, FRESHNESS_WINDOW_DAYS, getAgentAccessState, getPaidOffer, PRO_ACTIVE_LISTING_LIMIT, type OwnerAlertEventType, type OwnerAlertStatus, type PaidOfferType } from "../shared/ahc";
@@ -766,6 +769,7 @@ export async function requestViewingSlot(input: {
       agentUserId: slot.agentUserId,
       requestedStart: slot.startsAt,
       requestedEnd: slot.endsAt,
+      availabilityConfirmationDueAt: new Date(now.getTime() + 48 * 60 * 60 * 1000),
       contactPreference: input.contactPreference,
       privateContact: input.privateContact,
       seekerNote: input.seekerNote || null,
@@ -816,6 +820,7 @@ export async function createViewingAppointment(input: {
       agentUserId: listing.agentUserId!,
       requestedStart: input.requestedStart,
       requestedEnd: input.requestedEnd,
+      availabilityConfirmationDueAt: new Date(now.getTime() + 48 * 60 * 60 * 1000),
       contactPreference: input.contactPreference,
       privateContact: input.privateContact,
       seekerNote: input.seekerNote || null,
@@ -848,6 +853,9 @@ function appointmentListingFields() {
     seekerNote: viewingAppointments.seekerNote,
     agentNote: viewingAppointments.agentNote,
     status: viewingAppointments.status,
+    availabilityStatus: viewingAppointments.availabilityStatus,
+    availabilityConfirmationDueAt: viewingAppointments.availabilityConfirmationDueAt,
+    availabilityConfirmedAt: viewingAppointments.availabilityConfirmedAt,
     respondedAt: viewingAppointments.respondedAt,
     cancelledAt: viewingAppointments.cancelledAt,
     outcomeRecordedAt: viewingAppointments.outcomeRecordedAt,
@@ -863,6 +871,7 @@ function appointmentListingFields() {
 export async function listSeekerViewingAppointments(seekerUserId: number) {
   const db = await getDb();
   if (!db) return [];
+  await expireDueViewingAvailability();
   const rows = await db.select(appointmentListingFields()).from(viewingAppointments)
     .innerJoin(listings, eq(viewingAppointments.listingId, listings.id))
     .innerJoin(users, eq(viewingAppointments.seekerUserId, users.id))
@@ -873,6 +882,7 @@ export async function listSeekerViewingAppointments(seekerUserId: number) {
 export async function listAgentViewingAppointments(agentUserId: number) {
   const db = await getDb();
   if (!db) return [];
+  await expireDueViewingAvailability();
   const rows = await db.select(appointmentListingFields()).from(viewingAppointments)
     .innerJoin(listings, eq(viewingAppointments.listingId, listings.id))
     .innerJoin(users, eq(viewingAppointments.seekerUserId, users.id))
@@ -895,9 +905,22 @@ export async function respondToViewingAppointment(input: {
     const appointment = (await tx.select().from(viewingAppointments).where(eq(viewingAppointments.id, input.appointmentId)).limit(1))[0];
     if (!appointment || appointment.agentUserId !== input.agentUserId) throw new Error("Viewing appointment not found.");
     if (appointment.status !== "requested") throw new Error("Only a new viewing request can be confirmed or declined.");
-    if (input.decision === "confirmed") await getAppointmentEligibleListing(appointment.listingId);
     const now = new Date();
-    await tx.update(viewingAppointments).set({ status: input.decision, agentNote: input.note || null, respondedAt: now })
+    if (input.decision === "confirmed") {
+      if (appointment.availabilityConfirmationDueAt < now) {
+        await tx.update(viewingAppointments).set({ status: "expired", availabilityStatus: "expired" }).where(eq(viewingAppointments.id, appointment.id));
+        await tx.insert(viewingAppointmentEvents).values({ appointmentId: appointment.id, action: "expired", fromStatus: appointment.status, toStatus: "expired", actorUserId: input.agentUserId, note: "Availability confirmation window elapsed." });
+        throw new Error("This request has passed its 48-hour confirmation window.");
+      }
+      await getAppointmentEligibleListing(appointment.listingId);
+    }
+    await tx.update(viewingAppointments).set({
+      status: input.decision,
+      availabilityStatus: input.decision === "confirmed" ? "confirmed" : appointment.availabilityStatus,
+      availabilityConfirmedAt: input.decision === "confirmed" ? now : appointment.availabilityConfirmedAt,
+      agentNote: input.note || null,
+      respondedAt: now,
+    })
       .where(eq(viewingAppointments.id, appointment.id));
     await tx.insert(viewingAppointmentEvents).values({
       appointmentId: appointment.id,
@@ -958,6 +981,49 @@ export async function recordViewingAppointmentOutcome(input: { agentUserId: numb
   });
 }
 
+/** Reconfirms a particular pending viewing request without prematurely sharing meeting logistics. */
+export async function reconfirmViewingAppointmentAvailability(input: { agentUserId: number; appointmentId: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async (tx) => {
+    const appointment = (await tx.select().from(viewingAppointments).where(eq(viewingAppointments.id, input.appointmentId)).limit(1))[0];
+    if (!appointment || appointment.agentUserId !== input.agentUserId) throw new Error("Viewing appointment not found.");
+    if (appointment.status !== "requested") throw new Error("Only a pending viewing request needs availability reconfirmation.");
+    const now = new Date();
+    if (appointment.availabilityConfirmationDueAt < now) {
+      await tx.update(viewingAppointments).set({ availabilityStatus: "expired", status: "expired" }).where(eq(viewingAppointments.id, appointment.id));
+      await tx.insert(viewingAppointmentEvents).values({ appointmentId: appointment.id, action: "expired", fromStatus: appointment.status, toStatus: "expired", actorUserId: input.agentUserId, note: "Availability confirmation window elapsed." });
+      throw new Error("This request has passed its 48-hour confirmation window.");
+    }
+    await getAppointmentEligibleListing(appointment.listingId, now);
+    await tx.update(viewingAppointments).set({ availabilityStatus: "confirmed", availabilityConfirmedAt: now }).where(eq(viewingAppointments.id, appointment.id));
+    return { success: true, availabilityStatus: "confirmed" as const, availabilityConfirmedAt: now };
+  });
+}
+
+/** Keeps viewing feedback private and structured; it is never rendered as a public rating or testimonial. */
+export async function recordSeekerViewingOutcome(input: {
+  seekerUserId: number;
+  appointmentId: number;
+  outcome: "matched_listing" | "price_differed" | "already_rented" | "did_not_attend";
+  note?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async (tx) => {
+    const appointment = (await tx.select().from(viewingAppointments).where(eq(viewingAppointments.id, input.appointmentId)).limit(1))[0];
+    if (!appointment || appointment.seekerUserId !== input.seekerUserId) throw new Error("Viewing appointment not found.");
+    if (!["confirmed", "completed", "no_show"].includes(appointment.status) || appointment.requestedStart > new Date()) {
+      throw new Error("A post-viewing outcome can be recorded only after a confirmed viewing time.");
+    }
+    await tx.insert(viewingAppointmentSeekerOutcomes).values({ appointmentId: appointment.id, listingId: appointment.listingId, seekerUserId: input.seekerUserId, outcome: input.outcome, note: input.note?.trim() || null });
+    if (input.outcome === "already_rented") {
+      await tx.update(listings).set({ status: "needs_reconfirmation" }).where(and(eq(listings.id, appointment.listingId), eq(listings.status, "published")));
+    }
+    return { success: true } as const;
+  });
+}
+
 export async function listAdminViewingAppointments() {
   const db = await getDb();
   if (!db) return [];
@@ -971,6 +1037,24 @@ export async function listAdminViewingAppointments() {
     city: listings.city,
     neighborhood: listings.neighborhood,
   }).from(viewingAppointments).innerJoin(listings, eq(viewingAppointments.listingId, listings.id)).orderBy(desc(viewingAppointments.createdAt));
+}
+
+/** Idempotently expires stale requests and makes their listing require a fresh Agent reconfirmation. */
+export async function expireDueViewingAvailability(now = new Date()) {
+  const db = await getDb();
+  if (!db) return { expired: 0 };
+  const overdue = await db.select({ id: viewingAppointments.id, listingId: viewingAppointments.listingId, status: viewingAppointments.status })
+    .from(viewingAppointments)
+    .where(and(eq(viewingAppointments.status, "requested"), eq(viewingAppointments.availabilityStatus, "pending"), lt(viewingAppointments.availabilityConfirmationDueAt, now)));
+  if (!overdue.length) return { expired: 0 };
+  await db.transaction(async (tx) => {
+    for (const appointment of overdue) {
+      await tx.update(viewingAppointments).set({ status: "expired", availabilityStatus: "expired" }).where(eq(viewingAppointments.id, appointment.id));
+      await tx.insert(viewingAppointmentEvents).values({ appointmentId: appointment.id, action: "expired", fromStatus: appointment.status, toStatus: "expired", note: "The Agent did not reconfirm availability within 48 hours." });
+      await tx.update(listings).set({ status: "needs_reconfirmation" }).where(and(eq(listings.id, appointment.listingId), eq(listings.status, "published")));
+    }
+  });
+  return { expired: overdue.length };
 }
 
 export async function getAgentProfile(userId: number) {
@@ -1036,6 +1120,7 @@ export async function createListing(input: CreateListingInput) {
       publicLatitude: String(input.publicLatitude), publicLongitude: String(input.publicLongitude), mapRadiusM: input.mapRadiusM,
     });
     await tx.insert(listingCosts).values({ listingId: id, ...input.costs });
+    await createDuplicateListingReviewSignals(tx, id, input);
     if (credit) {
       await tx.update(listingCredits).set({ status: "consumed", usedForListingId: id, consumedAt: now })
         .where(eq(listingCredits.id, credit.id));
@@ -1064,6 +1149,123 @@ export async function listAgentListings(userId: number) {
     agencyFee: row.agencyFee, serviceFee: row.serviceFee, firstMonthUtilities: row.firstMonthUtilities,
     totalMoveInCashRequired: calculateTotalMoveInCash(row),
   }}));
+}
+
+/** Retains a public explanation whenever an Agent changes the cost basis of their own listing. */
+export async function updateAgentListingCosts(input: {
+  agentUserId: number;
+  listingId: string;
+  costs: { monthlyRent: number; advanceMonths: number; securityDeposit: number; agencyFee: number; serviceFee: number; firstMonthUtilities: number };
+  changeReason: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async (tx) => {
+    const listing = (await tx.select({ id: listings.id, agentUserId: listings.agentUserId }).from(listings).where(eq(listings.id, input.listingId)).limit(1))[0];
+    if (!listing || listing.agentUserId !== input.agentUserId) throw new Error("Listing not found.");
+    const previous = (await tx.select().from(listingCosts).where(eq(listingCosts.listingId, input.listingId)).limit(1))[0];
+    if (!previous) throw new Error("Listing costs are unavailable.");
+    const changed = previous.monthlyRent !== input.costs.monthlyRent || previous.advanceMonths !== input.costs.advanceMonths || previous.securityDeposit !== input.costs.securityDeposit || previous.agencyFee !== input.costs.agencyFee || previous.serviceFee !== input.costs.serviceFee || previous.firstMonthUtilities !== input.costs.firstMonthUtilities;
+    if (!changed) throw new Error("Enter a changed cost before submitting a disclosure.");
+    await tx.update(listingCosts).set(input.costs).where(eq(listingCosts.listingId, input.listingId));
+    await tx.insert(listingPriceHistory).values({
+      listingId: input.listingId,
+      previousMonthlyRent: previous.monthlyRent,
+      previousAdvanceMonths: previous.advanceMonths,
+      previousSecurityDeposit: previous.securityDeposit,
+      previousAgencyFee: previous.agencyFee,
+      previousServiceFee: previous.serviceFee,
+      previousFirstMonthUtilities: previous.firstMonthUtilities,
+      ...input.costs,
+      changeReason: input.changeReason.trim(),
+      changedByUserId: input.agentUserId,
+    });
+    return { success: true } as const;
+  });
+}
+
+/** Seeker-visible history deliberately excludes staff evidence and internal reviewer material. */
+export async function listSeekerVisiblePriceHistory(listingId: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    previousMonthlyRent: listingPriceHistory.previousMonthlyRent,
+    previousAdvanceMonths: listingPriceHistory.previousAdvanceMonths,
+    previousSecurityDeposit: listingPriceHistory.previousSecurityDeposit,
+    previousAgencyFee: listingPriceHistory.previousAgencyFee,
+    previousServiceFee: listingPriceHistory.previousServiceFee,
+    previousFirstMonthUtilities: listingPriceHistory.previousFirstMonthUtilities,
+    monthlyRent: listingPriceHistory.monthlyRent,
+    advanceMonths: listingPriceHistory.advanceMonths,
+    securityDeposit: listingPriceHistory.securityDeposit,
+    agencyFee: listingPriceHistory.agencyFee,
+    serviceFee: listingPriceHistory.serviceFee,
+    firstMonthUtilities: listingPriceHistory.firstMonthUtilities,
+    changeReason: listingPriceHistory.changeReason,
+    createdAt: listingPriceHistory.createdAt,
+  }).from(listingPriceHistory).innerJoin(listings, eq(listingPriceHistory.listingId, listings.id))
+    .where(and(eq(listingPriceHistory.listingId, listingId), eq(listings.status, "published"))).orderBy(desc(listingPriceHistory.createdAt)).limit(12);
+}
+
+/** Creates a staff review lead only; similarity alone never suspends or penalises an Agent. */
+async function createDuplicateListingReviewSignals(tx: any, listingId: string, input: CreateListingInput) {
+  const candidates = await tx.select({ id: listings.id, agentUserId: listings.agentUserId })
+    .from(listings)
+    .where(and(eq(listings.city, input.city), eq(listings.neighborhood, input.neighborhood), ne(listings.id, listingId), sql`LOWER(${listings.landmark}) = LOWER(${input.landmark})`))
+    .limit(12);
+  for (const candidate of candidates) {
+    const [leftId, rightId] = listingId < candidate.id ? [listingId, candidate.id] : [candidate.id, listingId];
+    const sameAgent = candidate.agentUserId === input.agentUserId;
+    const confidenceScore = sameAgent ? 85 : 65;
+    await tx.insert(duplicateListingReviews).values({
+      listingId: leftId,
+      candidateListingId: rightId,
+      confidenceScore,
+      signalSummary: sameAgent ? "Same Agent, neighbourhood, and public landmark." : "Same neighbourhood and public landmark.",
+    }).onDuplicateKeyUpdate({ set: { confidenceScore: sql`GREATEST(${duplicateListingReviews.confidenceScore}, ${confidenceScore})` } });
+  }
+}
+
+export async function listDuplicateListingReviews() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: duplicateListingReviews.id,
+    confidenceScore: duplicateListingReviews.confidenceScore,
+    signalSummary: duplicateListingReviews.signalSummary,
+    status: duplicateListingReviews.status,
+    reviewNote: duplicateListingReviews.reviewNote,
+    createdAt: duplicateListingReviews.createdAt,
+    listingId: listings.id,
+    listingTitle: listings.title,
+    listingCity: listings.city,
+    listingNeighborhood: listings.neighborhood,
+  }).from(duplicateListingReviews).innerJoin(listings, eq(duplicateListingReviews.listingId, listings.id))
+    .where(eq(duplicateListingReviews.status, "open")).orderBy(desc(duplicateListingReviews.confidenceScore), desc(duplicateListingReviews.createdAt));
+}
+
+export async function decideDuplicateListingReview(input: { reviewerUserId: number; reviewId: number; decision: "dismissed" | "confirmed_duplicate"; note: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const review = (await db.select().from(duplicateListingReviews).where(eq(duplicateListingReviews.id, input.reviewId)).limit(1))[0];
+  if (!review || review.status !== "open") throw new Error("Duplicate review is no longer open.");
+  await db.update(duplicateListingReviews).set({ status: input.decision, reviewNote: input.note.trim(), reviewedByUserId: input.reviewerUserId, reviewedAt: new Date() }).where(eq(duplicateListingReviews.id, input.reviewId));
+  return { success: true } as const;
+}
+
+/** Uses only recorded platform events; no ratings, testimonials, or claimed response times are produced. */
+export async function getAgentQualityDashboard(agentUserId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const freshnessCutoff = new Date(Date.now() - FRESHNESS_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  const [inventory] = await db.select({ total: sql<number>`COUNT(*)`, fresh: sql<number>`SUM(CASE WHEN ${listings.status} = 'published' AND ${listings.lastReconfirmed} >= ${freshnessCutoff} THEN 1 ELSE 0 END)`, verified: sql<number>`SUM(CASE WHEN ${listings.verificationStatus} = 'physical_verified' THEN 1 ELSE 0 END)` }).from(listings).where(eq(listings.agentUserId, agentUserId));
+  const [leads] = await db.select({ total: sql<number>`COUNT(*)` }).from(leadEvents).where(eq(leadEvents.contactUserId, agentUserId));
+  const [appointments] = await db.select({ completed: sql<number>`SUM(CASE WHEN ${viewingAppointments.status} = 'completed' THEN 1 ELSE 0 END)`, noShows: sql<number>`SUM(CASE WHEN ${viewingAppointments.status} = 'no_show' THEN 1 ELSE 0 END)`, availabilityConfirmed: sql<number>`SUM(CASE WHEN ${viewingAppointments.availabilityStatus} = 'confirmed' THEN 1 ELSE 0 END)` }).from(viewingAppointments).where(eq(viewingAppointments.agentUserId, agentUserId));
+  const [outcomes] = await db.select({ priceDiffered: sql<number>`SUM(CASE WHEN ${viewingAppointmentSeekerOutcomes.outcome} = 'price_differed' THEN 1 ELSE 0 END)` }).from(viewingAppointmentSeekerOutcomes).innerJoin(listings, eq(viewingAppointmentSeekerOutcomes.listingId, listings.id)).where(eq(listings.agentUserId, agentUserId));
+  return {
+    totalListings: Number(inventory?.total ?? 0), freshPublishedListings: Number(inventory?.fresh ?? 0), physicallyVerifiedListings: Number(inventory?.verified ?? 0),
+    trackedWhatsAppLeads: Number(leads?.total ?? 0), completedViewings: Number(appointments?.completed ?? 0), noShowViewings: Number(appointments?.noShows ?? 0), availabilityConfirmations: Number(appointments?.availabilityConfirmed ?? 0), priceDifferedOutcomes: Number(outcomes?.priceDiffered ?? 0),
+  };
 }
 
 export async function reconfirmAgentListing(userId: number, listingId: string) {

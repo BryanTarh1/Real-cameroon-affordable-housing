@@ -60,4 +60,37 @@ describe("AHC shortlist, viewing-slot, and route-planning boundaries", () => {
       code: "FORBIDDEN",
     });
   });
+
+  it("requires sign-in before a visitor can inspect price-change disclosures", async () => {
+    const caller = appRouter.createCaller(anonymousContext());
+
+    await expect(caller.marketplace.priceHistory({ listingId: "AHC-TEST-01" })).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+  });
+
+  it("requires sign-in before a seeker can record a private post-viewing outcome", async () => {
+    const caller = appRouter.createCaller(anonymousContext());
+
+    await expect(caller.marketplace.appointments.recordSeekerOutcome({
+      appointmentId: 1,
+      outcome: "matched_listing",
+    })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
+  it("requires sign-in before an Agent quality dashboard can be accessed", async () => {
+    const caller = appRouter.createCaller(anonymousContext());
+
+    await expect(caller.agent.qualityDashboard()).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+  });
+
+  it("keeps duplicate-review signals limited to Moderator operations", async () => {
+    const caller = appRouter.createCaller(ordinaryUserContext());
+
+    await expect(caller.operations.duplicateListingReviews()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
 });
