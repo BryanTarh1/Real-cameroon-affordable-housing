@@ -526,4 +526,8 @@
 - [x] Replace the /agent marketplace drawer route with a standalone full-page Agent workspace.
 - [x] Add regression coverage for identity upload boundaries and update the strict taxpayer-number onboarding fixture.
 - [x] Run the complete Vitest suite: 99 tests passing; TypeScript validation clean.
-- [ ] Perform a live browser upload test with a real Agent session and three JPG files.
+- [x] Decline a live browser upload test with real identity documents and substitute synthetic TEST-ONLY JPG fixtures.
+
+## Safe Agent identity-upload validation
+- [x] Validate the three-part Agent JPG upload using only synthetic TEST-ONLY images; never request or use real identity documents.
+- [x] Confirm private storage and authorization boundaries remain intact during the synthetic upload test.
