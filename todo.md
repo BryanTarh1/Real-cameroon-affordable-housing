@@ -611,3 +611,11 @@
 - [x] Run comprehensive TypeScript, unit, integration, authorization, database, and controlled concurrency validation; investigate every reproducible failure.
 - [x] Review desktop/mobile routes and current runtime logs for interface or server regressions.
 - [x] Fix verified defects, add regression protection, rerun validation, and save a final stable checkpoint before any payment expansion.
+
+## Customer dashboard and payment-experience feedback
+- [x] Add a protected customer dashboard route with a clear account overview and safe navigation back to the marketplace.
+- [x] Add customer-owned profile viewing and editing without exposing protected Agent, Moderator, or Admin identity data.
+- [x] Add customer-owned platform-service order tracking with status, provider, amount, and receipt access only for that customer’s records.
+- [x] Add accessible pending, success, and actionable error feedback to existing and upcoming platform-service payment actions without collecting rent, deposits, or other tenancy funds.
+- [x] Add role-authorized procedures, focused Vitest coverage, and responsive UI validation for dashboard and payment-experience workflows.
+- [x] Correct the authenticated dashboard-load error state so a service failure is never misrepresented as a sign-in requirement.

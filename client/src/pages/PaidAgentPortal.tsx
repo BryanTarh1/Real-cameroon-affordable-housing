@@ -3,7 +3,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { daysUntilRefresh, formatReconfirmedDate } from "@/lib/listingFreshness";
 import { AHC_PAID_OFFERS, calculateTotalMoveInCash, type PaidOfferType } from "@shared/ahc";
-import { Banknote, ChartNoAxesCombined, Check, CircleAlert, Clock3, FilePlus2, ReceiptText, X } from "lucide-react";
+import { Banknote, ChartNoAxesCombined, Check, CircleAlert, Clock3, FilePlus2, LoaderCircle, ReceiptText, X } from "lucide-react";
 import { toast } from "sonner";
 import { getAgentAccessUiState } from "./agent-access-ui";
 import { AgentAccountPanel } from "./AgentAccountPanel";
@@ -31,7 +31,7 @@ const offerKeyByType = {
 function Offer({ type, title, copy, onCreate, loading, disabled = false, detail, createLabel, unavailableLabel }: { type: OfferType; title: string; copy: string; onCreate: (type: OfferType) => void; loading: boolean; disabled?: boolean; detail?: string; createLabel: string; unavailableLabel: string }) {
   const key = offerKeyByType[type];
   const offer = AHC_PAID_OFFERS[key];
-  return <article className="paid-offer"><span>{title}</span><b>{formatXaf(offer.amountXaf)}</b><small>{detail ?? `${offer.validityDays} days`}</small><p>{copy}</p><button className="button-secondary" disabled={loading || disabled} onClick={() => onCreate(type)}>{disabled ? unavailableLabel : createLabel}</button></article>;
+  return <article className="paid-offer"><span>{title}</span><b>{formatXaf(offer.amountXaf)}</b><small>{detail ?? `${offer.validityDays} days`}</small><p>{copy}</p><button className="button-secondary" disabled={loading || disabled} aria-busy={loading} onClick={() => onCreate(type)}>{loading ? <><LoaderCircle className="inline animate-spin" size={15} /> Preparing order…</> : disabled ? unavailableLabel : createLabel}</button></article>;
 }
 
 export function PaidAgentPortal({ onClose }: { onClose: () => void }) {
@@ -46,9 +46,9 @@ export function PaidAgentPortal({ onClose }: { onClose: () => void }) {
   const [receiptOrderId, setReceiptOrderId] = useState<string | null>(null);
   const receipt = trpc.agent.officialServiceReceipt.useQuery({ orderId: receiptOrderId ?? "" }, { enabled: isAuthenticated && Boolean(profile.data) && Boolean(receiptOrderId) });
   const listings = trpc.agent.listings.useQuery(undefined, { enabled: isAuthenticated && Boolean(profile.data) });
-  const setup = trpc.agent.setupProfile.useMutation({ onSuccess: () => { utils.agent.profile.invalidate(); toast.success("Agent profile saved", { description: "Purchase Agent Access to submit commercial inventory." }); } });
-  const createOrder = trpc.agent.createPaymentOrder.useMutation({ onSuccess: order => { setPendingOrder(order); utils.agent.paymentOrders.invalidate(); toast.success("Payment order created", { description: `${order.id}: payment must be reconciled by operations.` }); } });
-  const submitReference = trpc.agent.submitPaymentReference.useMutation({ onSuccess: () => { setPendingOrder(null); utils.agent.paymentOrders.invalidate(); toast.success("Payment reference submitted", { description: "Access stays inactive until AHC operations confirms it." }); } });
+  const setup = trpc.agent.setupProfile.useMutation({ onSuccess: () => { utils.agent.profile.invalidate(); toast.success("Agent profile saved", { description: "Purchase Agent Access to submit commercial inventory." }); }, onError: error => toast.error("We could not save your Agent profile", { description: error.message || "Please review the details and try again." }) });
+  const createOrder = trpc.agent.createPaymentOrder.useMutation({ onSuccess: order => { setPendingOrder(order); utils.agent.paymentOrders.invalidate(); toast.success("Payment order created", { description: `${order.id}: payment must be reconciled by operations.` }); }, onError: error => toast.error("We could not create your payment order", { description: error.message || "Please refresh and try again. No payment was taken." }) });
+  const submitReference = trpc.agent.submitPaymentReference.useMutation({ onSuccess: () => { setPendingOrder(null); utils.agent.paymentOrders.invalidate(); toast.success("Payment reference submitted", { description: "Access stays inactive until AHC operations confirms it." }); }, onError: error => toast.error("We could not submit that payment reference", { description: error.message || "Check the provider and reference, then try again. No access has been changed." }) });
   const submitListing = trpc.agent.submitListing.useMutation({ onSuccess: listing => { utils.agent.listings.invalidate(); utils.agent.paidStatus.invalidate(); toast.success("Listing sent to review", { description: `${listing.id} will not be public until a moderator approves it.` }); } });
   const reconfirm = trpc.agent.reconfirm.useMutation({ onSuccess: () => { utils.agent.listings.invalidate(); utils.marketplace.search.invalidate(); toast.success("Availability reconfirmed for 14 days"); } });
   const [profileForm, setProfileForm] = useState({ publicName: "", agencyName: "", whatsappPhone: "" });

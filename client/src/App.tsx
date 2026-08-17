@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { canAccessWorkspace } from "@/lib/workspaceAccess";
 import NotFound from "@/pages/NotFound";
-import { LogOut } from "lucide-react";
+import { LayoutDashboard, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { Route, Router as WouterRouter, Switch, useLocation, useRoute } from "wouter";
 import React, { useCallback, useEffect, useState } from "react";
@@ -22,6 +22,7 @@ import Operations from "./pages/Operations";
 import OperationsBatches from "./pages/OperationsBatches";
 import AcceptanceWalkthrough from "./pages/AcceptanceWalkthrough";
 import AgentWorkspacePage from "./pages/AgentWorkspacePage";
+import CustomerDashboard from "./pages/CustomerDashboard";
 
 function AuthenticatedWorkspace({ allowedRoles, children, accessPanel }: { allowedRoles: readonly string[]; children: React.ReactNode; accessPanel: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -54,6 +55,10 @@ function AcceptanceWalkthroughRoute() {
 
 function AgentOnboardingRoute() {
   return <AgentWorkspacePage />;
+}
+
+function CustomerDashboardRoute() {
+  return <CustomerDashboard />;
 }
 
 function MarketplaceRoute() {
@@ -102,6 +107,7 @@ function Router() {
       <Route path="/" component={MarketplaceRoute} />
       <Route path="/homes" component={MarketplaceRoute} />
       <Route path="/agent" component={AgentOnboardingRoute} />
+      <Route path="/dashboard" component={CustomerDashboardRoute} />
       <Route path="/property/:listingId" component={SharedPropertyRoute} />
       <Route path="/admin" component={AdminRoute} />
       <Route path="/operations" component={OperationsRoute} />
@@ -132,6 +138,10 @@ function SessionControl() {
 
   return <div className="fixed right-3 top-3 z-[70] flex items-center gap-2 rounded-full border border-white/20 bg-[#132c34]/95 px-2 py-1.5 text-white shadow-lg backdrop-blur sm:right-16" aria-label="Active AHC session">
     <span className="hidden max-w-36 truncate px-1 text-xs font-medium sm:inline">{user.name || user.email}</span>
+    <button type="button" className="inline-flex items-center gap-1.5 rounded-full border border-white/25 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-[#d78a1d]" onClick={() => navigate("/dashboard")} aria-label="Open my AHC dashboard">
+      <LayoutDashboard size={14} aria-hidden="true" />
+      <span className="hidden sm:inline">Dashboard</span>
+    </button>
     <button type="button" className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[#132c34] transition hover:bg-[#f7f3e9] focus:outline-none focus:ring-2 focus:ring-[#d78a1d] focus:ring-offset-2 focus:ring-offset-[#132c34]" onClick={signOut} aria-label="Sign out of Affordable Housing Cameroon">
       <LogOut size={14} aria-hidden="true" />
       <span>Sign out</span>

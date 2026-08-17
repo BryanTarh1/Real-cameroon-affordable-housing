@@ -240,6 +240,24 @@ export async function getUserById(userId: number) {
   return (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0];
 }
 
+/** Returns only the authenticated customer's own account and AHC platform-service orders. */
+export async function getCustomerDashboard(userId: number) {
+  const account = await getUserById(userId);
+  const orders = await listAgentPaymentOrders(userId);
+  return {
+    profile: account ? { id: account.id, name: account.name, email: account.email, role: account.role, createdAt: account.createdAt } : null,
+    orders,
+  };
+}
+
+/** Customer profile editing is intentionally restricted to a display name; login email and role remain protected. */
+export async function updateCustomerDisplayName(userId: number, name: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.update(users).set({ name, updatedAt: new Date() }).where(eq(users.id, userId));
+  return getUserById(userId);
+}
+
 export async function createLocalAgentAccount(input: {
   name: string;
   email: string;

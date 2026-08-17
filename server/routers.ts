@@ -29,6 +29,7 @@ import {
   getAgentPaidStatus,
   getAgentOfficialServiceReceipt,
   getAgentProfile,
+  getCustomerDashboard,
   getAgentQualityDashboard,
   getAgentIdentityStatus,
   getOwnerAlertProviderStatus,
@@ -82,6 +83,7 @@ import {
   recordSeekerViewingOutcome,
   decideDuplicateListingReview,
   updateAgentListingCosts,
+  updateCustomerDisplayName,
   updatePlatformSettings,
   upsertAgentProfile,
   upgradeLocalCredentialPasswordHash,
@@ -208,6 +210,14 @@ export const appRouter = router({
       ctx.res.clearCookie(AHC_LOCAL_SESSION_COOKIE, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+  }),
+
+  account: router({
+    dashboard: protectedProcedure.query(({ ctx }) => getCustomerDashboard(ensureUserId(ctx.user?.id))),
+    updateDisplayName: protectedProcedure.input(z.object({ name: z.string().trim().min(2).max(100) }))
+      .mutation(({ ctx, input }) => updateCustomerDisplayName(ensureUserId(ctx.user?.id), input.name)),
+    officialServiceReceipt: protectedProcedure.input(z.object({ orderId: z.string().min(1) }))
+      .query(({ ctx, input }) => getAgentOfficialServiceReceipt(ensureUserId(ctx.user?.id), input.orderId)),
   }),
 
   marketplace: router({
