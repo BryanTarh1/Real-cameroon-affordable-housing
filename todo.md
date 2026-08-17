@@ -601,3 +601,6 @@
 - [x] Add a low-data marketplace mode that preserves core price, freshness, and safety information on constrained mobile connections.
 - [x] Add migrations, role-authorized procedures, focused Vitest coverage, and responsive validation across all seven remaining features.
 - [x] Publish this checkpoint and activate the project-level 48-hour viewing-availability expiry schedule against the deployed site.
+
+## Seven-feature live testing walkthrough
+- [x] Create a concise role-based guide that walks the owner through testing each newly released marketplace feature on the live site.
