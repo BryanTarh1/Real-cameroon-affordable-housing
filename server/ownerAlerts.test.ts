@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { buildOwnerAlertTemplatePayload, extractMetaDeliveryStatuses, verifyMetaWebhookSignature } from "./ownerAlerts";
+import { buildOwnerAlertTemplatePayload, extractMetaDeliveryStatuses, getMetaWhatsAppProviderReadiness, verifyMetaWebhookSignature } from "./ownerAlerts";
 
 describe("AHC owner-only WhatsApp alert helpers", () => {
   it("builds the approved three-variable utility-template payload without private listing or payment data", () => {
@@ -38,6 +38,24 @@ describe("AHC owner-only WhatsApp alert helpers", () => {
     expect(verifyMetaWebhookSignature(body, signature, secret)).toBe(true);
     expect(verifyMetaWebhookSignature(body, "sha256=00", secret)).toBe(false);
     expect(verifyMetaWebhookSignature(body, undefined, secret)).toBe(false);
+  });
+
+  it("keeps live delivery paused until both the approved template sender and signed webhook monitoring are configured", () => {
+    const sendOnly = getMetaWhatsAppProviderReadiness({
+      phoneNumberId: "123", accessToken: "token", ownerPhone: "237699000000", templateName: "ahc_owner_operational_alert",
+      webhookVerifyToken: "", appSecret: "",
+    });
+    expect(sendOnly.sendReady).toBe(true);
+    expect(sendOnly.webhookReady).toBe(false);
+    expect(sendOnly.active).toBe(false);
+    expect(sendOnly.missing).toEqual(["webhook verify token", "app secret"]);
+
+    const complete = getMetaWhatsAppProviderReadiness({
+      phoneNumberId: "123", accessToken: "token", ownerPhone: "237699000000", templateName: "ahc_owner_operational_alert",
+      webhookVerifyToken: "verify", appSecret: "app-secret",
+    });
+    expect(complete.active).toBe(true);
+    expect(complete.missing).toEqual([]);
   });
 
   it("extracts recognized delivery states while discarding unrelated inbound-message data", () => {

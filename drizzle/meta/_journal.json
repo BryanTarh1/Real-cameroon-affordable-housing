@@ -148,6 +148,13 @@
       "when": 1786952018815,
       "tag": "0020_perfect_serpent_society",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "5",
+      "when": 1786961769521,
+      "tag": "0021_whole_scarlet_witch",
+      "breakpoints": true
     }
   ]
 }

@@ -23,6 +23,37 @@ export type OwnerAlertTemplateInput = {
   dashboardUrl: string;
 };
 
+export type MetaWhatsAppProviderInput = {
+  phoneNumberId: string;
+  accessToken: string;
+  ownerPhone: string;
+  templateName: string;
+  webhookVerifyToken: string;
+  appSecret: string;
+};
+
+/**
+ * Sends remain paused until AHC can both dispatch its approved utility template
+ * and cryptographically verify the resulting delivery-status webhook.
+ */
+export function getMetaWhatsAppProviderReadiness(input: MetaWhatsAppProviderInput) {
+  const sendReady = Boolean(input.phoneNumberId && input.accessToken && input.ownerPhone && input.templateName);
+  const webhookReady = Boolean(input.webhookVerifyToken && input.appSecret);
+  return {
+    sendReady,
+    webhookReady,
+    active: sendReady && webhookReady,
+    missing: [
+      ...(!input.phoneNumberId ? ["phone-number ID"] : []),
+      ...(!input.accessToken ? ["access token"] : []),
+      ...(!input.ownerPhone ? ["owner recipient"] : []),
+      ...(!input.templateName ? ["utility template"] : []),
+      ...(!input.webhookVerifyToken ? ["webhook verify token"] : []),
+      ...(!input.appSecret ? ["app secret"] : []),
+    ],
+  };
+}
+
 /**
  * AHC's approved utility template contract is exactly three positional body
  * variables: event label, non-sensitive reference, then the Admin dashboard URL.

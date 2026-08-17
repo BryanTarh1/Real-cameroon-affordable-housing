@@ -562,3 +562,23 @@
 ## Language menu refinement
 - [x] Replace each English/French toggle with an accessible language-selection dropdown while preserving persisted shared locale behavior.
 - [x] Add regression coverage and validate the menu at desktop and mobile widths.
+
+## Payment and WhatsApp provider continuation
+- [x] Audit the current payment-reference, reconciliation, receipt, and provider-readiness workflow to define the next production payment increment.
+- [x] Review the existing Meta WhatsApp Cloud API alert foundation, credential status, and webhook safeguards before continuing provider activation.
+- [x] Implement the selected safe payment and WhatsApp provider improvements with automated regression coverage.
+- [x] Validate the completed provider-ready flows and document the owner activation steps required for live delivery.
+
+## Dual Mobile Money provider readiness
+- [x] Define one secure provider contract for both MTN MoMo and Orange Money without accepting rent, deposits, or tenancy funds through AHC.
+- [x] Add provider-specific payment-order metadata and validation while preserving Admin reconciliation and post-confirmation receipts.
+- [x] Add dual-provider regression coverage for reference handling, duplicate prevention, reconciliation, and receipt boundaries.
+- [ ] Prepare secure activation inputs for MTN MoMo, Orange Money, and Meta WhatsApp Cloud API.
+
+## Dual-provider payment experience
+- [x] Make the Agent payment journey explicitly provider-specific for MTN MoMo and Orange Money, including clear payment-reference guidance and pending-confirmation status.
+- [x] Make the Admin reconciliation view show the selected Mobile Money provider and protect receipt generation until a valid confirmation decision.
+- [x] Add focused UI and workflow tests for the dual-provider payment experience and validate the signed-out workspace presentation.
+
+## Merchant onboarding prerequisite
+- [ ] Complete MTN MoMo and Orange Money business/merchant onboarding before supplying protected credentials for live collection and provider callbacks.

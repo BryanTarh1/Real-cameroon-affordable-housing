@@ -1,0 +1,1 @@
+ALTER TABLE `payment_orders` ADD CONSTRAINT `payment_orders_provider_reference_unique` UNIQUE(`provider`,`providerReference`);

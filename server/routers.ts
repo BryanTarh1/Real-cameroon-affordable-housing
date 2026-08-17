@@ -256,10 +256,10 @@ export const appRouter = router({
       ensureUserId(ctx.user?.id), input.type as PaidOfferType, input.listingId,
     )),
     submitPaymentReference: protectedProcedure.input(z.object({
-      orderId: z.string().min(6).max(32), provider: z.enum(["mtn_momo", "orange_money", "other"]),
-      reference: z.string().trim().min(4).max(120),
+      orderId: z.string().min(6).max(32), provider: z.enum(["mtn_momo", "orange_money"]),
+      reference: z.string().trim().min(6).max(120),
     })).mutation(({ ctx, input }) => submitPaymentReference(
-      ensureUserId(ctx.user?.id), input.orderId, input.provider, input.reference,
+      ensureUserId(ctx.user?.id), input.orderId, input.provider as "mtn_momo" | "orange_money", input.reference,
     )),
     submitListing: protectedProcedure.input(listingSubmissionSchema).mutation(async ({ ctx, input }) => {
       const userId = ensureUserId(ctx.user?.id);

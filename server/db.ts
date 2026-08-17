@@ -33,20 +33,23 @@ import {
 } from "../drizzle/schema";
 import { calculateFieldVerificationCommission, calculateTotalMoveInCash, createWhatsAppListingLink, DEFAULT_FIELD_MODERATOR_SHARE_BPS, FRESHNESS_WINDOW_DAYS, getAgentAccessState, getPaidOffer, PRO_ACTIVE_LISTING_LIMIT, type OwnerAlertEventType, type OwnerAlertStatus, type PaidOfferType } from "../shared/ahc";
 import { ENV } from "./_core/env";
-import { buildOwnerAlertTemplatePayload, getOwnerAlertDashboardUrl, META_WHATSAPP_GRAPH_VERSION } from "./ownerAlerts";
+import { buildOwnerAlertTemplatePayload, getMetaWhatsAppProviderReadiness, getOwnerAlertDashboardUrl, META_WHATSAPP_GRAPH_VERSION } from "./ownerAlerts";
 import { summarizeAdminLeadEvents } from "./leadCounts";
+import { isDuplicateProviderReferenceError, normalizeMobileMoneyReference, type SupportedMobileMoneyProvider } from "./paymentProvider";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-const OWNER_ALERT_UNCONFIGURED_REASON = "WhatsApp provider is not configured; this operational alert remains queued.";
+const OWNER_ALERT_UNCONFIGURED_REASON = "Meta dispatch and signed delivery-webhook credentials are required; this operational alert remains queued.";
 
 function isOwnerAlertProviderConfigured() {
-  return Boolean(
-    ENV.whatsappPhoneNumberId
-      && ENV.whatsappAccessToken
-      && ENV.whatsappOwnerPhone
-      && ENV.whatsappTemplateName,
-  );
+  return getMetaWhatsAppProviderReadiness({
+    phoneNumberId: ENV.whatsappPhoneNumberId,
+    accessToken: ENV.whatsappAccessToken,
+    ownerPhone: ENV.whatsappOwnerPhone,
+    templateName: ENV.whatsappTemplateName,
+    webhookVerifyToken: ENV.whatsappWebhookVerifyToken,
+    appSecret: ENV.whatsappAppSecret,
+  }).active;
 }
 
 function maskOwnerPhone(phone: string) {
@@ -57,11 +60,21 @@ function maskOwnerPhone(phone: string) {
 /** Safe, Admin-readable configuration state; no credential or full phone number leaves the server. */
 export async function getOwnerAlertProviderStatus() {
   const settings = await getPlatformSettings();
+  const readiness = getMetaWhatsAppProviderReadiness({
+    phoneNumberId: ENV.whatsappPhoneNumberId,
+    accessToken: ENV.whatsappAccessToken,
+    ownerPhone: ENV.whatsappOwnerPhone,
+    templateName: ENV.whatsappTemplateName,
+    webhookVerifyToken: ENV.whatsappWebhookVerifyToken,
+    appSecret: ENV.whatsappAppSecret,
+  });
   return {
-    configured: isOwnerAlertProviderConfigured(),
+    configured: readiness.active,
+    sendConfigured: readiness.sendReady,
+    webhookConfigured: readiness.webhookReady,
     enabled: settings.ownerAlertsEnabled,
-    active: isOwnerAlertProviderConfigured() && settings.ownerAlertsEnabled,
-    provider: isOwnerAlertProviderConfigured() ? "Meta WhatsApp Cloud API" : "Not configured",
+    active: readiness.active && settings.ownerAlertsEnabled,
+    provider: readiness.active ? "Meta WhatsApp Cloud API" : "Activation incomplete",
     ownerPhoneMasked: ENV.whatsappOwnerPhone ? maskOwnerPhone(ENV.whatsappOwnerPhone) : "Not configured",
     templateName: ENV.whatsappTemplateName || null,
     queuePolicy: OWNER_ALERT_UNCONFIGURED_REASON,
@@ -1152,15 +1165,30 @@ export async function createPaymentOrder(userId: number, type: PaidOfferType, li
   return { id, amountXaf, type, expiresAt };
 }
 
-export async function submitPaymentReference(userId: number, orderId: string, provider: "mtn_momo" | "orange_money" | "other", reference: string) {
+export async function submitPaymentReference(userId: number, orderId: string, provider: SupportedMobileMoneyProvider, reference: string) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
-  const result = await db.update(paymentOrders).set({
-    provider, providerReference: reference, status: "reference_submitted", submittedAt: new Date(),
-  }).where(and(
-    eq(paymentOrders.id, orderId), eq(paymentOrders.userId, userId), eq(paymentOrders.status, "awaiting_reference"),
-    sql`(${paymentOrders.expiresAt} IS NULL OR ${paymentOrders.expiresAt} >= NOW())`,
-  ));
+  const providerReference = normalizeMobileMoneyReference(reference);
+  const matchingOrder = (await db.select({ id: paymentOrders.id }).from(paymentOrders).where(and(
+    eq(paymentOrders.provider, provider), eq(paymentOrders.providerReference, providerReference),
+  )).limit(1))[0];
+  if (matchingOrder && matchingOrder.id !== orderId) {
+    throw new Error("This provider transaction reference has already been submitted for another AHC service order.");
+  }
+  let result;
+  try {
+    result = await db.update(paymentOrders).set({
+      provider, providerReference, status: "reference_submitted", submittedAt: new Date(),
+    }).where(and(
+      eq(paymentOrders.id, orderId), eq(paymentOrders.userId, userId), eq(paymentOrders.status, "awaiting_reference"),
+      sql`(${paymentOrders.expiresAt} IS NULL OR ${paymentOrders.expiresAt} >= NOW())`,
+    ));
+  } catch (error) {
+    if (isDuplicateProviderReferenceError(error)) {
+      throw new Error("This provider transaction reference has already been submitted for another AHC service order.");
+    }
+    throw error;
+  }
   if (!result[0].affectedRows) throw new Error("This order cannot accept a payment reference. Check its status or create a new order.");
   return { success: true };
 }

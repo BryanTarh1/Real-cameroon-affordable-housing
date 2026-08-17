@@ -226,6 +226,8 @@ export const paymentOrders = mysqlTable("payment_orders", {
 }, (table) => [
   index("payment_orders_queue_idx").on(table.status, table.type, table.createdAt),
   index("payment_orders_user_idx").on(table.userId, table.status),
+  /** Prevents the same Mobile Money transaction reference from funding two AHC services. */
+  uniqueIndex("payment_orders_provider_reference_unique").on(table.provider, table.providerReference),
 ]);
 
 /** A reconciled payment creates a controlled, single-use right to submit a new listing. */

@@ -1,0 +1,34 @@
+.payment-provider-guidance {
+  border-left: 3px solid var(--teal);
+  background: #eef4f2;
+  padding: 12px 13px;
+  color: var(--ink);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.payment-provider-guidance b {
+  display: block;
+  color: var(--teal);
+  font-size: 12px;
+}
+
+.payment-provider-guidance p {
+  margin: 5px 0 8px;
+}
+
+.payment-provider-guidance ol {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.payment-provider-guidance small {
+  display: block;
+  margin-top: 9px;
+  color: var(--danger);
+  font-weight: 800;
+}
+
+.dark .payment-provider-guidance {
+  background: #18343b;
+}

@@ -46,6 +46,15 @@ describe("AHC payment reconciliation and listing-credit API guards", () => {
     expect(database.submitPaymentReference).toHaveBeenCalledWith(agent.id, "PAY-WELCOME-62", "mtn_momo", "MOMO-TEST-981");
   });
 
+  it("exposes only MTN MoMo and Orange Money for new platform-service references", async () => {
+    vi.mocked(database.submitPaymentReference).mockResolvedValue({ success: true });
+    const caller = callerFor(agent);
+
+    await expect(caller.agent.submitPaymentReference({ orderId: "PAY-ORANGE-62", provider: "orange_money", reference: "ORANGE-998812" })).resolves.toEqual({ success: true });
+    await expect(caller.agent.submitPaymentReference({ orderId: "PAY-OTHER-62", provider: "other" as never, reference: "OTHER-998812" })).rejects.toThrow();
+    expect(database.submitPaymentReference).toHaveBeenCalledWith(agent.id, "PAY-ORANGE-62", "orange_money", "ORANGE-998812");
+  });
+
   it("exposes only the approved recurring plans and verification variants to the Agent route", async () => {
     vi.mocked(database.createPaymentOrder).mockResolvedValue({ id: "PAY-PLAN-62", status: "awaiting_reference" } as never);
     const caller = callerFor(agent);
