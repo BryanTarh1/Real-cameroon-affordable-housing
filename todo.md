@@ -604,3 +604,10 @@
 
 ## Seven-feature live testing walkthrough
 - [x] Create a concise role-based guide that walks the owner through testing each newly released marketplace feature on the live site.
+
+## Pre-payment stability stress validation
+- [x] Audit existing regression coverage and define safe, deterministic high-volume scenarios for public discovery, protected workflows, role boundaries, and appointment state transitions.
+- [x] Add scale-oriented regression coverage that does not insert, alter, or disclose live customer data.
+- [x] Run comprehensive TypeScript, unit, integration, authorization, database, and controlled concurrency validation; investigate every reproducible failure.
+- [x] Review desktop/mobile routes and current runtime logs for interface or server regressions.
+- [x] Fix verified defects, add regression protection, rerun validation, and save a final stable checkpoint before any payment expansion.
