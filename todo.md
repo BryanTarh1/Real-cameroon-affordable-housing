@@ -537,3 +537,8 @@
 - [x] Gate the itemised cost breakdown and approximate map behind the seeker sign-in completion flow.
 - [x] Confirm the hash-routed Agent workspace is a separate full page with its profile section visible.
 - [x] Add targeted regression coverage and validate the revised public-to-protected property flow.
+
+## Anonymous public-home query repair
+- [x] Identify and suppress the protected query issued during anonymous public-home browsing.
+- [x] Preserve sign-in prompts only for explicitly protected actions, without global redirect or console-error noise.
+- [x] Add regression coverage and validate an anonymous public-home session in the browser.

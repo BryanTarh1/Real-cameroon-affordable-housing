@@ -23,6 +23,13 @@ describe("French discovery and media-first property flow", () => {
     expect(home).toContain('className="map-gate-panel"');
   });
 
+  it("does not invoke protected marketplace actions from an anonymous preview", () => {
+    expect(home).toContain("if (!isAuthenticated) {");
+    expect(home).toContain("Sign in to contact this Agent.");
+    expect(home).toContain("{isAuthenticated && <><ViewingAppointmentRequest listing={listing} />");
+    expect(home).toContain('onClick={contact}');
+  });
+
   it("contains responsive styles for the new discovery controls", () => {
     expect(css).toContain(".protected-detail-gate");
     expect(css).toContain(".detail-map-section");
