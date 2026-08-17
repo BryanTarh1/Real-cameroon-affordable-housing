@@ -6,6 +6,9 @@ vi.mock("./db", async importOriginal => {
     ...actual,
     getCustomerDashboard: vi.fn(),
     updateCustomerDisplayName: vi.fn(),
+    listCustomerBrowsingHistory: vi.fn(),
+    updateCustomerNotificationPreferences: vi.fn(),
+    recordListingView: vi.fn(),
     getAgentOfficialServiceReceipt: vi.fn(),
   };
 });
@@ -50,6 +53,24 @@ describe("AHC customer dashboard", () => {
     await expect(caller().account.updateDisplayName({ name: "Updated Customer" })).resolves.toMatchObject({ name: "Updated Customer" });
     expect(database.updateCustomerDisplayName).toHaveBeenCalledWith(customer.id, "Updated Customer");
     await expect(caller().account.updateDisplayName({ name: "X" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("keeps browsing history and recorded listing opens scoped to the signed-in customer", async () => {
+    vi.mocked(database.listCustomerBrowsingHistory).mockResolvedValue([{ id: "HOME-42" }] as never);
+    vi.mocked(database.recordListingView).mockResolvedValue({ recorded: true } as never);
+    await expect(caller().account.browsingHistory()).resolves.toMatchObject([{ id: "HOME-42" }]);
+    await expect(caller().account.recordView({ listingId: "HOME-42" })).resolves.toEqual({ recorded: true });
+    expect(database.listCustomerBrowsingHistory).toHaveBeenCalledWith(customer.id);
+    expect(database.recordListingView).toHaveBeenCalledWith(customer.id, "HOME-42");
+    await expect(caller().account.recordView({ listingId: "x" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("stores notification preferences only against the signed-in customer", async () => {
+    const preferences = { emailAccountUpdatesEnabled: false, emailMatchAlertsEnabled: true };
+    vi.mocked(database.updateCustomerNotificationPreferences).mockResolvedValue(preferences as never);
+    await expect(caller().account.updateNotificationPreferences(preferences)).resolves.toEqual(preferences);
+    expect(database.updateCustomerNotificationPreferences).toHaveBeenCalledWith(customer.id, preferences);
+    await expect(caller(null as never).account.updateNotificationPreferences(preferences)).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 
   it("requests a receipt with the signed-in customer identity as the ownership boundary", async () => {

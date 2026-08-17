@@ -24,6 +24,7 @@ import {
   duplicateListingReviews,
   seekerMatchAlertPreferences,
   savedListings,
+  listingViewHistory,
   matchAlertDeliveries,
   ownerAlertOutbox,
   users,
@@ -242,11 +243,27 @@ export async function getUserById(userId: number) {
 
 /** Returns only the authenticated customer's own account and AHC platform-service orders. */
 export async function getCustomerDashboard(userId: number) {
-  const account = await getUserById(userId);
-  const orders = await listAgentPaymentOrders(userId);
+  const [account, orders, favourites] = await Promise.all([
+    getUserById(userId),
+    listAgentPaymentOrders(userId),
+    listSeekerSavedListings(userId),
+  ]);
+  const profileImageUrl = account?.profileImageStorageKey ? `/manus-storage/${account.profileImageStorageKey}` : null;
   return {
-    profile: account ? { id: account.id, name: account.name, email: account.email, role: account.role, createdAt: account.createdAt } : null,
+    profile: account ? {
+      id: account.id,
+      name: account.name,
+      email: account.email,
+      role: account.role,
+      createdAt: account.createdAt,
+      profileImageUrl,
+    } : null,
+    preferences: account ? {
+      emailAccountUpdatesEnabled: account.emailAccountUpdatesEnabled,
+      emailMatchAlertsEnabled: account.emailMatchAlertsEnabled,
+    } : null,
     orders,
+    favourites,
   };
 }
 
@@ -256,6 +273,76 @@ export async function updateCustomerDisplayName(userId: number, name: string) {
   if (!db) throw new Error("Database unavailable");
   await db.update(users).set({ name, updatedAt: new Date() }).where(eq(users.id, userId));
   return getUserById(userId);
+}
+
+/** Writes only the signed-in customer's email-preference flags. Delivery is not enabled by this setting. */
+export async function updateCustomerNotificationPreferences(
+  userId: number,
+  preferences: { emailAccountUpdatesEnabled: boolean; emailMatchAlertsEnabled: boolean },
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.update(users).set({ ...preferences, updatedAt: new Date() }).where(eq(users.id, userId));
+  const account = await getUserById(userId);
+  if (!account) throw new Error("Customer account not found.");
+  return {
+    emailAccountUpdatesEnabled: account.emailAccountUpdatesEnabled,
+    emailMatchAlertsEnabled: account.emailMatchAlertsEnabled,
+  };
+}
+
+/** Persists an opaque storage key for the signed-in customer's avatar; raw image data never enters the database. */
+export async function updateCustomerProfileImageKey(userId: number, storageKey: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.update(users).set({ profileImageStorageKey: storageKey, updatedAt: new Date() }).where(eq(users.id, userId));
+  return getCustomerProfileImageUrl(userId);
+}
+
+/** Resolves an avatar URL only from the authenticated customer's own persisted private key. */
+export async function getCustomerProfileImageUrl(userId: number) {
+  const account = await getUserById(userId);
+  return account?.profileImageStorageKey ? `/manus-storage/${account.profileImageStorageKey}` : null;
+}
+
+/** Records an authenticated customer's open event for a currently fresh public listing. */
+export async function recordListingView(seekerUserId: number, listingId: string) {
+  const isFreshPublicListing = (await listFreshPublicListings()).some((listing) => listing.id === listingId);
+  if (!isFreshPublicListing) throw new Error("Only active public listings can be added to browsing history.");
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const now = new Date();
+  await db.insert(listingViewHistory).values({ seekerUserId, listingId, firstViewedAt: now, lastViewedAt: now })
+    .onDuplicateKeyUpdate({
+      set: {
+        viewCount: sql`${listingViewHistory.viewCount} + 1`,
+        lastViewedAt: now,
+      },
+    });
+  return { recorded: true } as const;
+}
+
+/** Returns the signed-in customer's latest public-listing views, never raw listing internals, contacts, or exact directions. */
+export async function listCustomerBrowsingHistory(seekerUserId: number, limit = 20) {
+  const db = await getDb();
+  if (!db) return [];
+  const boundedLimit = Math.max(1, Math.min(limit, 20));
+  const entries = await db.select({
+    listingId: listingViewHistory.listingId,
+    viewCount: listingViewHistory.viewCount,
+    firstViewedAt: listingViewHistory.firstViewedAt,
+    lastViewedAt: listingViewHistory.lastViewedAt,
+  }).from(listingViewHistory)
+    .where(eq(listingViewHistory.seekerUserId, seekerUserId))
+    .orderBy(desc(listingViewHistory.lastViewedAt))
+    .limit(boundedLimit);
+  if (!entries.length) return [];
+  const publicListings = await listFreshPublicListings();
+  const byId = new Map(publicListings.map((listing) => [listing.id, listing]));
+  return entries.flatMap((entry) => {
+    const listing = byId.get(entry.listingId);
+    return listing ? [{ ...listing, viewCount: entry.viewCount, firstViewedAt: entry.firstViewedAt, lastViewedAt: entry.lastViewedAt }] : [];
+  });
 }
 
 export async function createLocalAgentAccount(input: {

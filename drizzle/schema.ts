@@ -21,6 +21,11 @@ export const users = mysqlTable("users", {
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
+  /** Private object key. A signed URL is resolved only for the owning customer. */
+  profileImageStorageKey: text("profileImageStorageKey"),
+  /** Preferences are stored now; no email is dispatched until a provider is configured. */
+  emailAccountUpdatesEnabled: boolean("emailAccountUpdatesEnabled").default(true).notNull(),
+  emailMatchAlertsEnabled: boolean("emailMatchAlertsEnabled").default(false).notNull(),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "moderator", "admin"]).default("user").notNull(),
   isBanned: boolean("isBanned").default(false).notNull(),
@@ -534,6 +539,19 @@ export const savedListings = mysqlTable("saved_listings", {
 }, (table) => [
   uniqueIndex("saved_listings_seeker_listing_idx").on(table.seekerUserId, table.listingId),
   index("saved_listings_seeker_created_idx").on(table.seekerUserId, table.createdAt),
+]);
+
+/** Private, compact record of listings an authenticated customer has opened. */
+export const listingViewHistory = mysqlTable("listing_view_history", {
+  id: int("id").autoincrement().primaryKey(),
+  seekerUserId: int("seekerUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  listingId: varchar("listingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
+  viewCount: int("viewCount").default(1).notNull(),
+  firstViewedAt: timestamp("firstViewedAt").defaultNow().notNull(),
+  lastViewedAt: timestamp("lastViewedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [
+  uniqueIndex("listing_view_history_seeker_listing_idx").on(table.seekerUserId, table.listingId),
+  index("listing_view_history_seeker_recent_idx").on(table.seekerUserId, table.lastViewedAt),
 ]);
 
 /** An Agent-owned time window. A slot reserves for one pending viewing request at a time. */

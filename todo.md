@@ -619,3 +619,10 @@
 - [x] Add accessible pending, success, and actionable error feedback to existing and upcoming platform-service payment actions without collecting rent, deposits, or other tenancy funds.
 - [x] Add role-authorized procedures, focused Vitest coverage, and responsive UI validation for dashboard and payment-experience workflows.
 - [x] Correct the authenticated dashboard-load error state so a service failure is never misrepresented as a sign-in requirement.
+
+## Customer dashboard personalisation and checkout feedback
+- [x] Add customer-owned favourite listings and a private recent-browsing history with protected listing references.
+- [x] Add a safe customer profile-picture upload that accepts only small image files, stores only an object reference, and never exposes another account’s image-management controls.
+- [x] Add customer-managed email-notification preferences without sending or implying real email delivery until an email provider is separately configured.
+- [x] Add a clearly labelled test-only checkout simulator that exercises loading, success, retry, and error feedback without charging any payment method or creating a real platform-service order.
+- [x] Add schema migration, ownership tests, storage validation, and desktop/mobile regression coverage for the new dashboard extensions. TypeScript and 146 tests pass; signed-out desktop and mobile dashboard captures confirm the protected route’s responsive access boundary.

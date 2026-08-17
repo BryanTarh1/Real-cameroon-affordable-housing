@@ -72,6 +72,7 @@ function ListingDetail({ listing, onClose, language, isAuthenticated }: { listin
   const utils = trpc.useUtils();
   const walkthrough = publicWalkthroughForDetail(listing.walkthrough);
   const isNonProductionFixture = listing.title.startsWith("TEST DATA");
+  const recordView = trpc.account.recordView.useMutation();
   const reportMutation = trpc.marketplace.report.useMutation({ onSuccess: result => toast.success("Report received", { description: result.automaticSafetyAction ? "This listing has been placed on a safety hold for Admin review." : "AHC operations will review the reported terms." }) });
   const [reporting, setReporting] = useState(false);
   const [note, setNote] = useState("");
@@ -85,6 +86,9 @@ function ListingDetail({ listing, onClose, language, isAuthenticated }: { listin
   const removeListing = trpc.marketplace.shortlist.remove.useMutation({ onSuccess: () => shortlist.refetch() });
   const requestSlot = trpc.marketplace.appointments.requestSlot.useMutation({ onSuccess: () => { slots.refetch(); setSlotNote(""); toast.success("Viewing request sent", { description: "The Agent will confirm or decline this time." }); }, onError: error => toast.error("Unable to request this slot", { description: error.message }) });
   const isSaved = shortlist.data?.some(item => item.id === listing.id) ?? false;
+  useEffect(() => {
+    if (isAuthenticated) recordView.mutate({ listingId: listing.id });
+  }, [isAuthenticated, listing.id]);
   const contact = async () => {
     if (!isAuthenticated) {
       toast.info("Sign in to contact this Agent.", { description: "The cost breakdown and landmark map are also available after sign-in." });

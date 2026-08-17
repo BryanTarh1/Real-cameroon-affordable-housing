@@ -30,6 +30,7 @@ import {
   getAgentOfficialServiceReceipt,
   getAgentProfile,
   getCustomerDashboard,
+  listCustomerBrowsingHistory,
   getAgentQualityDashboard,
   getAgentIdentityStatus,
   getOwnerAlertProviderStatus,
@@ -84,6 +85,8 @@ import {
   decideDuplicateListingReview,
   updateAgentListingCosts,
   updateCustomerDisplayName,
+  updateCustomerNotificationPreferences,
+  recordListingView,
   updatePlatformSettings,
   upsertAgentProfile,
   upgradeLocalCredentialPasswordHash,
@@ -216,6 +219,13 @@ export const appRouter = router({
     dashboard: protectedProcedure.query(({ ctx }) => getCustomerDashboard(ensureUserId(ctx.user?.id))),
     updateDisplayName: protectedProcedure.input(z.object({ name: z.string().trim().min(2).max(100) }))
       .mutation(({ ctx, input }) => updateCustomerDisplayName(ensureUserId(ctx.user?.id), input.name)),
+    browsingHistory: protectedProcedure.query(({ ctx }) => listCustomerBrowsingHistory(ensureUserId(ctx.user?.id))),
+    recordView: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
+      .mutation(({ ctx, input }) => recordListingView(ensureUserId(ctx.user?.id), input.listingId)),
+    updateNotificationPreferences: protectedProcedure.input(z.object({
+      emailAccountUpdatesEnabled: z.boolean(),
+      emailMatchAlertsEnabled: z.boolean(),
+    })).mutation(({ ctx, input }) => updateCustomerNotificationPreferences(ensureUserId(ctx.user?.id), input)),
     officialServiceReceipt: protectedProcedure.input(z.object({ orderId: z.string().min(1) }))
       .query(({ ctx, input }) => getAgentOfficialServiceReceipt(ensureUserId(ctx.user?.id), input.orderId)),
   }),

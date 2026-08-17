@@ -11,7 +11,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { archiveStaleListingHandler } from "../listingFreshness";
 import { expireOverdueViewingAvailabilityHandler } from "../viewingAvailability";
-import { createWhatsAppLeadEvent, getPublicListingContact, listFreshPublicListings, registerWalkthroughVideo, updateOwnerAlertStatus, saveAgentIdentityDocument } from "../db";
+import { createWhatsAppLeadEvent, getPublicListingContact, listFreshPublicListings, registerWalkthroughVideo, updateCustomerProfileImageKey, updateOwnerAlertStatus, saveAgentIdentityDocument } from "../db";
 import { authenticateLocalRequest } from "./localAuth";
 import { ENV } from "./env";
 import { storagePut } from "../storage";
@@ -99,6 +99,34 @@ async function startServer() {
     } catch (error) {
       console.error("Agent identity upload failed", error);
       res.status(500).json({ error: "The identity image could not be stored." });
+    }
+  });
+  app.post("/api/customer/profile-picture", express.raw({ type: ["image/jpeg", "image/jpg", "image/png"], limit: "2mb" }), async (req, res) => {
+    const user = await authenticateLocalRequest(req);
+    if (!user || user.isBanned) {
+      res.status(401).json({ error: "Sign in to update your profile picture." });
+      return;
+    }
+    const contentType = req.get("content-type") || "";
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0 || req.body.length > 2 * 1024 * 1024 || !/^image\/(jpeg|jpg|png)$/i.test(contentType)) {
+      res.status(415).json({ error: "Choose a non-empty JPG or PNG image no larger than 2 MB." });
+      return;
+    }
+    try {
+      const image = sharp(req.body);
+      const metadata = await image.metadata();
+      const expectedFormat = /^image\/png/i.test(contentType) ? "png" : "jpeg";
+      if (metadata.format !== expectedFormat || !metadata.width || !metadata.height || metadata.width > 4096 || metadata.height > 4096) {
+        res.status(415).json({ error: "Choose a valid JPG or PNG image with dimensions up to 4096 × 4096 pixels." });
+        return;
+      }
+      const normalizedAvatar = await image.rotate().resize(512, 512, { fit: "cover", position: "attention" }).jpeg({ quality: 85 }).toBuffer();
+      const storage = await storagePut(`private/customer-avatar/${user.id}/avatar-${Date.now()}.jpg`, normalizedAvatar, "image/jpeg");
+      const profileImageUrl = await updateCustomerProfileImageKey(user.id, storage.key);
+      res.status(201).json({ uploaded: true, profileImageUrl });
+    } catch (error) {
+      console.error("Customer profile picture upload failed", error);
+      res.status(415).json({ error: "The image could not be safely processed. Choose another JPG or PNG image." });
     }
   });
   // Configure body parser with larger size limit for file uploads
