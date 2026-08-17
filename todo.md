@@ -581,4 +581,5 @@
 - [x] Add focused UI and workflow tests for the dual-provider payment experience and validate the signed-out workspace presentation.
 
 ## Merchant onboarding prerequisite
+- [x] Create an owner-run guide that separates AHC’s provider-independent payment controls from MTN and Orange merchant onboarding.
 - [ ] Complete MTN MoMo and Orange Money business/merchant onboarding before supplying protected credentials for live collection and provider callbacks.
