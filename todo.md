@@ -508,14 +508,14 @@
 - [x] Add regression coverage and visual validation for password visibility and cumulative lead-count presentation.
 
 ## French discovery and Agent identity upgrade
-- [ ] Add a French-language interface option to public discovery and account-entry flows, without weakening existing English access.
-- [ ] Introduce image-first property quick views and a protected full-detail experience that shows media and total move-in cash before the itemised breakdown; require sign-in before revealing the map.
-- [ ] Extend Agent onboarding and profile records with taxpayer-number evidence and JPG government-ID front, back, and face-view uploads stored privately.
-- [ ] Restructure the Agent workspace into a standalone full-page experience with an Agent profile section.
-- [ ] Add migration, authorization, upload-format, multilingual, property-access, and responsive-interface regression coverage.
+- [x] Add a French-language interface option to public discovery and account-entry flows, without weakening existing English access.
+- [x] Introduce image-first property quick views and a protected full-detail experience that shows media and total move-in cash before the itemised breakdown; require sign-in before revealing the map.
+- [x] Extend Agent onboarding and profile records with taxpayer-number evidence and JPG government-ID front, back, and face-view uploads stored privately.
+- [x] Restructure the Agent workspace into a standalone full-page experience with an Agent profile section.
+- [x] Add migration, authorization, upload-format, multilingual, property-access, and responsive-interface regression coverage.
 
 ## Recovery note
-- [ ] Re-implement and validate the website changes from the stable checkpoint after experimental inherited edits were rolled back.
+- [x] Re-implement and validate the website changes from the stable checkpoint after experimental inherited edits were rolled back.
 
 ## August 2026 Agent identity and standalone-route hardening
 
