@@ -2,9 +2,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicLanguage } from "@/lib/marketplaceLocale";
 
 export const AHC_LANGUAGE_STORAGE_KEY = "ahc-language";
+const AHC_LANGUAGE_CHANGE_EVENT = "ahc-language-change";
 
 function readStoredLanguage(): PublicLanguage {
   if (typeof window === "undefined") return "en";
+  const requestedLanguage = new URLSearchParams(window.location.search).get("lang");
+  if (requestedLanguage === "fr" || requestedLanguage === "en") {
+    window.localStorage.setItem(AHC_LANGUAGE_STORAGE_KEY, requestedLanguage);
+    return requestedLanguage;
+  }
   return window.localStorage.getItem(AHC_LANGUAGE_STORAGE_KEY) === "fr" ? "fr" : "en";
 }
 
@@ -20,6 +26,7 @@ export function useMarketplaceLanguage() {
     setIsLanguageTransitioning(true);
     setLanguageState(next);
     window.localStorage.setItem(AHC_LANGUAGE_STORAGE_KEY, next);
+    window.dispatchEvent(new CustomEvent<PublicLanguage>(AHC_LANGUAGE_CHANGE_EVENT, { detail: next }));
     transitionTimer.current = window.setTimeout(() => setIsLanguageTransitioning(false), 180);
   }, [language]);
 
@@ -32,7 +39,12 @@ export function useMarketplaceLanguage() {
       if (event.key === AHC_LANGUAGE_STORAGE_KEY) setLanguageState(event.newValue === "fr" ? "fr" : "en");
     };
     window.addEventListener("storage", syncStoredLanguage);
-    return () => window.removeEventListener("storage", syncStoredLanguage);
+    const syncSameTabLanguage = (event: Event) => setLanguageState((event as CustomEvent<PublicLanguage>).detail === "fr" ? "fr" : "en");
+    window.addEventListener(AHC_LANGUAGE_CHANGE_EVENT, syncSameTabLanguage);
+    return () => {
+      window.removeEventListener("storage", syncStoredLanguage);
+      window.removeEventListener(AHC_LANGUAGE_CHANGE_EVENT, syncSameTabLanguage);
+    };
   }, []);
 
   useEffect(() => () => {

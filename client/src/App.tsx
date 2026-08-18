@@ -12,6 +12,7 @@ import { Route, Router as WouterRouter, Switch, useLocation, useRoute } from "wo
 import React, { useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeToggle } from "./components/ThemeToggle";
+import { LocaleDocumentTranslator } from "./components/LocaleDocumentTranslator";
 import { CommissionLedgerCsvExport } from "./components/CommissionLedgerCsvExport";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { legacyHashPathToBrowserPath } from "./lib/legacyHashRoutes";
@@ -195,6 +196,7 @@ export default function App() {
         <TooltipProvider>
           <Toaster position="bottom-right" />
           <ThemeToggle />
+          <LocaleDocumentTranslator />
           <CommissionLedgerCsvExport />
           <WouterRouter>
             <LegacyHashLinkBridge />
