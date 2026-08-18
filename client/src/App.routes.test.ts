@@ -54,10 +54,9 @@ describe("protected workspace routes", () => {
     auth.logout.mockResolvedValue(undefined);
   });
 
-  it("redirects anonymous and ordinary users away from a manually edited Admin browser path without rendering management controls", async () => {
+  it("shows a secure Admin sign-in boundary to anonymous visitors and redirects ordinary users without rendering management controls", async () => {
     renderAt("/admin", null);
-    await waitFor(() => expect(window.location.pathname).toBe("/"));
-    expect(screen.getByText("Public marketplace")).toBeTruthy();
+    expect(screen.getByText("Admin sign in")).toBeTruthy();
     expect(screen.queryByText("Admin management controls")).toBeNull();
 
     cleanup();
@@ -73,10 +72,9 @@ describe("protected workspace routes", () => {
     expect(screen.queryByText("Public marketplace")).toBeNull();
   });
 
-  it("allows only a signed-in standard user into the Agent workspace and redirects other direct browser-path attempts safely", async () => {
+  it("shows the local Agent sign-in boundary to anonymous visitors and allows only signed-in standard users into the workspace", async () => {
     renderAt("/agent", null);
-    await waitFor(() => expect(window.location.pathname).toBe("/"));
-    expect(screen.getByText("Public marketplace")).toBeTruthy();
+    expect(screen.getByText("Standalone Agent profile dashboard")).toBeTruthy();
 
     cleanup();
     renderAt("/agent", "user");
@@ -106,10 +104,9 @@ describe("protected workspace routes", () => {
     expect(screen.getByText("Owner acceptance walkthrough")).toBeTruthy();
   });
 
-  it("redirects non-staff from Field Operations while allowing moderators and administrators", async () => {
+  it("shows the secure Field Moderator sign-in boundary to anonymous visitors while allowing only staff into operations", async () => {
     renderAt("/operations", null);
-    await waitFor(() => expect(window.location.pathname).toBe("/"));
-    expect(screen.getByText("Public marketplace")).toBeTruthy();
+    expect(screen.getByText("Field Moderator sign in")).toBeTruthy();
     expect(screen.queryByText("Field Moderator operations")).toBeNull();
 
     cleanup();
@@ -127,10 +124,9 @@ describe("protected workspace routes", () => {
     expect(screen.getByText("Field Moderator operations")).toBeTruthy();
   });
 
-  it("redirects non-staff from the geographic route board while allowing Field Moderators and administrators", async () => {
+  it("shows the secure Field Moderator sign-in boundary on the geographic route board while allowing staff access", async () => {
     renderAt("/operations/batches", null);
-    await waitFor(() => expect(window.location.pathname).toBe("/"));
-    expect(screen.getByText("Public marketplace")).toBeTruthy();
+    expect(screen.getByText("Field Moderator sign in")).toBeTruthy();
     expect(screen.queryByText("Field Moderator route board")).toBeNull();
 
     cleanup();

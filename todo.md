@@ -666,3 +666,7 @@
 
 ## Search-result loading state
 - [x] Add an accessible, responsive, reduced-motion-safe loading skeleton for public property search results and verify it through regression and responsive review. Full suite: 168 tests pass; production build and desktop/mobile visual reviews pass.
+
+## Agent and Moderator access repair
+- [x] Diagnose why the reported browser cannot sign in to Agent and Field Moderator workspaces, distinguishing credentials, provisioning, route guards, and session/runtime errors. Cause confirmed: the global protected-route guard redirected signed-out visitors before the existing role-specific AHC sign-in forms could render.
+- [x] Repair any verified access defect, add focused regression coverage, validate both role entry paths, and checkpoint the fix. Anonymous Agent, Field Moderator, Field Moderator route-board, and Admin paths now expose only their secure sign-in boundary; wrong-role protection and server-side authorization remain enforced. Full suite: 170 tests pass; production build and desktop/mobile checks pass.

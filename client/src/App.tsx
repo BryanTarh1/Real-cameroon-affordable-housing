@@ -17,11 +17,13 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { legacyHashPathToBrowserPath } from "./lib/legacyHashRoutes";
 import Home from "./pages/Home";
 import Admin from "./pages/Admin";
+import AdminAccess from "./pages/AdminAccess";
 import Operations from "./pages/Operations";
 import OperationsBatches from "./pages/OperationsBatches";
 import AcceptanceWalkthrough from "./pages/AcceptanceWalkthrough";
 import AgentWorkspacePage from "./pages/AgentWorkspacePage";
 import CustomerDashboard from "./pages/CustomerDashboard";
+import ModeratorAccess from "./pages/ModeratorAccess";
 
 /**
  * Browser paths are only navigation destinations, never a permission grant. This guard waits
@@ -47,14 +49,20 @@ function ProtectedWorkspace({ allowedRoles, children }: { allowedRoles: readonly
 }
 
 function AdminRoute() {
+  const { user, loading } = useAuth();
+  if (!loading && !user) return <AdminAccess />;
   return <ProtectedWorkspace allowedRoles={["admin"]}><Admin /></ProtectedWorkspace>;
 }
 
 function OperationsRoute() {
+  const { user, loading } = useAuth();
+  if (!loading && !user) return <ModeratorAccess />;
   return <ProtectedWorkspace allowedRoles={["admin", "moderator"]}><Operations /></ProtectedWorkspace>;
 }
 
 function OperationsBatchesRoute() {
+  const { user, loading } = useAuth();
+  if (!loading && !user) return <ModeratorAccess />;
   return <ProtectedWorkspace allowedRoles={["admin", "moderator"]}><OperationsBatches /></ProtectedWorkspace>;
 }
 
@@ -63,6 +71,10 @@ function AcceptanceWalkthroughRoute() {
 }
 
 function AgentOnboardingRoute() {
+  const { user, loading } = useAuth();
+  // The signed-out Agent portal contains only the local AHC account form. It does not
+  // request or expose Agent workspace data until the session is established.
+  if (!loading && !user) return <AgentWorkspacePage />;
   return <ProtectedWorkspace allowedRoles={["user"]}><AgentWorkspacePage /></ProtectedWorkspace>;
 }
 
