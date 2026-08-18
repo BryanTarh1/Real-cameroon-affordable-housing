@@ -40,6 +40,11 @@ describe("AHC affordability and trust rules", () => {
     expect([point.latitude, point.longitude]).not.toEqual([3.848, 11.502]);
   });
 
+  it("clamps every public landmark radius to the 200–500m privacy band", () => {
+    expect(createApproximatePoint(3.848, 11.502, 1, () => 0.5).radiusM).toBe(200);
+    expect(createApproximatePoint(3.848, 11.502, 9_999, () => 0.5).radiusM).toBe(500);
+  });
+
   it("maps approved Welcome and recurring plans to their declared entitlement contract", () => {
     expect(getPaidOffer("welcome_bundle")).toEqual(AHC_PAID_OFFERS.welcomeBundle);
     expect(getPaidOffer("welcome_bundle")).toMatchObject({ amountXaf: 3_000, validityDays: 30, listingCredits: 5, priorityRanking: false });

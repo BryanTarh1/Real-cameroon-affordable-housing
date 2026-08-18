@@ -650,6 +650,7 @@ function mapListing(row: any) {
     householdFit: row.householdFit,
     availableFrom: row.availableFrom,
     lastReconfirmed: row.lastReconfirmed,
+    supplyCapacity: row.supplyCapacity,
     map: { latitude: Number(row.publicLatitude), longitude: Number(row.publicLongitude), radiusM: row.mapRadiusM },
     featured: Boolean(row.isFeatured) && (!row.featuredUntil || new Date(row.featuredUntil) > new Date()),
     verificationStatus: row.verificationStatus,
@@ -689,7 +690,7 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
   const rows = await db.select({
     id: listings.id, title: listings.title, city: listings.city, neighborhood: listings.neighborhood,
     landmark: listings.landmark, propertyType: listings.propertyType, furnishingStatus: listings.furnishingStatus, bedrooms: listings.bedrooms, householdFit: listings.householdFit,
-    availableFrom: listings.availableFrom, lastReconfirmed: listings.lastReconfirmed,
+    availableFrom: listings.availableFrom, lastReconfirmed: listings.lastReconfirmed, supplyCapacity: listings.supplyCapacity,
     publicLatitude: listings.publicLatitude, publicLongitude: listings.publicLongitude, mapRadiusM: listings.mapRadiusM,
     isFeatured: listings.isFeatured, featuredUntil: listings.featuredUntil, verificationStatus: listings.verificationStatus,
     photosCount: listings.photosCount, agentNameSnapshot: listings.agentNameSnapshot,
