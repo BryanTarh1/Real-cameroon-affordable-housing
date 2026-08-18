@@ -657,3 +657,6 @@
 ## Media-first public discovery refinement
 - [x] Make verified walkthrough videos and listing imagery the dominant public browsing surface while retaining a continuously prominent Total Move-In Cash figure.
 - [x] Add responsive and regression validation for the media-first listing experience, then checkpoint the refinement. Full suite: 165 tests pass; production build and desktop/mobile visual reviews pass.
+
+## Developer-tools reference guide
+- [x] Create a Word guide that classifies the developer and operational tools shared by the owner, explains safe step-by-step use, and prioritises their relevance to Affordable Housing Cameroon.
