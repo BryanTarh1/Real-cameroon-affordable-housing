@@ -663,3 +663,6 @@
 
 ## Independent continuation handover
 - [x] Document how the owner can continue developing, hosting, securing, and operating AHC outside Manus, including the required replacements for managed services and scheduled jobs.
+
+## Search-result loading state
+- [x] Add an accessible, responsive, reduced-motion-safe loading skeleton for public property search results and verify it through regression and responsive review. Full suite: 168 tests pass; production build and desktop/mobile visual reviews pass.

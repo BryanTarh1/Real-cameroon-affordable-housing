@@ -1,0 +1,64 @@
+/* Keep the public search layout stable while fresh results are loading. */
+.loading-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.loading-list i {
+  position: relative;
+  display: block;
+  min-height: 474px;
+  overflow: hidden;
+  border: 1px solid rgba(35, 49, 47, 0.12);
+  border-radius: 2px;
+  background:
+    linear-gradient(#d9d4c9 0 0) 0 0 / 100% 270px no-repeat,
+    linear-gradient(#f1ede4 0 0) 18px 292px / 92px 10px no-repeat,
+    linear-gradient(#e2ddd3 0 0) 18px 318px / calc(100% - 36px) 25px no-repeat,
+    linear-gradient(#ece7dd 0 0) 18px 359px / 72% 12px no-repeat,
+    linear-gradient(#203630 0 0) 18px 398px / 142px 48px no-repeat,
+    linear-gradient(#ece7dd 0 0) 18px 458px / calc(100% - 36px) 10px no-repeat,
+    #fffdfa;
+}
+
+.loading-list i::before {
+  content: "";
+  position: absolute;
+  top: 222px;
+  left: 18px;
+  width: 156px;
+  height: 34px;
+  background: rgba(17, 30, 28, 0.9);
+  box-shadow: 10px 10px 0 rgba(17, 30, 28, 0.9);
+}
+
+.loading-list i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(108deg, transparent 30%, rgba(255, 255, 255, 0.46) 49%, transparent 68%);
+  transform: translateX(-100%);
+  animation: ahc-card-skeleton-shimmer 1.5s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)) infinite;
+}
+
+@keyframes ahc-card-skeleton-shimmer {
+  to { transform: translateX(100%); }
+}
+
+@media (max-width: 920px) {
+  .loading-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 620px) {
+  .loading-list { grid-template-columns: 1fr; }
+  .loading-list i {
+    min-height: 438px;
+    background-size: 100% 246px, 92px 10px, calc(100% - 36px) 25px, 72% 12px, 142px 48px, calc(100% - 36px) 10px, auto;
+  }
+  .loading-list i::before { top: 198px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-list i::after { animation: none; transform: none; }
+}

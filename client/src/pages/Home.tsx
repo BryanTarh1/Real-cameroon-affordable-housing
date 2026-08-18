@@ -14,6 +14,7 @@ import { SeekerAppointmentHistory, ViewingAppointmentRequest } from "@/component
 import { BadgeCheck, Building2, CircleAlert, Clock3, MapPinned, Menu, MessageCircle, Share2, ShieldCheck, Sparkles, Video, X } from "lucide-react";
 import { toast } from "sonner";
 import "./launch-refinements.css";
+import "./Home.search-skeleton.css";
 
 const formatXaf = (value: number, language: PublicLanguage = "en") => `${new Intl.NumberFormat(language === "fr" ? "fr-FR" : "en-US").format(value)} XAF`;
 type Language = PublicLanguage;
