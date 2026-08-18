@@ -644,7 +644,7 @@
 - [x] Add ownership and UI regression coverage for avatar removal, then validate and checkpoint the change. Focused and full validation pass: 160 tests and the production build succeed. Signed-out desktop/mobile dashboard checks preserve the protected-route redirect; authenticated blank-avatar behavior is covered by dashboard UI and ownership regressions.
 
 ## Trust-first marketplace upgrade
-- [ ] Preserve clearly labelled test listings until real listing status, evidence, freshness, and moderation workflows are live-tested.
+- [x] Preserve clearly labelled test listings until real listing status, evidence, freshness, and moderation workflows are live-tested. Current fixture inventory keeps the stored TEST DATA title prefix, shows a protected-detail disclosure, and has focused regression plus desktop/mobile verification.
 - [x] Improve the protected property-details experience with complete, data-backed listing information and a clear viewing-request action.
 - [x] Add reliable discovery filters for property type, bedrooms, furnished status, monthly rent, Total Move-In Cash, availability, verified status, and neighbourhood.
 - [x] Strengthen report reasons and moderation review without automatic punishment based solely on report volume.
