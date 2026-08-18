@@ -698,3 +698,6 @@
 ## Public Manus reference cleanup
 - [x] Audit visitor-visible pages, metadata, icons, and bundled public assets for mentions of Manus AI or Manus branding; preserve non-visible runtime configuration and the existing domain. No visitor-facing reference was present in the public client source, server-rendered preview output, document metadata, or homepage visual review.
 - [x] Remove confirmed public-facing references and add regression coverage so future visitor copy does not reintroduce them. No public-facing reference required removal; runtime environment names and the existing domain remain untouched because they are not website copy or visible branding.
+
+## Analytics geography investigation
+- [x] Inspect the configured analytics script and available site traffic records to explain United States-labelled pageviews without treating location data as proof of genuine United States visitors. The repository confirms a proxy-hosted analytics integration but contains no raw event-level data; official provider documentation confirms that country is IP/proxy-derived and that recognised-bot filtering is not a proof that every automated request is absent. The resulting guidance is recorded in `docs/analytics-geography-investigation.md`.
