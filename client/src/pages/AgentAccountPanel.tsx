@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import { getPasswordInputType } from "@/lib/passwordVisibility";
 import { marketplaceCopy, type PublicLanguage } from "@/lib/marketplaceLocale";
+import { TurnstileChallenge } from "@/components/TurnstileChallenge";
 import "./AgentAccountPanel.css";
 
 type Mode = "signIn" | "register";
@@ -45,8 +46,15 @@ export function AgentAccountPanel({ audience = "agent", language = "en", onAuthe
   const [taxpayerNumber, setTaxpayerNumber] = useState("");
   const [workProofUrl, setWorkProofUrl] = useState("");
   const [identityFiles, setIdentityFiles] = useState<Record<IdentityKind, File | null>>({ front: null, back: null, face: null });
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const utils = trpc.useUtils();
+  const resetCaptcha = () => {
+    setCaptchaToken("");
+    setCaptchaResetKey(value => value + 1);
+  };
   const onSuccess = async () => {
+    resetCaptcha();
     await Promise.all([utils.auth.me.invalidate(), utils.agent.profile.invalidate(), utils.agent.paidStatus.invalidate(), utils.agent.paymentOrders.invalidate(), utils.agent.listings.invalidate()]);
     if (audience === "agent" && mode === "register") {
       try {
@@ -63,8 +71,8 @@ export function AgentAccountPanel({ audience = "agent", language = "en", onAuthe
     }
     onAuthenticated?.();
   };
-  const register = trpc.auth.registerLocalAgent.useMutation({ onSuccess, onError: error => toast.error(error.message) });
-  const login = trpc.auth.loginLocalAgent.useMutation({ onSuccess, onError: error => toast.error(error.message) });
+  const register = trpc.auth.registerLocalAgent.useMutation({ onSuccess, onError: error => { resetCaptcha(); toast.error(error.message); } });
+  const login = trpc.auth.loginLocalAgent.useMutation({ onSuccess, onError: error => { resetCaptcha(); toast.error(error.message); } });
   const pending = register.isPending || login.isPending;
   const chooseIdentityFile = (kind: IdentityKind, file: File | undefined) => {
     if (!file) return;
@@ -77,12 +85,13 @@ export function AgentAccountPanel({ audience = "agent", language = "en", onAuthe
 
   return <section className="agent-account-panel" aria-label={copy.accountLabel}>
     {audience !== "moderator" && audience !== "admin" && <div className="agent-account-tabs" role="tablist" aria-label={`${audience} ${feedback.accountOptions}`}><button type="button" className={mode === "signIn" ? "active" : ""} onClick={() => setMode("signIn")}>{labels.signIn}</button><button type="button" className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>{labels.createAccount}</button></div>}
-    <form className="agent-form" onSubmit={event => { event.preventDefault(); if (mode === "register") register.mutate({ name, email, password, onboarding: audience === "agent" ? { applicantType: "agent", taxpayerNumber, workProofUrl } : undefined }); else login.mutate({ email, password }); }}>
+    <form className="agent-form" onSubmit={event => { event.preventDefault(); if (!captchaToken) return; if (mode === "register") register.mutate({ name, email, password, captchaToken, onboarding: audience === "agent" ? { applicantType: "agent", taxpayerNumber, workProofUrl } : undefined }); else login.mutate({ email, password, captchaToken }); }}>
       {mode === "register" && <label>{labels.fullName}<input required value={name} onChange={event => setName(event.target.value)} autoComplete="name" placeholder={audience === "agent" ? labels.professionalName : labels.fullName} /></label>}
       {mode === "register" && audience === "agent" && <><label>{labels.taxpayerNumber}<input required value={taxpayerNumber} onChange={event => setTaxpayerNumber(event.target.value)} placeholder={labels.taxpayerPlaceholder} /></label><label>{labels.workProof}<input required type="url" value={workProofUrl} onChange={event => setWorkProofUrl(event.target.value)} placeholder={labels.workProofPlaceholder} /></label><fieldset className="identity-upload-fieldset"><legend>{labels.governmentId}</legend><p className="form-note">{labels.idUploadNote}</p>{(["front", "back", "face"] as IdentityKind[]).map(kind => <label key={kind}>{kind === "front" ? labels.idFront : kind === "back" ? labels.idBack : labels.faceView}<input required type="file" accept="image/jpeg,.jpg,.jpeg" onChange={event => chooseIdentityFile(kind, event.target.files?.[0])} /></label>)}</fieldset></>}
       <label>{labels.email}<input required type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="email" placeholder="vous@exemple.com" /></label>
       <label>{labels.password}<div className="password-field"><input required type={getPasswordInputType(passwordVisible)} minLength={mode === "register" ? 10 : 1} value={password} onChange={event => setPassword(event.target.value)} autoComplete={mode === "register" ? "new-password" : "current-password"} placeholder={mode === "register" ? labels.passwordNew : labels.passwordExisting} /><button type="button" className="password-visibility-toggle" onClick={() => setPasswordVisible(current => !current)} aria-label={passwordVisible ? `${labels.hide} ${labels.password.toLowerCase()}` : `${labels.passwordShow} ${labels.password.toLowerCase()}`} aria-pressed={passwordVisible}>{passwordVisible ? <EyeOff size={17} /> : <Eye size={17} />}<span>{passwordVisible ? labels.hide : labels.passwordShow}</span></button></div></label>
-      <button className="button-primary full-width" disabled={pending}>{pending ? labels.wait : mode === "register" ? copy.registerLabel : copy.signInLabel}</button>
+      <TurnstileChallenge language={language} onToken={setCaptchaToken} resetKey={captchaResetKey} />
+      <button className="button-primary full-width" disabled={pending || !captchaToken}>{pending ? labels.wait : mode === "register" ? copy.registerLabel : copy.signInLabel}</button>
     </form>
     <p className="form-note">{copy.note}</p>
   </section>;

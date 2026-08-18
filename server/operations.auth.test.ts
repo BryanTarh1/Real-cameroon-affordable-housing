@@ -137,6 +137,7 @@ describe("AHC seeker trust-report authorization", () => {
       listingId: "AHC-TEST-01",
       reason: "inaccurate_cost",
       note: "The requested move-in cash was materially higher than the declared total.",
+      captchaToken: "not-used-before-authentication",
     })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 });

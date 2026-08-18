@@ -97,12 +97,52 @@ import {
 } from "./db";
 import { createApproximatePoint, createWhatsAppListingLink, normalizeCameroonWhatsAppPhone, type PaidOfferType } from "../shared/ahc";
 
-/** Returns a keyed reporting-network signal for fairness review; raw network addresses are never stored. */
-function getReportNetworkFingerprint(request: { headers: { [key: string]: string | string[] | undefined }; socket: { remoteAddress?: string } }) {
-  if (!ENV.cookieSecret) return null;
+type NetworkAwareRequest = { headers: { [key: string]: string | string[] | undefined }; socket?: { remoteAddress?: string } };
+
+/** Extracts the proxy-provided client address only for Turnstile validation and keyed fairness review. */
+function getRequestIp(request: NetworkAwareRequest) {
   const forwarded = request.headers["x-forwarded-for"];
-  const candidate = (Array.isArray(forwarded) ? forwarded[0] : forwarded ?? request.socket.remoteAddress ?? "").split(",")[0].trim();
+  return (Array.isArray(forwarded) ? forwarded[0] : forwarded ?? request.socket?.remoteAddress ?? "").split(",")[0].trim() || undefined;
+}
+
+/** Returns a keyed reporting-network signal for fairness review; raw network addresses are never stored. */
+function getReportNetworkFingerprint(request: NetworkAwareRequest) {
+  if (!ENV.cookieSecret) return null;
+  const candidate = getRequestIp(request);
   return candidate ? createHmac("sha256", ENV.cookieSecret).update(candidate).digest("hex") : null;
+}
+
+type TurnstileSiteverifyResult = { success?: boolean };
+
+/**
+ * Verifies a short-lived, single-use Turnstile token at Cloudflare's server endpoint.
+ * This deliberately fails closed when the provider is unavailable or unconfigured.
+ */
+async function verifyTurnstileToken(token: string, remoteIp?: string): Promise<void> {
+  if (!ENV.turnstileSecretKey) {
+    throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Security verification is not configured." });
+  }
+
+  const body = new URLSearchParams({ secret: ENV.turnstileSecretKey, response: token });
+  if (remoteIp) body.set("remoteip", remoteIp);
+
+  let result: TurnstileSiteverifyResult;
+  try {
+    const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+      signal: AbortSignal.timeout(10_000),
+    });
+    result = await response.json() as TurnstileSiteverifyResult;
+    if (!response.ok) throw new Error("Turnstile Siteverify request was rejected.");
+  } catch {
+    throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Security verification is temporarily unavailable. Please try again." });
+  }
+
+  if (!result.success) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Security verification failed. Please complete the challenge and try again." });
+  }
 }
 
 const costsSchema = z.object({
@@ -133,6 +173,7 @@ const localAccountSchema = z.object({
   name: z.string().trim().min(2).max(100),
   email: z.string().trim().email().max(320),
   password: z.string().min(10).max(128),
+  captchaToken: z.string().min(1).max(2048),
   onboarding: z.object({
     applicantType: z.literal("agent"), taxpayerNumber: z.string().trim().min(4).max(64), governmentIdUrl: z.string().url().optional(), workProofUrl: z.string().url(),
   }).optional(),
@@ -141,6 +182,7 @@ const localAccountSchema = z.object({
 const localLoginSchema = z.object({
   email: z.string().trim().email().max(320),
   password: z.string().min(1).max(128),
+  captchaToken: z.string().min(1).max(2048),
 });
 
 const appointmentRequestSchema = z.object({
@@ -162,6 +204,7 @@ export const appRouter = router({
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     registerLocalAgent: publicProcedure.input(localAccountSchema).mutation(async ({ ctx, input }) => {
+      await verifyTurnstileToken(input.captchaToken, getRequestIp(ctx.req));
       const email = input.email.toLowerCase();
       try {
         const user = await createLocalAgentAccount({
@@ -186,12 +229,13 @@ export const appRouter = router({
     loginLocalAgent: publicProcedure.input(localLoginSchema).mutation(async ({ ctx, input }) => {
       const email = input.email.toLowerCase();
       const account = await getLocalCredentialByEmail(email);
+      if (account?.credential.lockedUntil && account.credential.lockedUntil > new Date()) {
+        throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Too many attempts. Please wait 15 minutes and try again." });
+      }
+      await verifyTurnstileToken(input.captchaToken, getRequestIp(ctx.req));
       if (!account) {
         await hashLocalPassword(input.password);
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password." });
-      }
-      if (account.credential.lockedUntil && account.credential.lockedUntil > new Date()) {
-        throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Too many attempts. Please wait 15 minutes and try again." });
       }
       if (!(await verifyLocalPassword(input.password, account.credential.passwordHash))) {
         await recordLocalLoginFailure(email);
@@ -252,7 +296,12 @@ export const appRouter = router({
       listingId: z.string().min(4).max(32),
       reason: z.enum(["inaccurate_cost", "unavailable", "misleading_details", "unofficial_fee", "unsafe_meeting", "duplicate_listing", "other"]),
       note: z.string().trim().min(10).max(800),
-    })).mutation(({ ctx, input }) => createListingReport(ensureUserId(ctx.user?.id), input.listingId, input.reason, input.note, getReportNetworkFingerprint(ctx.req))),
+      captchaToken: z.string().min(1).max(2048),
+    })).mutation(async ({ ctx, input }) => {
+      const userId = ensureUserId(ctx.user?.id);
+      await verifyTurnstileToken(input.captchaToken, getRequestIp(ctx.req));
+      return createListingReport(userId, input.listingId, input.reason, input.note, getReportNetworkFingerprint(ctx.req));
+    }),
     matchAlerts: router({
       list: protectedProcedure.query(({ ctx }) => listSeekerMatchAlertPreferences(ensureUserId(ctx.user?.id))),
       deliveries: protectedProcedure.query(({ ctx }) => listSeekerMatchAlertDeliveries(ensureUserId(ctx.user?.id))),

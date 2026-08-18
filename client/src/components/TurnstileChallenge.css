@@ -1,0 +1,25 @@
+.turnstile-challenge {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: start;
+  margin: 0.2rem 0 0.85rem;
+}
+
+.turnstile-status {
+  margin: 0;
+  color: var(--muted-foreground, #636b73);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.turnstile-error {
+  color: #a13e2b;
+}
+
+@media (max-width: 380px) {
+  .turnstile-challenge {
+    transform: scale(0.9);
+    transform-origin: left top;
+    margin-bottom: 0.25rem;
+  }
+}

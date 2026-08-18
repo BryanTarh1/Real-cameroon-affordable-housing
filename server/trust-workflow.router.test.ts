@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./db", async importOriginal => {
   const actual = await importOriginal<typeof import("./db")>();
@@ -23,6 +23,7 @@ vi.mock("./_core/localAuth", async importOriginal => {
 import * as database from "./db";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
+import { ENV } from "./_core/env";
 
 const testUser = {
   id: 412,
@@ -54,7 +55,18 @@ function protectedCaller(role: "user" | "admin" = "user") {
 }
 
 describe("AHC trust-workflow validation", () => {
-  beforeEach(() => vi.clearAllMocks());
+  const originalTurnstileSecretKey = ENV.turnstileSecretKey;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    ENV.turnstileSecretKey = "test-turnstile-secret";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ success: true }) }));
+  });
+
+  afterAll(() => {
+    ENV.turnstileSecretKey = originalTurnstileSecretKey;
+    vi.unstubAllGlobals();
+  });
 
   it("requires an Agent applicant to provide government ID and proof of work", async () => {
     const api = publicCaller();
@@ -63,6 +75,7 @@ describe("AHC trust-workflow validation", () => {
       name: "Agent Applicant",
       email: "agent-proof-missing@example.com",
       password: "Strong-password-2026",
+      captchaToken: "turnstile-token",
       onboarding: {
         applicantType: "agent",
         governmentIdUrl: "https://example.com/government-id.png",
@@ -80,6 +93,7 @@ describe("AHC trust-workflow validation", () => {
       name: "Supplier Applicant",
       email: "SUPPLIER@EXAMPLE.COM",
       password: "Strong-password-2026",
+      captchaToken: "turnstile-token",
       onboarding: {
         applicantType: "agent",
         taxpayerNumber: "CM-TAX-2026-001",

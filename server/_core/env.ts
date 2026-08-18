@@ -16,6 +16,8 @@ export const ENV = {
   whatsappTemplateLanguage: process.env.WHATSAPP_TEMPLATE_LANGUAGE ?? "en",
   whatsappWebhookVerifyToken: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN ?? "",
   whatsappAppSecret: process.env.WHATSAPP_APP_SECRET ?? "",
+  /** Cloudflare Turnstile secret; the browser receives only VITE_TURNSTILE_SITE_KEY. */
+  turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY ?? "",
   /** Canonical production link sent in the approved owner utility template. */
   publicAppUrl: process.env.AHC_PUBLIC_APP_URL ?? "https://affordableho-8aahm5dj.manus.space",
 };

@@ -701,3 +701,8 @@
 
 ## Analytics geography investigation
 - [x] Inspect the configured analytics script and available site traffic records to explain United States-labelled pageviews without treating location data as proof of genuine United States visitors. The repository confirms a proxy-hosted analytics integration but contains no raw event-level data; official provider documentation confirms that country is IP/proxy-derived and that recognised-bot filtering is not a proof that every automated request is absent. The resulting guidance is recorded in `docs/analytics-geography-investigation.md`.
+
+## Login and safety-report CAPTCHA
+- [x] Audit the current local sign-in and authenticated safety-report submission contracts, then select a privacy-conscious CAPTCHA provider with server-side verification. Cloudflare Turnstile was selected; the configured server secret was independently validated against Siteverify without exposing it in client code.
+- [x] Add required CAPTCHA completion and server verification to each sign-in and safety-report submission path without exposing provider secrets or allowing client-only bypass. Local registration and password sign-in share an accessible Turnstile widget; authenticated safety reports require an independent token; the server fails closed when the secret is absent or validation fails.
+- [x] Add disabled-provider, failed-token, expired-token, route-coverage, and protected-flow regressions; document the one-time provider credential activation step. The full suite passes with 204 tests and the production build succeeds; the provider documentation records hostname management and the preview-only `110200` recovery path.

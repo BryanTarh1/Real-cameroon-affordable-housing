@@ -195,6 +195,8 @@ const interfaceFrench: Record<string, string> = {
   "Success": "Réussi",
   "Error": "Erreur",
   "Retry": "Réessayer",
+  "Security verification failed. Please complete the challenge and try again.": "La vérification de sécurité a échoué. Veuillez terminer le contrôle et réessayer.",
+  "Security verification is not configured.": "La vérification de sécurité n’est pas configurée.",
 };
 
 const orderedEnglishTerms = Object.keys(interfaceFrench).sort((left, right) => right.length - left.length);
