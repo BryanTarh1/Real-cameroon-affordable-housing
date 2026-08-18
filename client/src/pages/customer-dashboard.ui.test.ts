@@ -36,6 +36,13 @@ describe("customer dashboard and payment feedback", () => {
     expect(dashboard).toContain("AHC does not send email alerts until a delivery provider is configured");
   });
 
+  it("lets a customer clear their picture back to the blank default avatar", () => {
+    expect(dashboard).toContain("trpc.account.removeProfileImage.useMutation");
+    expect(dashboard).toContain("Remove picture");
+    expect(dashboard).toContain("Blank profile picture");
+    expect(dashboard).toContain("blank default avatar");
+  });
+
   it("labels the checkout simulator as no-charge testing and covers pending, success, and retry feedback", () => {
     expect(dashboard).toContain("TEST ONLY");
     expect(dashboard).toContain("never contacts a payment provider, charges a payment method, or creates an AHC order");

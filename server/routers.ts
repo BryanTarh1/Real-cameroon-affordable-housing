@@ -30,6 +30,7 @@ import {
   getAgentOfficialServiceReceipt,
   getAgentProfile,
   getCustomerDashboard,
+  clearCustomerProfileImageKey,
   listCustomerBrowsingHistory,
   getAgentQualityDashboard,
   getAgentIdentityStatus,
@@ -217,6 +218,7 @@ export const appRouter = router({
 
   account: router({
     dashboard: protectedProcedure.query(({ ctx }) => getCustomerDashboard(ensureUserId(ctx.user?.id))),
+    removeProfileImage: protectedProcedure.mutation(({ ctx }) => clearCustomerProfileImageKey(ensureUserId(ctx.user?.id))),
     updateDisplayName: protectedProcedure.input(z.object({ name: z.string().trim().min(2).max(100) }))
       .mutation(({ ctx, input }) => updateCustomerDisplayName(ensureUserId(ctx.user?.id), input.name)),
     browsingHistory: protectedProcedure.query(({ ctx }) => listCustomerBrowsingHistory(ensureUserId(ctx.user?.id))),

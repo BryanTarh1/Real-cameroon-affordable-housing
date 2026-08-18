@@ -21,4 +21,10 @@ describe("Customer profile-picture storage boundary", () => {
     expect(source).toContain("getCustomerProfileImageUrl(userId)");
     expect(source).toContain("/manus-storage/${account.profileImageStorageKey}");
   });
+
+  it("permits a customer-owned blank state by clearing only their stored avatar reference", () => {
+    const source = readFileSync(resolve(process.cwd(), "server/db.ts"), "utf8");
+    expect(source).toContain("clearCustomerProfileImageKey(userId: number)");
+    expect(source).toContain("profileImageStorageKey: null");
+  });
 });

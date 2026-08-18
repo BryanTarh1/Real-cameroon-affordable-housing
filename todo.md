@@ -638,3 +638,7 @@
 ## Clean-link authorization security review
 - [x] Conduct a controlled, non-destructive audit of anonymous, cross-role, legacy-link, direct-request, and object-ownership authorization boundaries for the new browser-path routes.
 - [x] Remediate any verified authorization bypasses, add regression coverage, validate the fixes, and checkpoint the security review. The audit found and closed a private-storage proxy bypass, and it added server-side Agent API role enforcement. Anonymous clean-path checks redirect safely; TypeScript, 157 tests, and the production build pass.
+
+## Profile-picture removal
+- [x] Allow a customer to remove their profile picture and restore a blank/default avatar state without affecting another account.
+- [x] Add ownership and UI regression coverage for avatar removal, then validate and checkpoint the change. Focused and full validation pass: 160 tests and the production build succeed. Signed-out desktop/mobile dashboard checks preserve the protected-route redirect; authenticated blank-avatar behavior is covered by dashboard UI and ownership regressions.

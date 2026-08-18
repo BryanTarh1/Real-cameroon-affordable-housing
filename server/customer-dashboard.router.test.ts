@@ -6,6 +6,7 @@ vi.mock("./db", async importOriginal => {
     ...actual,
     getCustomerDashboard: vi.fn(),
     updateCustomerDisplayName: vi.fn(),
+    clearCustomerProfileImageKey: vi.fn(),
     listCustomerBrowsingHistory: vi.fn(),
     updateCustomerNotificationPreferences: vi.fn(),
     recordListingView: vi.fn(),
@@ -53,6 +54,13 @@ describe("AHC customer dashboard", () => {
     await expect(caller().account.updateDisplayName({ name: "Updated Customer" })).resolves.toMatchObject({ name: "Updated Customer" });
     expect(database.updateCustomerDisplayName).toHaveBeenCalledWith(customer.id, "Updated Customer");
     await expect(caller().account.updateDisplayName({ name: "X" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("clears only the signed-in customer's avatar reference and rejects anonymous requests", async () => {
+    vi.mocked(database.clearCustomerProfileImageKey).mockResolvedValue(null);
+    await expect(caller().account.removeProfileImage()).resolves.toBeNull();
+    expect(database.clearCustomerProfileImageKey).toHaveBeenCalledWith(customer.id);
+    await expect(caller(null as never).account.removeProfileImage()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 
   it("keeps browsing history and recorded listing opens scoped to the signed-in customer", async () => {

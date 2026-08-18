@@ -305,6 +305,14 @@ export async function getCustomerProfileImageUrl(userId: number) {
   return account?.profileImageStorageKey ? `/manus-storage/${account.profileImageStorageKey}` : null;
 }
 
+/** Clears only the signed-in customer's avatar reference; the stored object remains private and harmless if retained. */
+export async function clearCustomerProfileImageKey(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  await db.update(users).set({ profileImageStorageKey: null, updatedAt: new Date() }).where(eq(users.id, userId));
+  return null;
+}
+
 /** Records an authenticated customer's open event for a currently fresh public listing. */
 export async function recordListingView(seekerUserId: number, listingId: string) {
   const isFreshPublicListing = (await listFreshPublicListings()).some((listing) => listing.id === listingId);
