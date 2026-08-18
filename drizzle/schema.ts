@@ -128,7 +128,7 @@ export const platformSettings = mysqlTable("platform_settings", {
 /** Immutable record of administrator actions affecting trust, access, or commercial rules. */
 export const adminAuditEvents = mysqlTable("admin_audit_events", {
   id: int("id").autoincrement().primaryKey(),
-  action: mysqlEnum("action", ["settings_updated", "user_banned", "user_unbanned", "role_changed", "onboarding_reviewed"]).notNull(),
+  action: mysqlEnum("action", ["settings_updated", "user_banned", "user_unbanned", "role_changed", "onboarding_reviewed", "trust_report_reviewed"]).notNull(),
   actorUserId: int("actorUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
   targetUserId: int("targetUserId").references(() => users.id, { onDelete: "set null" }),
   details: text("details").notNull(),
@@ -513,6 +513,22 @@ export const reports = mysqlTable("reports", {
 }, (table) => [
   index("reports_listing_idx").on(table.listingId, table.status),
   uniqueIndex("reports_distinct_reporter_idx").on(table.listingId, table.reporterUserId),
+]);
+
+/**
+ * Reporter-owned acknowledgement that an authorised Admin has completed a review.
+ * It intentionally contains no staff notes, evidence, enforcement rationale, or other-party data.
+ */
+export const reportReviewUpdates = mysqlTable("report_review_updates", {
+  id: int("id").autoincrement().primaryKey(),
+  reportId: int("reportId").notNull().references(() => reports.id, { onDelete: "cascade" }),
+  recipientUserId: int("recipientUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  reviewedAt: timestamp("reviewedAt").notNull(),
+  readAt: timestamp("readAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("report_review_updates_report_idx").on(table.reportId),
+  index("report_review_updates_recipient_idx").on(table.recipientUserId, table.createdAt),
 ]);
 
 /**

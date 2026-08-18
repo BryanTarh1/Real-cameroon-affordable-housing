@@ -21,6 +21,7 @@ import {
   paymentOrders,
   platformSettings,
   reports,
+  reportReviewUpdates,
   duplicateListingReviews,
   seekerMatchAlertPreferences,
   savedListings,
@@ -243,10 +244,11 @@ export async function getUserById(userId: number) {
 
 /** Returns only the authenticated customer's own account and AHC platform-service orders. */
 export async function getCustomerDashboard(userId: number) {
-  const [account, orders, favourites] = await Promise.all([
+  const [account, orders, favourites, reportUpdates] = await Promise.all([
     getUserById(userId),
     listAgentPaymentOrders(userId),
     listSeekerSavedListings(userId),
+    listSeekerReportReviewUpdates(userId),
   ]);
   const profileImageUrl = account?.profileImageStorageKey ? `/manus-storage/${account.profileImageStorageKey}` : null;
   return {
@@ -264,7 +266,38 @@ export async function getCustomerDashboard(userId: number) {
     } : null,
     orders,
     favourites,
+    reportUpdates,
   };
+}
+
+/** Returns only the signed-in reporter's own completed-review acknowledgements. */
+export async function listSeekerReportReviewUpdates(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: reportReviewUpdates.id,
+    reportId: reportReviewUpdates.reportId,
+    reason: reports.reason,
+    listingTitle: listings.title,
+    reviewedAt: reportReviewUpdates.reviewedAt,
+    readAt: reportReviewUpdates.readAt,
+  }).from(reportReviewUpdates)
+    .innerJoin(reports, eq(reports.id, reportReviewUpdates.reportId))
+    .innerJoin(listings, eq(listings.id, reports.listingId))
+    .where(eq(reportReviewUpdates.recipientUserId, userId))
+    .orderBy(desc(reportReviewUpdates.reviewedAt));
+}
+
+/** Marks one reporter-owned review update as read; no cross-account access is permitted. */
+export async function markSeekerReportReviewUpdateRead(userId: number, updateId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const result = await db.update(reportReviewUpdates).set({ readAt: new Date() }).where(and(
+    eq(reportReviewUpdates.id, updateId),
+    eq(reportReviewUpdates.recipientUserId, userId),
+  ));
+  if (result[0].affectedRows !== 1) throw new Error("Review update not found.");
+  return { success: true };
 }
 
 /** Customer profile editing is intentionally restricted to a display name; login email and role remain protected. */
@@ -1547,6 +1580,38 @@ export async function listAdminTrustReports() {
   });
 }
 
+/**
+ * Completes one Admin review and creates a generic acknowledgement for its reporter.
+ * The acknowledgement confirms only that review occurred; staff notes, evidence,
+ * sanctions, other reporters, and enforcement outcomes remain private.
+ */
+export async function resolveTrustReport(operatorUserId: number, reportId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async (tx) => {
+    const report = (await tx.select({ id: reports.id, reporterUserId: reports.reporterUserId, status: reports.status })
+      .from(reports).where(eq(reports.id, reportId)).limit(1))[0];
+    if (!report) throw new Error("Trust report not found.");
+    if (report.status !== "open") throw new Error("This trust report has already been reviewed.");
+    const reviewedAt = new Date();
+    await tx.update(reports).set({ status: "resolved" }).where(eq(reports.id, reportId));
+    if (report.reporterUserId) {
+      await tx.insert(reportReviewUpdates).values({
+        reportId,
+        recipientUserId: report.reporterUserId,
+        reviewedAt,
+      });
+    }
+    await tx.insert(adminAuditEvents).values({
+      action: "trust_report_reviewed",
+      actorUserId: operatorUserId,
+      targetUserId: report.reporterUserId,
+      details: `Trust report #${reportId} reviewed; a reporter-owned status update was ${report.reporterUserId ? "recorded" : "not possible because the reporter account was deleted"}.`,
+    });
+    return { success: true, reporterNotified: Boolean(report.reporterUserId) };
+  });
+}
+
 /** Reopens a safety-held listing only after documented Admin review; all currently open reports are resolved together. */
 export async function releaseListingSafetyHold(operatorUserId: number, listingId: string, reason: string) {
   const db = await getDb();
@@ -1564,8 +1629,18 @@ export async function releaseListingSafetyHold(operatorUserId: number, listingId
       lastReconfirmed: now,
       freshnessWindowDays: FRESHNESS_WINDOW_DAYS,
     }).where(eq(listings.id, listingId));
+    const openReports = await tx.select({ id: reports.id, reporterUserId: reports.reporterUserId })
+      .from(reports).where(and(eq(reports.listingId, listingId), eq(reports.status, "open")));
     await tx.update(reports).set({ status: "resolved" })
       .where(and(eq(reports.listingId, listingId), eq(reports.status, "open")));
+    const reporterUpdates = openReports.filter((report): report is { id: number; reporterUserId: number } => report.reporterUserId !== null)
+      .map(report => ({ reportId: report.id, recipientUserId: report.reporterUserId, reviewedAt: now }));
+    if (reporterUpdates.length) await tx.insert(reportReviewUpdates).values(reporterUpdates);
+    await tx.insert(adminAuditEvents).values({
+      action: "trust_report_reviewed",
+      actorUserId: operatorUserId,
+      details: `Safety hold release resolved ${openReports.length} trust report(s); reporter-owned review updates were recorded where accounts remained available.`,
+    });
     await tx.insert(listingReviewEvents).values({
       listingId,
       action: "released",

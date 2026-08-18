@@ -98,6 +98,7 @@ function Router() {
       <Route path="/homes" component={MarketplaceRoute} />
       <Route path="/agent" component={AgentOnboardingRoute} />
       <Route path="/dashboard" component={CustomerDashboardRoute} />
+      <Route path="/account" component={CustomerDashboardRoute} />
       <Route path="/property/:listingId" component={SharedPropertyRoute} />
       <Route path="/admin" component={AdminRoute} />
       <Route path="/operations" component={OperationsRoute} />

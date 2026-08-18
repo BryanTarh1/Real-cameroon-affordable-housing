@@ -31,6 +31,7 @@ import {
   getAgentProfile,
   getCustomerDashboard,
   clearCustomerProfileImageKey,
+  markSeekerReportReviewUpdateRead,
   listCustomerBrowsingHistory,
   getAgentQualityDashboard,
   getAgentIdentityStatus,
@@ -71,6 +72,7 @@ import {
   reconfirmViewingAppointmentAvailability,
   reconcilePaymentOrder,
   releaseListingSafetyHold,
+  resolveTrustReport,
   recordLocalLoginFailure,
   removeSeekerSavedListing,
   requestViewingSlot,
@@ -219,6 +221,8 @@ export const appRouter = router({
 
   account: router({
     dashboard: protectedProcedure.query(({ ctx }) => getCustomerDashboard(ensureUserId(ctx.user?.id))),
+    markReportReviewUpdateRead: protectedProcedure.input(z.object({ updateId: z.number().int().positive() }))
+      .mutation(({ ctx, input }) => markSeekerReportReviewUpdateRead(ensureUserId(ctx.user?.id), input.updateId)),
     removeProfileImage: protectedProcedure.mutation(({ ctx }) => clearCustomerProfileImageKey(ensureUserId(ctx.user?.id))),
     updateDisplayName: protectedProcedure.input(z.object({ name: z.string().trim().min(2).max(100) }))
       .mutation(({ ctx, input }) => updateCustomerDisplayName(ensureUserId(ctx.user?.id), input.name)),
@@ -479,6 +483,8 @@ export const appRouter = router({
     approveHeldCommission: adminProcedure.input(z.object({ commissionId: z.number().int().positive(), evidenceReviewNote: z.string().trim().min(12).max(1_200) }))
       .mutation(({ ctx, input }) => approveHeldCommission(ensureUserId(ctx.user?.id), input.commissionId, input.evidenceReviewNote)),
     trustReports: adminProcedure.query(() => listAdminTrustReports()),
+    resolveTrustReport: adminProcedure.input(z.object({ reportId: z.number().int().positive() }))
+      .mutation(({ ctx, input }) => resolveTrustReport(ensureUserId(ctx.user?.id), input.reportId)),
     ownerAlertProvider: adminProcedure.query(() => getOwnerAlertProviderStatus()),
     ownerAlerts: adminProcedure.input(z.object({ limit: z.number().int().min(1).max(100).default(50) }).optional())
       .query(({ input }) => listOwnerAlerts(input?.limit ?? 50)),
