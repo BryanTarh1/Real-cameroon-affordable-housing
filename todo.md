@@ -642,3 +642,14 @@
 ## Profile-picture removal
 - [x] Allow a customer to remove their profile picture and restore a blank/default avatar state without affecting another account.
 - [x] Add ownership and UI regression coverage for avatar removal, then validate and checkpoint the change. Focused and full validation pass: 160 tests and the production build succeed. Signed-out desktop/mobile dashboard checks preserve the protected-route redirect; authenticated blank-avatar behavior is covered by dashboard UI and ownership regressions.
+
+## Trust-first marketplace upgrade
+- [ ] Preserve clearly labelled test listings until real listing status, evidence, freshness, and moderation workflows are live-tested.
+- [x] Improve the protected property-details experience with complete, data-backed listing information and a clear viewing-request action.
+- [x] Add reliable discovery filters for property type, bedrooms, furnished status, monthly rent, Total Move-In Cash, availability, verified status, and neighbourhood.
+- [x] Strengthen report reasons and moderation review without automatic punishment based solely on report volume.
+- [x] Standardise the viewing-request lifecycle around Requested, Agent responded, Viewing scheduled, Viewing completed, and Cancelled, with safe meeting and reminder information.
+- [x] Consolidate renter dashboard tools, add objective agent trust signals, and introduce stored saved-search alerts without implying unconfigured email or WhatsApp delivery.
+- [x] Add ownership, authorization, desktop/mobile, and regression validation for the marketplace upgrade, then checkpoint it. Desktop and mobile verification: expanded public discovery filters render correctly, and anonymous access to `/dashboard` safely returns to public content. Authenticated renter-dashboard behavior is covered by UI and ownership regressions. Full TypeScript/build validation and 163 tests pass.
+
+- [x] Add a persisted furnished-status field and reliable public discovery filter so the trust-first discovery checklist is complete without inferring listing details.

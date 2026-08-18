@@ -27,7 +27,7 @@ function callerFor(user: typeof agent | typeof moderator | typeof admin) {
 }
 
 const submission = {
-  title: "Studio near Rond Point Nlongkak", city: "Yaoundé" as const, neighborhood: "Nlongkak", landmark: "Near Rond Point Nlongkak", propertyType: "Studio", availableFrom: "2026-08-21", landmarkLatitude: 3.871, landmarkLongitude: 11.515, mapRadiusM: 300,
+  title: "Studio near Rond Point Nlongkak", city: "Yaoundé" as const, neighborhood: "Nlongkak", landmark: "Near Rond Point Nlongkak", propertyType: "Studio", furnishingStatus: "unfurnished" as const, availableFrom: "2026-08-21", landmarkLatitude: 3.871, landmarkLongitude: 11.515, mapRadiusM: 300,
   costs: { monthlyRent: 55_000, advanceMonths: 2, securityDeposit: 0, agencyFee: 10_000, serviceFee: 0, firstMonthUtilities: 5_000 },
 };
 

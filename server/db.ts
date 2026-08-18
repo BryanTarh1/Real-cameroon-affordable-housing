@@ -622,6 +622,11 @@ export type PublicListingFilters = {
   maxMonthlyRent?: number;
   maxMoveInCash?: number;
   verification?: "any" | "physical_verified";
+  propertyType?: string;
+  furnishingStatus?: "any" | "unfurnished" | "partly_furnished" | "fully_furnished" | "not_stated";
+  neighborhood?: string;
+  minBedrooms?: number;
+  availability?: "any" | "available_now";
 };
 
 function mapListing(row: any) {
@@ -640,6 +645,7 @@ function mapListing(row: any) {
     neighborhood: row.neighborhood,
     landmark: row.landmark,
     propertyType: row.propertyType,
+    furnishingStatus: row.furnishingStatus,
     bedrooms: row.bedrooms,
     householdFit: row.householdFit,
     availableFrom: row.availableFrom,
@@ -682,7 +688,7 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
   const cutoff = new Date(Date.now() - FRESHNESS_WINDOW_DAYS * 24 * 60 * 60 * 1000);
   const rows = await db.select({
     id: listings.id, title: listings.title, city: listings.city, neighborhood: listings.neighborhood,
-    landmark: listings.landmark, propertyType: listings.propertyType, bedrooms: listings.bedrooms, householdFit: listings.householdFit,
+    landmark: listings.landmark, propertyType: listings.propertyType, furnishingStatus: listings.furnishingStatus, bedrooms: listings.bedrooms, householdFit: listings.householdFit,
     availableFrom: listings.availableFrom, lastReconfirmed: listings.lastReconfirmed,
     publicLatitude: listings.publicLatitude, publicLongitude: listings.publicLongitude, mapRadiusM: listings.mapRadiusM,
     isFeatured: listings.isFeatured, featuredUntil: listings.featuredUntil, verificationStatus: listings.verificationStatus,
@@ -717,6 +723,11 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
     if (filters.maxMonthlyRent && listing.costs.monthlyRent > filters.maxMonthlyRent) return false;
     if (filters.maxMoveInCash && listing.costs.totalMoveInCashRequired > filters.maxMoveInCash) return false;
     if (filters.verification === "physical_verified" && listing.verificationStatus !== "physical_verified") return false;
+    if (filters.propertyType && filters.propertyType !== "Any type" && listing.propertyType !== filters.propertyType) return false;
+    if (filters.furnishingStatus && filters.furnishingStatus !== "any" && listing.furnishingStatus !== filters.furnishingStatus) return false;
+    if (filters.neighborhood && !listing.neighborhood.toLowerCase().includes(filters.neighborhood.trim().toLowerCase())) return false;
+    if (filters.minBedrooms && listing.bedrooms < filters.minBedrooms) return false;
+    if (filters.availability === "available_now" && new Date(listing.availableFrom).getTime() > Date.now()) return false;
     if (needle && !`${listing.title} ${listing.city} ${listing.neighborhood} ${listing.landmark} ${listing.propertyType}`.toLowerCase().includes(needle)) return false;
     return true;
   });
@@ -1191,6 +1202,7 @@ export type CreateListingInput = {
   agentUserId: number;
   agentNameSnapshot: string;
   title: string; city: string; neighborhood: string; landmark: string; propertyType: string;
+  furnishingStatus: "unfurnished" | "partly_furnished" | "fully_furnished";
   householdFit?: string; availableFrom: string; publicLatitude: number; publicLongitude: number; mapRadiusM: number;
   costs: { monthlyRent: number; advanceMonths: number; securityDeposit: number; agencyFee: number; serviceFee: number; firstMonthUtilities: number };
 };
@@ -1228,7 +1240,7 @@ export async function createListing(input: CreateListingInput) {
     if (!isPro && !credit) throw new Error("Your Welcome Bundle or Starter Access includes five listing credits. Reconcile a qualifying plan before submitting a new listing.");
     await tx.insert(listings).values({
       id, title: input.title, city: input.city, neighborhood: input.neighborhood, landmark: input.landmark,
-      propertyType: input.propertyType, householdFit: input.householdFit ?? null, availableFrom: new Date(input.availableFrom),
+      propertyType: input.propertyType, furnishingStatus: input.furnishingStatus, householdFit: input.householdFit ?? null, availableFrom: new Date(input.availableFrom),
       status: "under_review", agentUserId: input.agentUserId, agentNameSnapshot: input.agentNameSnapshot,
       publicLatitude: String(input.publicLatitude), publicLongitude: String(input.publicLongitude), mapRadiusM: input.mapRadiusM,
     });
@@ -1422,7 +1434,7 @@ export async function createPromotionRequest(userId: number, listingId: string) 
   return createPaymentOrder(userId, "featured_pin", listingId);
 }
 
-export type ListingReportReason = "inaccurate_cost" | "unavailable" | "misleading_details" | "unofficial_fee" | "other";
+export type ListingReportReason = "inaccurate_cost" | "unavailable" | "misleading_details" | "unofficial_fee" | "unsafe_meeting" | "duplicate_listing" | "other";
 
 export function shouldApplyListingSafetyHold(reason: ListingReportReason, matchingOpenReportCount: number) {
   return (reason === "inaccurate_cost" || reason === "unavailable") && matchingOpenReportCount >= 3;

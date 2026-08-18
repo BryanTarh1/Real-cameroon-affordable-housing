@@ -146,6 +146,8 @@ export const listings = mysqlTable("listings", {
   neighborhood: varchar("neighborhood", { length: 100 }).notNull(),
   landmark: text("landmark").notNull(),
   propertyType: varchar("propertyType", { length: 50 }).notNull(),
+  /** A declaration, never an inferred amenity claim. Existing records remain explicitly not stated. */
+  furnishingStatus: mysqlEnum("furnishingStatus", ["not_stated", "unfurnished", "partly_furnished", "fully_furnished"]).default("not_stated").notNull(),
   bedrooms: int("bedrooms").default(0).notNull(),
   householdFit: varchar("householdFit", { length: 80 }),
   availableFrom: date("availableFrom").notNull(),
@@ -504,7 +506,7 @@ export const reports = mysqlTable("reports", {
   reporterUserId: int("reporterUserId").references(() => users.id, { onDelete: "set null" }),
   /** Keyed server-side fingerprint for clustered-report review; raw IP addresses are never retained. */
   reporterNetworkFingerprint: varchar("reporterNetworkFingerprint", { length: 96 }),
-  reason: mysqlEnum("reason", ["inaccurate_cost", "unavailable", "misleading_details", "unofficial_fee", "other"]).default("other").notNull(),
+  reason: mysqlEnum("reason", ["inaccurate_cost", "unavailable", "misleading_details", "unofficial_fee", "unsafe_meeting", "duplicate_listing", "other"]).default("other").notNull(),
   note: text("note").notNull(),
   status: mysqlEnum("status", ["open", "resolved"]).default("open").notNull(),
   filedAt: timestamp("filedAt").defaultNow().notNull(),

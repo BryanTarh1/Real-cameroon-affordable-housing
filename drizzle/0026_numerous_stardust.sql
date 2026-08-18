@@ -1,0 +1,1 @@
+ALTER TABLE `listings` ADD `furnishingStatus` enum('not_stated','unfurnished','partly_furnished','fully_furnished') DEFAULT 'not_stated' NOT NULL;

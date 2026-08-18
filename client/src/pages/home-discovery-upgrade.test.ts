@@ -55,7 +55,9 @@ describe("French discovery and media-first property flow", () => {
   it("localizes the remaining public discovery currency and appointment-status surfaces", () => {
     expect(walkthroughRail).toContain('language === "fr" ? "fr-FR" : "en-US"');
     expect(appointments).toContain("function appointmentStatusLabel");
-    expect(appointments).toContain('requested: "Demandée"');
+    expect(appointments).toContain('requested: "Demandée — en attente de l’Agent"');
+    expect(appointments).toContain('Agent responded — viewing scheduled');
+    expect(appointments).toContain('Never send rent, a deposit, or tenancy funds through this request.');
   });
 
   it("keeps budget guidance, price changes, and low-data choice in the public discovery workflow", () => {

@@ -176,6 +176,20 @@
       "when": 1786977317555,
       "tag": "0024_opposite_warhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "5",
+      "when": 1787040371580,
+      "tag": "0025_skinny_praxagora",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "5",
+      "when": 1787041629345,
+      "tag": "0026_numerous_stardust",
+      "breakpoints": true
     }
   ]
 }

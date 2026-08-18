@@ -42,6 +42,7 @@ const submission = {
   neighborhood: "Mvog-Mbi",
   landmark: "Near Carrefour Mvog-Mbi",
   propertyType: "One-bedroom",
+  furnishingStatus: "unfurnished" as const,
   availableFrom: "2026-08-20",
   landmarkLatitude: 3.848,
   landmarkLongitude: 11.502,

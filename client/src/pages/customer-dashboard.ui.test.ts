@@ -43,6 +43,13 @@ describe("customer dashboard and payment feedback", () => {
     expect(dashboard).toContain("blank default avatar");
   });
 
+  it("consolidates saved-search alerts and private viewing requests without implying unconfigured delivery", () => {
+    expect(dashboard).toContain("Saved searches and viewing requests");
+    expect(dashboard).toContain("<SeekerMatchAlerts isAuthenticated={Boolean(user)} language=\"en\" />");
+    expect(dashboard).toContain("<SeekerAppointmentHistory isAuthenticated={Boolean(user)} language=\"en\" />");
+    expect(dashboard).toContain("will not imply live email or WhatsApp delivery until a provider is configured");
+  });
+
   it("labels the checkout simulator as no-charge testing and covers pending, success, and retry feedback", () => {
     expect(dashboard).toContain("TEST ONLY");
     expect(dashboard).toContain("never contacts a payment provider, charges a payment method, or creates an AHC order");

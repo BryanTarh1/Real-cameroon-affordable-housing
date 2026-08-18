@@ -118,6 +118,7 @@ const listingSubmissionSchema = z.object({
   neighborhood: z.string().trim().min(2).max(100),
   landmark: z.string().trim().min(5).max(500),
   propertyType: z.string().trim().min(2).max(50),
+  furnishingStatus: z.enum(["unfurnished", "partly_furnished", "fully_furnished"]),
   householdFit: z.string().trim().max(80).optional(),
   availableFrom: z.string().date(),
   landmarkLatitude: z.number().min(2).max(5),
@@ -237,13 +238,15 @@ export const appRouter = router({
       city: z.string().optional(), search: z.string().trim().max(120).optional(),
       maxMonthlyRent: z.number().int().positive().optional(), maxMoveInCash: z.number().int().positive().optional(),
       verification: z.enum(["any", "physical_verified"]).default("any"),
+      propertyType: z.string().trim().max(80).optional(), furnishingStatus: z.enum(["any", "not_stated", "unfurnished", "partly_furnished", "fully_furnished"]).default("any"), neighborhood: z.string().trim().max(100).optional(),
+      minBedrooms: z.number().int().min(0).max(20).optional(), availability: z.enum(["any", "available_now"]).default("any"),
     }).optional()).query(async ({ input }) => listFreshPublicListings(input ?? {})),
     getContact: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) })).query(({ input }) => ({
       redirectUrl: `/api/listings/${encodeURIComponent(input.listingId)}/whatsapp`,
     })),
     report: protectedProcedure.input(z.object({
       listingId: z.string().min(4).max(32),
-      reason: z.enum(["inaccurate_cost", "unavailable", "misleading_details", "unofficial_fee", "other"]),
+      reason: z.enum(["inaccurate_cost", "unavailable", "misleading_details", "unofficial_fee", "unsafe_meeting", "duplicate_listing", "other"]),
       note: z.string().trim().min(10).max(800),
     })).mutation(({ ctx, input }) => createListingReport(ensureUserId(ctx.user?.id), input.listingId, input.reason, input.note, getReportNetworkFingerprint(ctx.req))),
     matchAlerts: router({
@@ -330,7 +333,7 @@ export const appRouter = router({
       try {
         id = await createListing({
           agentUserId: userId, agentNameSnapshot: profile.publicName, title: input.title, city: input.city,
-          neighborhood: input.neighborhood, landmark: input.landmark, propertyType: input.propertyType,
+          neighborhood: input.neighborhood, landmark: input.landmark, propertyType: input.propertyType, furnishingStatus: input.furnishingStatus,
           householdFit: input.householdFit, availableFrom: input.availableFrom, publicLatitude: point.latitude,
           publicLongitude: point.longitude, mapRadiusM: point.radiusM, costs: input.costs,
         });

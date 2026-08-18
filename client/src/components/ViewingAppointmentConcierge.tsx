@@ -20,8 +20,8 @@ function defaultDateTime(hoursAhead: number) {
 
 function appointmentStatusLabel(status: string, language: PublicLanguage) {
   const labels = language === "fr"
-    ? { requested: "Demandée", confirmed: "Confirmée", cancelled: "Annulée", declined: "Refusée" }
-    : { requested: "Requested", confirmed: "Confirmed", cancelled: "Cancelled", declined: "Declined" };
+    ? { requested: "Demandée — en attente de l’Agent", confirmed: "Réponse de l’Agent — visite programmée", completed: "Visite terminée", cancelled: "Annulée", declined: "Refusée" }
+    : { requested: "Requested — awaiting Agent", confirmed: "Agent responded — viewing scheduled", completed: "Viewing completed", cancelled: "Cancelled", declined: "Declined" };
   return labels[status as keyof typeof labels] ?? status;
 }
 
@@ -60,6 +60,7 @@ export function ViewingAppointmentRequest({ listing, language }: { listing: List
       <div className="two-fields"><label>{text(language, "contactRoute")}<select value={contactPreference} onChange={event => setContactPreference(event.target.value as typeof contactPreference)}><option value="whatsapp">WhatsApp</option><option value="phone">{text(language, "phoneCall")}</option></select></label><label>{interpolate(text(language, "yourNumber"), { route: contactPreference === "whatsapp" ? "WhatsApp" : text(language, "phoneCall") })}<input required minLength={8} maxLength={20} value={privateContact} onChange={event => setPrivateContact(event.target.value)} placeholder="+237 6XX XXX XXX" /></label></div>
       <label>{text(language, "noteAgent")} <small>({text(language, "optional")})</small><textarea maxLength={500} value={seekerNote} onChange={event => setSeekerNote(event.target.value)} placeholder={text(language, "notePlaceholder")} /></label>
       <div className="appointment-privacy"><LockKeyhole size={15} /><span>{text(language, "appointmentPrivacy")}</span></div>
+      <div className="appointment-privacy"><LockKeyhole size={15} /><span>{language === "fr" ? "Sécurité : convenez d’un point de rencontre près d’un repère public. N’envoyez jamais de loyer, de caution ou de fonds de location par cette demande." : "Safety: agree a meeting point near a public landmark. Never send rent, a deposit, or tenancy funds through this request."}</span></div>
       <button className="button-primary" disabled={request.isPending}>{request.isPending ? text(language, "sendingRequest") : text(language, "requestViewing")}</button>
     </form>}
   </section>;
