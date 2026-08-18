@@ -660,3 +660,6 @@
 
 ## Developer-tools reference guide
 - [x] Create a Word guide that classifies the developer and operational tools shared by the owner, explains safe step-by-step use, and prioritises their relevance to Affordable Housing Cameroon.
+
+## Independent continuation handover
+- [x] Document how the owner can continue developing, hosting, securing, and operating AHC outside Manus, including the required replacements for managed services and scheduled jobs.
