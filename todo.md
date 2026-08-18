@@ -653,3 +653,7 @@
 - [x] Add ownership, authorization, desktop/mobile, and regression validation for the marketplace upgrade, then checkpoint it. Desktop and mobile verification: expanded public discovery filters render correctly, and anonymous access to `/dashboard` safely returns to public content. Authenticated renter-dashboard behavior is covered by UI and ownership regressions. Full TypeScript/build validation and 163 tests pass.
 
 - [x] Add a persisted furnished-status field and reliable public discovery filter so the trust-first discovery checklist is complete without inferring listing details.
+
+## Media-first public discovery refinement
+- [x] Make verified walkthrough videos and listing imagery the dominant public browsing surface while retaining a continuously prominent Total Move-In Cash figure.
+- [x] Add responsive and regression validation for the media-first listing experience, then checkpoint the refinement. Full suite: 165 tests pass; production build and desktop/mobile visual reviews pass.
