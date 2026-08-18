@@ -81,7 +81,7 @@ function ListingDetail({ listing, onClose, language, isAuthenticated }: { listin
   const walkthrough = publicWalkthroughForDetail(listing.walkthrough);
   const isNonProductionFixture = listing.title.startsWith("TEST DATA");
   const recordView = trpc.account.recordView.useMutation();
-  const reportMutation = trpc.marketplace.report.useMutation({ onSuccess: result => toast.success("Report received", { description: result.automaticSafetyAction ? "This listing has been placed on a safety hold for Admin review." : "AHC operations will review the reported terms." }) });
+  const reportMutation = trpc.marketplace.report.useMutation({ onSuccess: result => toast.success("Report received", { description: result.priorityReviewRequired ? "This report has been escalated for priority Admin review. No decision has been made yet." : "AHC operations will review the reported terms." }) });
   const [reporting, setReporting] = useState(false);
   const [note, setNote] = useState("");
   const [privateContact, setPrivateContact] = useState("");

@@ -630,6 +630,7 @@ export type PublicListingFilters = {
 };
 
 function mapListing(row: any) {
+  const verificationStatus = getEffectivePublicVerificationStatus(row.verificationStatus, row.verificationExpiresAt);
   const costs = {
     monthlyRent: Number(row.monthlyRent),
     advanceMonths: Number(row.advanceMonths),
@@ -653,7 +654,7 @@ function mapListing(row: any) {
     supplyCapacity: row.supplyCapacity,
     map: { latitude: Number(row.publicLatitude), longitude: Number(row.publicLongitude), radiusM: row.mapRadiusM },
     featured: Boolean(row.isFeatured) && (!row.featuredUntil || new Date(row.featuredUntil) > new Date()),
-    verificationStatus: row.verificationStatus,
+    verificationStatus,
     photosCount: row.photosCount,
     walkthrough: row.walkthroughUrl && row.walkthroughStatus === "published" ? {
       url: row.walkthroughUrl,
@@ -670,7 +671,7 @@ function mapListing(row: any) {
       assessedAt: row.assessedAt,
     } : null,
     trust: {
-      guaranteedTotalCash: row.verificationStatus === "physical_verified" && !Boolean(row.hasOpenPricingConcern),
+      guaranteedTotalCash: verificationStatus === "physical_verified" && !Boolean(row.hasOpenPricingConcern),
       guaranteeRule: "The itemized total is protected while this verified listing is active. Report any added platform or dossier fee before paying.",
       badges: [
         ...(!Boolean(row.hasOpenPricingConcern) ? [{ code: "price_transparent", label: "Price-transparent record" }] : []),
@@ -680,6 +681,17 @@ function mapListing(row: any) {
     agent: { name: row.publicName ?? row.agentNameSnapshot, whatsappPhone: row.whatsappPhone ?? null },
     costs: { ...costs, totalMoveInCashRequired: calculateTotalMoveInCash(costs) },
   };
+}
+
+/** A physical badge is an expiring field observation, never a permanent property claim. */
+export function getEffectivePublicVerificationStatus(
+  status: "unverified" | "remote_checked" | "physical_verified",
+  verificationExpiresAt: Date | string | null | undefined,
+  now = Date.now(),
+) {
+  if (status !== "physical_verified") return status;
+  if (!verificationExpiresAt || new Date(verificationExpiresAt).getTime() <= now) return "unverified";
+  return "physical_verified" as const;
 }
 
 export async function listFreshPublicListings(filters: PublicListingFilters = {}) {
@@ -692,7 +704,7 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
     landmark: listings.landmark, propertyType: listings.propertyType, furnishingStatus: listings.furnishingStatus, bedrooms: listings.bedrooms, householdFit: listings.householdFit,
     availableFrom: listings.availableFrom, lastReconfirmed: listings.lastReconfirmed, supplyCapacity: listings.supplyCapacity,
     publicLatitude: listings.publicLatitude, publicLongitude: listings.publicLongitude, mapRadiusM: listings.mapRadiusM,
-    isFeatured: listings.isFeatured, featuredUntil: listings.featuredUntil, verificationStatus: listings.verificationStatus,
+    isFeatured: listings.isFeatured, featuredUntil: listings.featuredUntil, verificationStatus: listings.verificationStatus, verificationExpiresAt: listings.verificationExpiresAt,
     photosCount: listings.photosCount, agentNameSnapshot: listings.agentNameSnapshot,
     monthlyRent: listingCosts.monthlyRent, advanceMonths: listingCosts.advanceMonths,
     securityDeposit: listingCosts.securityDeposit, agencyFee: listingCosts.agencyFee,
@@ -1437,16 +1449,16 @@ export async function createPromotionRequest(userId: number, listingId: string) 
 
 export type ListingReportReason = "inaccurate_cost" | "unavailable" | "misleading_details" | "unofficial_fee" | "unsafe_meeting" | "duplicate_listing" | "other";
 
-export function shouldApplyListingSafetyHold(reason: ListingReportReason, matchingOpenReportCount: number) {
+export function shouldEscalateListingSafetyReview(reason: ListingReportReason, matchingOpenReportCount: number) {
   return (reason === "inaccurate_cost" || reason === "unavailable") && matchingOpenReportCount >= 3;
 }
 
 /**
  * Stores one accountable report per seeker and listing. Three distinct
- * inaccurate-cost or unavailable-listing reports immediately remove the
- * listing from public search, revoke its verification state, and pause the
- * responsible Agent's commercial access pending an Admin review. This is a
- * listing safety hold, not a final finding of misconduct.
+ * inaccurate-cost or unavailable-listing reports elevate the case in the
+ * private Admin queue. Report volume is an investigation trigger, not proof
+ * of misconduct: publication, verification, and Agent access do not change
+ * until a human reviews the evidence and integrity signals.
  */
 export async function createListingReport(reporterUserId: number, listingId: string, reason: ListingReportReason, note: string, reporterNetworkFingerprint: string | null = null) {
   const db = await getDb();
@@ -1466,28 +1478,18 @@ export async function createListingReport(reporterUserId: number, listingId: str
     const matchingOpenReports = safetyReason ? await tx.select({ id: reports.id }).from(reports).where(and(
       eq(reports.listingId, listingId), eq(reports.reason, safetyReason), eq(reports.status, "open"),
     )) : [];
-    const automaticSafetyAction = safetyReason ? shouldApplyListingSafetyHold(safetyReason, matchingOpenReports.length) : false;
-    const safetySummary = safetyReason === "unavailable" ? "Automatic safety hold after three distinct unavailable-listing reports; Admin review required." : "Automatic safety hold after three distinct inaccurate-cost reports; Admin review required.";
+    const priorityReviewRequired = safetyReason ? shouldEscalateListingSafetyReview(safetyReason, matchingOpenReports.length) : false;
+    const reviewSummary = safetyReason === "unavailable"
+      ? "Priority Admin review requested after three distinct unavailable-listing reports. Evidence and reporter-integrity review are required; no automatic sanction was applied."
+      : "Priority Admin review requested after three distinct inaccurate-cost reports. Evidence and reporter-integrity review are required; no automatic sanction was applied.";
 
-    if (automaticSafetyAction) {
+    if (priorityReviewRequired) {
       await tx.update(listings).set({
-        status: "suspended", verificationStatus: "unverified", verificationExpiresAt: null,
-        reviewSummary: safetySummary,
+        reviewSummary,
       }).where(eq(listings.id, listingId));
-      await tx.insert(listingReviewEvents).values({
-        listingId, action: "suspended", fromStatus: listing.status, toStatus: "suspended",
-        reason: safetySummary,
-      });
-      if (listing.agentUserId) {
-        await tx.update(agentProfiles).set({ subscriptionStatus: "suspended" })
-          .where(eq(agentProfiles.userId, listing.agentUserId));
-      }
     }
-    return { success: true, automaticSafetyAction, openReportCount: matchingOpenReports.length, safetyReason: safetyReason ?? null };
+    return { success: true, priorityReviewRequired, openReportCount: matchingOpenReports.length, safetyReason: safetyReason ?? null };
   });
-  if (outcome.automaticSafetyAction) {
-    await enqueueAndDispatchOwnerAlert("safety_hold_applied", listingId, "Automatic three-report listing safety hold applied; Admin review required.");
-  }
   return outcome;
 }
 
@@ -1518,17 +1520,25 @@ export async function listAdminTrustReports() {
   }).from(reports).innerJoin(listings, eq(listings.id, reports.listingId))
     .leftJoin(users, eq(users.id, reports.reporterUserId)).orderBy(desc(reports.filedAt));
   const networkCounts = new Map<string, number>();
+  const openReasonCounts = new Map<string, number>();
   rows.forEach(row => {
     if (row.reporterNetworkFingerprint) networkCounts.set(row.reporterNetworkFingerprint, (networkCounts.get(row.reporterNetworkFingerprint) ?? 0) + 1);
+    if (row.status === "open" && (row.reason === "inaccurate_cost" || row.reason === "unavailable")) {
+      const key = `${row.listingId}:${row.reason}`;
+      openReasonCounts.set(key, (openReasonCounts.get(key) ?? 0) + 1);
+    }
   });
   const now = Date.now();
   return rows.map(({ reporterNetworkFingerprint, reporterCreatedAt, ...row }) => {
     const reporterAccountAgeDays = reporterCreatedAt ? Math.max(0, Math.floor((now - reporterCreatedAt.getTime()) / 86_400_000)) : null;
     const networkPatternCount = reporterNetworkFingerprint ? networkCounts.get(reporterNetworkFingerprint) ?? 1 : 0;
+    const matchingOpenReportCount = openReasonCounts.get(`${row.listingId}:${row.reason}`) ?? 0;
     return {
       ...row,
       reporterAccountAgeDays,
       networkPatternCount,
+      priorityReviewRequired: row.status === "open" && shouldEscalateListingSafetyReview(row.reason, matchingOpenReportCount),
+      matchingOpenReportCount,
       integritySignals: {
         recentAccount: reporterAccountAgeDays !== null && reporterAccountAgeDays < 7,
         clusteredNetwork: networkPatternCount >= 2,

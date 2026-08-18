@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Circle, CircleMarker, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
+import { Circle, CircleMarker, MapContainer, Popup, TileLayer, Tooltip, useMap } from "react-leaflet";
 import type { LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { interpolate, text, type PublicLanguage } from "@/lib/marketplaceLocale";
@@ -43,6 +43,9 @@ export function ApproximateMap({ listings, city, onSelect, language = "en" }: { 
           const verified = listing.verificationStatus === "physical_verified";
           return <Circle key={listing.id} center={position} radius={listing.map.radiusM} pathOptions={{ color: listing.featured ? "#d78a1d" : "#1b5060", fillOpacity: 0.08, weight: 1 }}>
             <CircleMarker center={position} radius={listing.featured ? 10 : 8} pathOptions={{ color: "#fffdf6", fillColor: verified ? "#1b5060" : "#d78a1d", fillOpacity: 1, weight: 2 }}>
+              <Tooltip permanent direction="top" offset={[0, -11]} className="map-cash-label" opacity={1} interactive={false}>
+                <span>{formatXaf(listing.costs.totalMoveInCashRequired)}</span>
+              </Tooltip>
               <Popup><div className="map-popup"><span>{interpolate(text(language, "approximateLandmarkRadius"), { radius: listing.map.radiusM })}</span><strong>{listing.neighborhood}, {listing.city}</strong><b>{formatXaf(listing.costs.totalMoveInCashRequired)} total move-in</b><button onClick={() => onSelect(listing.id)}>{text(language, "viewCosts")}</button></div></Popup>
             </CircleMarker>
           </Circle>;
