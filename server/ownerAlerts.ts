@@ -12,6 +12,7 @@ export const OWNER_ALERT_EVENT_LABELS: Record<OwnerAlertEventType, string> = {
   safety_hold_released: "AHC listing safety hold released",
   listing_published: "AHC listing first published",
   announcement: "AHC owner operational announcement",
+  staff_sign_in: "AHC staff sign-in completed",
 };
 
 export type OwnerAlertTemplateInput = {
@@ -30,6 +31,17 @@ export type MetaWhatsAppProviderInput = {
   templateName: string;
   webhookVerifyToken: string;
   appSecret: string;
+};
+
+export type ResendEmailProviderInput = {
+  apiKey: string;
+  ownerEmail: string;
+  fromEmail: string;
+};
+
+export type OwnerAlertDeliverySelection = {
+  provider: "meta_whatsapp_cloud" | "resend_email" | "unconfigured";
+  active: boolean;
 };
 
 /**
@@ -54,6 +66,29 @@ export function getMetaWhatsAppProviderReadiness(input: MetaWhatsAppProviderInpu
   };
 }
 
+/** Email is an operational fallback while WhatsApp has not completed signed delivery setup. */
+export function getResendEmailProviderReadiness(input: ResendEmailProviderInput) {
+  const active = Boolean(input.apiKey && input.ownerEmail && input.fromEmail);
+  return {
+    active,
+    missing: [
+      ...(!input.apiKey ? ["Resend API key"] : []),
+      ...(!input.ownerEmail ? ["owner email recipient"] : []),
+      ...(!input.fromEmail ? ["verified Resend sender"] : []),
+    ],
+  };
+}
+
+/** WhatsApp stays primary once its template sender and signed webhook are both ready. */
+export function getOwnerAlertDeliverySelection(
+  whatsapp: ReturnType<typeof getMetaWhatsAppProviderReadiness>,
+  email: ReturnType<typeof getResendEmailProviderReadiness>,
+): OwnerAlertDeliverySelection {
+  if (whatsapp.active) return { provider: "meta_whatsapp_cloud", active: true };
+  if (email.active) return { provider: "resend_email", active: true };
+  return { provider: "unconfigured", active: false };
+}
+
 /**
  * AHC's approved utility template contract is exactly three positional body
  * variables: event label, non-sensitive reference, then the Admin dashboard URL.
@@ -75,6 +110,29 @@ export function buildOwnerAlertTemplatePayload(input: OwnerAlertTemplateInput) {
         ],
       }],
     },
+  };
+}
+
+/** Builds a plain-text, non-sensitive fallback email for the same owner-only events. */
+export function buildOwnerAlertEmailPayload(input: {
+  ownerEmail: string;
+  fromEmail: string;
+  eventType: OwnerAlertEventType;
+  referenceId: string;
+  dashboardUrl: string;
+}) {
+  const eventLabel = OWNER_ALERT_EVENT_LABELS[input.eventType];
+  return {
+    from: input.fromEmail,
+    to: [input.ownerEmail],
+    subject: eventLabel,
+    text: [
+      "Affordable Housing Cameroon owner alert",
+      `Event: ${eventLabel}`,
+      `Reference: ${input.referenceId}`,
+      `Review: ${input.dashboardUrl}`,
+      "This operational message contains no renter or property private data.",
+    ].join("\n"),
   };
 }
 

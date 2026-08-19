@@ -45,9 +45,18 @@ export const OWNER_ALERT_EVENT_TYPES = [
   "safety_hold_released",
   "listing_published",
   "announcement",
+  "staff_sign_in",
 ] as const;
 
 export type OwnerAlertEventType = (typeof OWNER_ALERT_EVENT_TYPES)[number];
+
+/** Only operational staff sign-ins are eligible for immediate owner alerts. */
+export const OWNER_ALERT_STAFF_SIGN_IN_ROLES = ["agent", "moderator", "admin"] as const;
+export type OwnerAlertStaffSignInRole = (typeof OWNER_ALERT_STAFF_SIGN_IN_ROLES)[number];
+
+export function isOwnerAlertStaffSignInRole(role: string): role is OwnerAlertStaffSignInRole {
+  return (OWNER_ALERT_STAFF_SIGN_IN_ROLES as readonly string[]).includes(role);
+}
 
 export const OWNER_ALERT_STATUSES = ["queued", "sent", "delivered", "read", "failed", "suppressed"] as const;
 export type OwnerAlertStatus = (typeof OWNER_ALERT_STATUSES)[number];

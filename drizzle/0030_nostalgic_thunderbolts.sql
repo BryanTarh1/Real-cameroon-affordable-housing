@@ -1,0 +1,1 @@
+ALTER TABLE `owner_alert_outbox` MODIFY COLUMN `eventType` enum('payment_confirmed','payment_rejected','verification_passed','verification_failed','safety_hold_applied','safety_hold_released','listing_published','announcement','staff_sign_in') NOT NULL;

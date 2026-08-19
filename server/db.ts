@@ -39,36 +39,18 @@ import {
   viewingAppointmentSeekerOutcomes,
   viewingSlots,
 } from "../drizzle/schema";
-import { calculateFieldVerificationCommission, calculateTotalMoveInCash, createWhatsAppListingLink, DEFAULT_FIELD_MODERATOR_SHARE_BPS, FRESHNESS_WINDOW_DAYS, getAgentAccessState, getPaidOffer, PRO_ACTIVE_LISTING_LIMIT, type OwnerAlertEventType, type OwnerAlertStatus, type PaidOfferType } from "../shared/ahc";
+import { calculateFieldVerificationCommission, calculateTotalMoveInCash, createWhatsAppListingLink, DEFAULT_FIELD_MODERATOR_SHARE_BPS, FRESHNESS_WINDOW_DAYS, getAgentAccessState, getPaidOffer, isOwnerAlertStaffSignInRole, PRO_ACTIVE_LISTING_LIMIT, type OwnerAlertEventType, type OwnerAlertStaffSignInRole, type OwnerAlertStatus, type PaidOfferType } from "../shared/ahc";
 import { ENV } from "./_core/env";
-import { buildOwnerAlertTemplatePayload, getMetaWhatsAppProviderReadiness, getOwnerAlertDashboardUrl, META_WHATSAPP_GRAPH_VERSION } from "./ownerAlerts";
+import { buildOwnerAlertEmailPayload, buildOwnerAlertTemplatePayload, getMetaWhatsAppProviderReadiness, getOwnerAlertDashboardUrl, getOwnerAlertDeliverySelection, getResendEmailProviderReadiness, META_WHATSAPP_GRAPH_VERSION } from "./ownerAlerts";
 import { summarizeAdminLeadEvents } from "./leadCounts";
 import { isDuplicateProviderReferenceError, normalizeMobileMoneyReference, type SupportedMobileMoneyProvider } from "./paymentProvider";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-const OWNER_ALERT_UNCONFIGURED_REASON = "Meta dispatch and signed delivery-webhook credentials are required; this operational alert remains queued.";
+const OWNER_ALERT_UNCONFIGURED_REASON = "Meta WhatsApp or Resend email sender credentials are required; this operational alert remains queued.";
 
-function isOwnerAlertProviderConfigured() {
-  return getMetaWhatsAppProviderReadiness({
-    phoneNumberId: ENV.whatsappPhoneNumberId,
-    accessToken: ENV.whatsappAccessToken,
-    ownerPhone: ENV.whatsappOwnerPhone,
-    templateName: ENV.whatsappTemplateName,
-    webhookVerifyToken: ENV.whatsappWebhookVerifyToken,
-    appSecret: ENV.whatsappAppSecret,
-  }).active;
-}
-
-function maskOwnerPhone(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-  return digits.length >= 4 ? `••••${digits.slice(-4)}` : "Not configured";
-}
-
-/** Safe, Admin-readable configuration state; no credential or full phone number leaves the server. */
-export async function getOwnerAlertProviderStatus() {
-  const settings = await getPlatformSettings();
-  const readiness = getMetaWhatsAppProviderReadiness({
+function getOwnerAlertDeliveryReadiness() {
+  const whatsapp = getMetaWhatsAppProviderReadiness({
     phoneNumberId: ENV.whatsappPhoneNumberId,
     accessToken: ENV.whatsappAccessToken,
     ownerPhone: ENV.whatsappOwnerPhone,
@@ -76,16 +58,42 @@ export async function getOwnerAlertProviderStatus() {
     webhookVerifyToken: ENV.whatsappWebhookVerifyToken,
     appSecret: ENV.whatsappAppSecret,
   });
+  const email = getResendEmailProviderReadiness({
+    apiKey: ENV.resendApiKey,
+    ownerEmail: ENV.ownerAlertEmail,
+    fromEmail: ENV.resendFromEmail,
+  });
+  return { whatsapp, email };
+}
+
+function maskOwnerPhone(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 4 ? `••••${digits.slice(-4)}` : "Not configured";
+}
+
+function maskOwnerEmail(email: string) {
+  const [local, domain] = email.split("@");
+  if (!local || !domain) return "Not configured";
+  return `${local.slice(0, 1)}•••@${domain}`;
+}
+
+/** Safe, Admin-readable configuration state; no credential or full phone number leaves the server. */
+export async function getOwnerAlertProviderStatus() {
+  const settings = await getPlatformSettings();
+  const readiness = getOwnerAlertDeliveryReadiness();
+  const selected = getOwnerAlertDeliverySelection(readiness.whatsapp, readiness.email);
   return {
-    configured: readiness.active,
-    sendConfigured: readiness.sendReady,
-    webhookConfigured: readiness.webhookReady,
+    configured: selected.active,
+    sendConfigured: readiness.whatsapp.sendReady,
+    webhookConfigured: readiness.whatsapp.webhookReady,
+    emailConfigured: readiness.email.active,
     enabled: settings.ownerAlertsEnabled,
-    active: readiness.active && settings.ownerAlertsEnabled,
-    provider: readiness.active ? "Meta WhatsApp Cloud API" : "Activation incomplete",
+    active: selected.active && settings.ownerAlertsEnabled,
+    provider: selected.provider === "meta_whatsapp_cloud" ? "Meta WhatsApp Cloud API" : selected.provider === "resend_email" ? "Resend transactional email fallback" : "Activation incomplete",
     ownerPhoneMasked: ENV.whatsappOwnerPhone ? maskOwnerPhone(ENV.whatsappOwnerPhone) : "Not configured",
+    ownerEmailMasked: ENV.ownerAlertEmail ? maskOwnerEmail(ENV.ownerAlertEmail) : "Not configured",
     templateName: ENV.whatsappTemplateName || null,
-    queuePolicy: OWNER_ALERT_UNCONFIGURED_REASON,
+    queuePolicy: selected.provider === "resend_email" ? "Resend email is active until Meta WhatsApp has completed signed delivery-webhook activation." : OWNER_ALERT_UNCONFIGURED_REASON,
   };
 }
 
@@ -94,12 +102,14 @@ export async function enqueueOwnerAlert(eventType: OwnerAlertEventType, referenc
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   const dedupeKey = `${eventType}:${referenceId}`;
+  const readiness = getOwnerAlertDeliveryReadiness();
+  const selected = getOwnerAlertDeliverySelection(readiness.whatsapp, readiness.email);
   await db.insert(ownerAlertOutbox).values({
     eventType,
     referenceId,
     summary: summary.slice(0, 500),
     dedupeKey,
-    provider: isOwnerAlertProviderConfigured() ? "meta_whatsapp_cloud" : "unconfigured",
+    provider: selected.provider,
   }).onDuplicateKeyUpdate({ set: { dedupeKey: sql`${ownerAlertOutbox.dedupeKey}` } });
   const alert = (await db.select().from(ownerAlertOutbox).where(eq(ownerAlertOutbox.dedupeKey, dedupeKey)).limit(1))[0];
   if (!alert) throw new Error("Owner alert could not be queued.");
@@ -119,32 +129,52 @@ export async function dispatchOwnerAlert(alertId: number) {
       .where(eq(ownerAlertOutbox.id, alertId));
     return (await db.select().from(ownerAlertOutbox).where(eq(ownerAlertOutbox.id, alertId)).limit(1))[0];
   }
-  if (!isOwnerAlertProviderConfigured()) {
+  const readiness = getOwnerAlertDeliveryReadiness();
+  const selected = getOwnerAlertDeliverySelection(readiness.whatsapp, readiness.email);
+  if (!selected.active) {
     await db.update(ownerAlertOutbox).set({ provider: "unconfigured", status: "queued", failureReason: OWNER_ALERT_UNCONFIGURED_REASON })
       .where(eq(ownerAlertOutbox.id, alertId));
     return (await db.select().from(ownerAlertOutbox).where(eq(ownerAlertOutbox.id, alertId)).limit(1))[0];
   }
   const now = new Date();
-  await db.update(ownerAlertOutbox).set({ provider: "meta_whatsapp_cloud", attemptCount: alert.attemptCount + 1, failureReason: null })
+  await db.update(ownerAlertOutbox).set({ provider: selected.provider, attemptCount: alert.attemptCount + 1, failureReason: null })
     .where(eq(ownerAlertOutbox.id, alertId));
   try {
-    const response = await fetch(`https://graph.facebook.com/${META_WHATSAPP_GRAPH_VERSION}/${ENV.whatsappPhoneNumberId}/messages`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${ENV.whatsappAccessToken}`, "Content-Type": "application/json" },
-      body: JSON.stringify(buildOwnerAlertTemplatePayload({
-        ownerPhone: ENV.whatsappOwnerPhone,
-        templateName: ENV.whatsappTemplateName,
-        language: ENV.whatsappTemplateLanguage,
-        eventType: alert.eventType,
-        referenceId: alert.referenceId,
-        dashboardUrl: getOwnerAlertDashboardUrl(ENV.publicAppUrl),
-      })),
-      signal: AbortSignal.timeout(12_000),
-    });
-    const body = await response.json().catch(() => null) as { messages?: Array<{ id?: string }>; error?: { message?: string } } | null;
-    const providerMessageId = body?.messages?.[0]?.id;
+    const response = selected.provider === "meta_whatsapp_cloud"
+      ? await fetch(`https://graph.facebook.com/${META_WHATSAPP_GRAPH_VERSION}/${ENV.whatsappPhoneNumberId}/messages`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${ENV.whatsappAccessToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify(buildOwnerAlertTemplatePayload({
+          ownerPhone: ENV.whatsappOwnerPhone,
+          templateName: ENV.whatsappTemplateName,
+          language: ENV.whatsappTemplateLanguage,
+          eventType: alert.eventType,
+          referenceId: alert.referenceId,
+          dashboardUrl: getOwnerAlertDashboardUrl(ENV.publicAppUrl),
+        })),
+        signal: AbortSignal.timeout(12_000),
+      })
+      : await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${ENV.resendApiKey}`,
+          "Content-Type": "application/json",
+          "Idempotency-Key": `ahc-owner-alert/${alert.dedupeKey}`,
+        },
+        body: JSON.stringify(buildOwnerAlertEmailPayload({
+          ownerEmail: ENV.ownerAlertEmail,
+          fromEmail: ENV.resendFromEmail,
+          eventType: alert.eventType,
+          referenceId: alert.referenceId,
+          dashboardUrl: getOwnerAlertDashboardUrl(ENV.publicAppUrl),
+        })),
+        signal: AbortSignal.timeout(12_000),
+      });
+    const body = await response.json().catch(() => null) as { id?: string; messages?: Array<{ id?: string }>; error?: { message?: string }; message?: string } | null;
+    const providerMessageId = selected.provider === "meta_whatsapp_cloud" ? body?.messages?.[0]?.id : body?.id;
     if (!response.ok || !providerMessageId) {
-      const failureReason = body?.error?.message?.slice(0, 900) || `Meta WhatsApp request failed with HTTP ${response.status}.`;
+      const providerName = selected.provider === "meta_whatsapp_cloud" ? "Meta WhatsApp" : "Resend email";
+      const failureReason = body?.error?.message?.slice(0, 900) || body?.message?.slice(0, 900) || `${providerName} request failed with HTTP ${response.status}.`;
       await db.update(ownerAlertOutbox).set({ status: "failed", failedAt: now, failureReason })
         .where(eq(ownerAlertOutbox.id, alertId));
     } else {
@@ -152,9 +182,10 @@ export async function dispatchOwnerAlert(alertId: number) {
         .where(eq(ownerAlertOutbox.id, alertId));
     }
   } catch (error) {
+    const providerName = selected.provider === "meta_whatsapp_cloud" ? "Meta WhatsApp" : "Resend email";
     await db.update(ownerAlertOutbox).set({
       status: "failed", failedAt: now,
-      failureReason: (error instanceof Error ? error.message : "Meta WhatsApp dispatch failed.").slice(0, 900),
+      failureReason: (error instanceof Error ? error.message : `${providerName} dispatch failed.`).slice(0, 900),
     }).where(eq(ownerAlertOutbox.id, alertId));
   }
   return (await db.select().from(ownerAlertOutbox).where(eq(ownerAlertOutbox.id, alertId)).limit(1))[0];
@@ -191,6 +222,17 @@ export async function enqueueAndDispatchOwnerAlert(eventType: OwnerAlertEventTyp
 
 export async function createOwnerAlertAnnouncement() {
   return enqueueAndDispatchOwnerAlert("announcement", `ANN-${nanoid(10)}`, "Admin initiated an owner-only operational alert test.");
+}
+
+/**
+ * Records and dispatches a distinct alert for each successful operational-staff
+ * sign-in. It intentionally carries only role and internal reference data—never
+ * the person's name, email, IP address, password, or device information.
+ */
+export async function notifyOwnerOfStaffSignIn(user: { id: number; role: OwnerAlertStaffSignInRole }) {
+  if (!isOwnerAlertStaffSignInRole(user.role)) return null;
+  const referenceId = `STAFF-${user.role.toUpperCase()}-${user.id}-${nanoid(10)}`;
+  return enqueueAndDispatchOwnerAlert("staff_sign_in", referenceId, `${user.role} sign-in completed.`);
 }
 
 export async function getDb() {

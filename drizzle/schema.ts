@@ -460,7 +460,7 @@ export const ownerAlertOutbox = mysqlTable("owner_alert_outbox", {
   id: int("id").autoincrement().primaryKey(),
   eventType: mysqlEnum("eventType", [
     "payment_confirmed", "payment_rejected", "verification_passed", "verification_failed",
-    "safety_hold_applied", "safety_hold_released", "listing_published", "announcement",
+    "safety_hold_applied", "safety_hold_released", "listing_published", "announcement", "staff_sign_in",
   ]).notNull(),
   referenceId: varchar("referenceId", { length: 96 }).notNull(),
   /** Private Admin-readable context, limited to a non-sensitive operational summary. */

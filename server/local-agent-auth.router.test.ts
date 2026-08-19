@@ -9,6 +9,7 @@ vi.mock("./db", async importOriginal => {
     recordLocalLoginFailure: vi.fn(),
     clearLocalLoginFailures: vi.fn(),
     upgradeLocalCredentialPasswordHash: vi.fn(),
+    notifyOwnerOfStaffSignIn: vi.fn(),
   };
 });
 
@@ -32,6 +33,7 @@ import { ENV } from "./_core/env";
 
 const stamp = { createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() };
 const localAgent = { id: 91, openId: "local_91", email: "agent@example.com", name: "Local Agent", loginMethod: "ahc_local", role: "agent" as const, isBanned: false, ...stamp };
+const localSeeker = { id: 92, openId: "local_92", email: "seeker@example.com", name: "Local Seeker", loginMethod: "ahc_local", role: "seeker" as const, isBanned: false, ...stamp };
 
 function caller() {
   const cookies: Array<{ name: string; value: string; options: Record<string, unknown> }> = [];
@@ -98,6 +100,16 @@ describe("AHC-owned local agent authentication", () => {
     await expect(api.auth.loginLocalAgent({ email: localAgent.email, password: "strong-password", captchaToken: "turnstile-token" })).resolves.toMatchObject({ id: localAgent.id });
     expect(database.clearLocalLoginFailures).toHaveBeenCalledWith(localAgent.id);
     expect(cookies[0]).toMatchObject({ name: AHC_LOCAL_SESSION_COOKIE, value: "ahc-local-token" });
+    expect(database.notifyOwnerOfStaffSignIn).toHaveBeenCalledWith({ id: localAgent.id, role: "agent" });
+  });
+
+  it("does not send an owner alert for a successful Seeker sign-in", async () => {
+    vi.mocked(database.getLocalCredentialByEmail).mockResolvedValue({ credential: { passwordHash: "$2b$12$bcrypttesthash", lockedUntil: null }, user: localSeeker } as never);
+    vi.mocked(localAuth.verifyLocalPassword).mockResolvedValue(true);
+    const { caller: api } = caller();
+
+    await expect(api.auth.loginLocalAgent({ email: localSeeker.email, password: "strong-password", captchaToken: "turnstile-token" })).resolves.toMatchObject({ id: localSeeker.id });
+    expect(database.notifyOwnerOfStaffSignIn).not.toHaveBeenCalled();
   });
 
   it("upgrades a verified legacy scrypt credential to bcrypt before issuing the AHC JWT", async () => {

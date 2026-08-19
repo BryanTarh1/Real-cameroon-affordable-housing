@@ -37,6 +37,7 @@ import {
   getAgentIdentityStatus,
   getOwnerAlertProviderStatus,
   getLocalCredentialByEmail,
+  notifyOwnerOfStaffSignIn,
   getPlatformSettings,
   getPublicListingContact,
   listAgentListings,
@@ -95,7 +96,7 @@ import {
   upgradeLocalCredentialPasswordHash,
   createOwnerAlertAnnouncement,
 } from "./db";
-import { createApproximatePoint, createWhatsAppListingLink, normalizeCameroonWhatsAppPhone, type PaidOfferType } from "../shared/ahc";
+import { createApproximatePoint, createWhatsAppListingLink, isOwnerAlertStaffSignInRole, normalizeCameroonWhatsAppPhone, type PaidOfferType } from "../shared/ahc";
 
 type NetworkAwareRequest = { headers: { [key: string]: string | string[] | undefined }; socket?: { remoteAddress?: string } };
 
@@ -255,6 +256,11 @@ export const appRouter = router({
         ...cookieOptions,
         maxAge: AHC_LOCAL_SESSION_MAX_AGE_MS,
       });
+      if (isOwnerAlertStaffSignInRole(account.user.role)) {
+        void Promise.resolve(notifyOwnerOfStaffSignIn({ id: account.user.id, role: account.user.role })).catch(error => {
+          console.warn("[Owner alerts] Staff sign-in alert could not be queued:", error);
+        });
+      }
       return account.user;
     }),
     logout: publicProcedure.mutation(({ ctx }) => {

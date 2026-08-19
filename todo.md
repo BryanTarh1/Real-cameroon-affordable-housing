@@ -724,3 +724,17 @@
 
 ## Homepage copy refinement
 - [x] Shorten and simplify the homepage’s high-visibility public copy while retaining required trust, privacy, pricing, freshness, and verification information in English and French. Focused bilingual disclosure regression, 213-test suite, production build, and English/French desktop plus mobile review pass.
+
+## Budget-fit feature discoverability
+- [x] Verified that the budget-fit calculator appears for signed-in seekers directly above the public Fresh Homes controls; it deliberately remains hidden until sign-in because it evaluates the seeker’s entered income and available move-in savings. No rendering or access defect was found.
+
+## Owner WhatsApp event notifications
+- [ ] Audit the existing event-alert and WhatsApp provider implementation, then define and implement privacy-safe owner alerts for approved major platform events.
+- [x] Add privacy-minimised owner alerts for successful Agent, Moderator, and Admin sign-ins only; preserve the exclusion of individual Seeker sign-in alerts. The event is queued only after successful authentication and carries a non-sensitive role/reference label.
+
+## Registration confirmation reliability
+- [ ] Diagnose and repair the reported registration confirmation failure while retaining fail-closed Turnstile verification and duplicate-account protection.
+
+## Owner email notification fallback
+- [x] Add a privacy-safe email fallback for approved owner alerts while Meta WhatsApp activation is unavailable. Resend is used only when Meta WhatsApp has not completed signed delivery-webhook activation.
+- [x] Implement the approved transactional-email sender, owner recipient configuration, delivery audit state, and non-blocking failure handling for owner alerts. Resend credentials and sender validation pass; a controlled email activation alert was accepted by the provider.
