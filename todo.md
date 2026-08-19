@@ -738,3 +738,4 @@
 ## Owner email notification fallback
 - [x] Add a privacy-safe email fallback for approved owner alerts while Meta WhatsApp activation is unavailable. Resend is used only when Meta WhatsApp has not completed signed delivery-webhook activation.
 - [x] Implement the approved transactional-email sender, owner recipient configuration, delivery audit state, and non-blocking failure handling for owner alerts. Resend credentials and sender validation pass; a controlled email activation alert was accepted by the provider.
+- [x] Isolate the live Resend credential probe from ordinary offline regressions while retaining a repeatable explicit provider-validation command. `pnpm test:resend:live` verifies configured live credentials; normal tests stay offline and deterministic.

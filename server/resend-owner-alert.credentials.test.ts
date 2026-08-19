@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { ENV } from "./_core/env";
 
-describe("Resend owner-alert configuration", () => {
+const runLiveCredentialValidation = process.env.RESEND_LIVE_CREDENTIAL_TEST === "1";
+
+describe.skipIf(!runLiveCredentialValidation)("Resend owner-alert configuration", () => {
   it("authenticates with Resend and confirms the configured sender domain is verified", async () => {
     expect(ENV.resendApiKey).toBeTruthy();
     expect(ENV.ownerAlertEmail).toMatch(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
