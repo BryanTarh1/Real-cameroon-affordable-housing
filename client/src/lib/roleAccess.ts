@@ -1,4 +1,4 @@
-export type AhcRole = "user" | "moderator" | "admin" | null | undefined;
+export type AhcRole = "seeker" | "agent" | "moderator" | "admin" | null | undefined;
 
 export function canUseOperations(role: AhcRole) {
   return role === "moderator" || role === "admin";

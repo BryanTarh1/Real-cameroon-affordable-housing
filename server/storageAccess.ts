@@ -1,6 +1,6 @@
 export type StorageAccessUser = {
   id: number;
-  role: "user" | "moderator" | "admin";
+  role: "seeker" | "agent" | "moderator" | "admin";
   isBanned: boolean;
 };
 

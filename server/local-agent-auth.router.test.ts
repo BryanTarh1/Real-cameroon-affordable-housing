@@ -31,7 +31,7 @@ import type { TrpcContext } from "./_core/context";
 import { ENV } from "./_core/env";
 
 const stamp = { createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() };
-const localAgent = { id: 91, openId: "local_91", email: "agent@example.com", name: "Local Agent", loginMethod: "ahc_local", role: "user" as const, isBanned: false, ...stamp };
+const localAgent = { id: 91, openId: "local_91", email: "agent@example.com", name: "Local Agent", loginMethod: "ahc_local", role: "agent" as const, isBanned: false, ...stamp };
 
 function caller() {
   const cookies: Array<{ name: string; value: string; options: Record<string, unknown> }> = [];
@@ -69,8 +69,8 @@ describe("AHC-owned local agent authentication", () => {
   it("registers an independent local agent and issues the isolated AHC session cookie", async () => {
     vi.mocked(database.createLocalAgentAccount).mockResolvedValue(localAgent as never);
     const { caller: api, cookies } = caller();
-    await expect(api.auth.registerLocalAgent({ name: "Local Agent", email: "AGENT@EXAMPLE.COM", password: "strong-password", captchaToken: "turnstile-token" })).resolves.toMatchObject({ id: localAgent.id, loginMethod: "ahc_local" });
-    expect(database.createLocalAgentAccount).toHaveBeenCalledWith({ name: "Local Agent", email: "agent@example.com", passwordHash: "$2b$12$bcrypttesthash" });
+    await expect(api.auth.registerLocalAgent({ name: "Local Agent", email: "AGENT@EXAMPLE.COM", password: "strong-password", role: "agent", captchaToken: "turnstile-token" })).resolves.toMatchObject({ id: localAgent.id, loginMethod: "ahc_local" });
+    expect(database.createLocalAgentAccount).toHaveBeenCalledWith({ name: "Local Agent", email: "agent@example.com", passwordHash: "$2b$12$bcrypttesthash", role: "agent" });
     expect(cookies).toEqual([expect.objectContaining({ name: AHC_LOCAL_SESSION_COOKIE, value: "ahc-local-token", options: expect.objectContaining({ httpOnly: true, secure: true, maxAge: 2_592_000_000 }) })]);
   });
 

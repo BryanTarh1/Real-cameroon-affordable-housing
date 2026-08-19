@@ -9,6 +9,7 @@ export function canAccessWorkspace(
 export function workspaceHomeForRole(userRole: string | null | undefined): string {
   if (userRole === "admin") return "/admin";
   if (userRole === "moderator") return "/operations";
-  if (userRole === "user") return "/agent";
+  if (userRole === "agent") return "/agent";
+  if (userRole === "seeker") return "/account";
   return "/";
 }

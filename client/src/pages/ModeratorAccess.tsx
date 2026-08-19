@@ -7,7 +7,7 @@ import "./staff-access.css";
 export default function ModeratorAccess() {
   const { isAuthenticated, user } = useAuth();
   const { language } = useMarketplaceLanguage();
-  const hasUnassignedAccount = isAuthenticated && user?.role === "user";
+  const hasUnassignedAccount = isAuthenticated && user?.role !== "moderator";
   const copy = language === "fr" ? {
     ariaLabel: "Accès Modérateur terrain",
     route: "Accès sécurisé du personnel",

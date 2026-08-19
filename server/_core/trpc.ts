@@ -31,13 +31,13 @@ const requireUser = t.middleware(async opts => {
 export const protectedProcedure = t.procedure.use(requireUser);
 
 /**
- * The Agent workspace is available to ordinary AHC accounts only. Staff use
+ * The Agent workspace is available only to explicitly designated Agent accounts. Staff use
  * distinct Moderator and Admin procedure trees, even when calling APIs directly.
  */
 export const agentWorkspaceProcedure = protectedProcedure.use(
   t.middleware(async opts => {
-    if (!opts.ctx.user || opts.ctx.user.role !== "user") {
-      throw new TRPCError({ code: "FORBIDDEN", message: "The Agent workspace is unavailable for staff accounts." });
+    if (!opts.ctx.user || opts.ctx.user.role !== "agent") {
+      throw new TRPCError({ code: "FORBIDDEN", message: "The Agent workspace requires an Agent account." });
     }
     return opts.next({ ctx: opts.ctx });
   }),

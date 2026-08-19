@@ -54,15 +54,15 @@ describe("protected workspace routes", () => {
     auth.logout.mockResolvedValue(undefined);
   });
 
-  it("shows a secure Admin sign-in boundary to anonymous visitors and redirects ordinary users without rendering management controls", async () => {
+  it("shows a secure Admin sign-in boundary to anonymous visitors and redirects Seekers without rendering management controls", async () => {
     renderAt("/admin", null);
     expect(screen.getByText("Admin sign in")).toBeTruthy();
     expect(screen.queryByText("Admin management controls")).toBeNull();
 
     cleanup();
-    renderAt("/admin", "user");
-    await waitFor(() => expect(window.location.pathname).toBe("/agent"));
-    expect(screen.getByText("Standalone Agent profile dashboard")).toBeTruthy();
+    renderAt("/admin", "seeker");
+    await waitFor(() => expect(window.location.pathname).toBe("/account"));
+    expect(screen.getByText("Customer-owned dashboard")).toBeTruthy();
     expect(screen.queryByText("Admin management controls")).toBeNull();
   });
 
@@ -72,12 +72,12 @@ describe("protected workspace routes", () => {
     expect(screen.queryByText("Public marketplace")).toBeNull();
   });
 
-  it("shows the local Agent sign-in boundary to anonymous visitors and allows only signed-in standard users into the workspace", async () => {
+  it("shows the local Agent sign-in boundary to anonymous visitors and allows only Agent accounts into the workspace", async () => {
     renderAt("/agent", null);
     expect(screen.getByText("Standalone Agent profile dashboard")).toBeTruthy();
 
     cleanup();
-    renderAt("/agent", "user");
+    renderAt("/agent", "agent");
     expect(screen.getByText("Standalone Agent profile dashboard")).toBeTruthy();
     expect(screen.queryByText("Public marketplace")).toBeNull();
 
@@ -94,9 +94,9 @@ describe("protected workspace routes", () => {
     expect(screen.queryByText("Owner acceptance walkthrough")).toBeNull();
 
     cleanup();
-    renderAt("/acceptance", "user");
-    await waitFor(() => expect(window.location.pathname).toBe("/agent"));
-    expect(screen.getByText("Standalone Agent profile dashboard")).toBeTruthy();
+    renderAt("/acceptance", "seeker");
+    await waitFor(() => expect(window.location.pathname).toBe("/account"));
+    expect(screen.getByText("Customer-owned dashboard")).toBeTruthy();
     expect(screen.queryByText("Owner acceptance walkthrough")).toBeNull();
 
     cleanup();
@@ -110,9 +110,9 @@ describe("protected workspace routes", () => {
     expect(screen.queryByText("Field Moderator operations")).toBeNull();
 
     cleanup();
-    renderAt("/operations", "user");
-    await waitFor(() => expect(window.location.pathname).toBe("/agent"));
-    expect(screen.getByText("Standalone Agent profile dashboard")).toBeTruthy();
+    renderAt("/operations", "seeker");
+    await waitFor(() => expect(window.location.pathname).toBe("/account"));
+    expect(screen.getByText("Customer-owned dashboard")).toBeTruthy();
     expect(screen.queryByText("Field Moderator operations")).toBeNull();
 
     cleanup();
@@ -130,9 +130,9 @@ describe("protected workspace routes", () => {
     expect(screen.queryByText("Field Moderator route board")).toBeNull();
 
     cleanup();
-    renderAt("/operations/batches", "user");
-    await waitFor(() => expect(window.location.pathname).toBe("/agent"));
-    expect(screen.getByText("Standalone Agent profile dashboard")).toBeTruthy();
+    renderAt("/operations/batches", "seeker");
+    await waitFor(() => expect(window.location.pathname).toBe("/account"));
+    expect(screen.getByText("Customer-owned dashboard")).toBeTruthy();
     expect(screen.queryByText("Field Moderator route board")).toBeNull();
 
     cleanup();
@@ -151,7 +151,7 @@ describe("protected workspace routes", () => {
     expect(screen.queryByText("Customer-owned dashboard")).toBeNull();
 
     cleanup();
-    renderAt("/dashboard", "user");
+    renderAt("/dashboard", "seeker");
     expect(screen.getByText("Customer-owned dashboard")).toBeTruthy();
   });
 

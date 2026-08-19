@@ -21,7 +21,7 @@ const user = {
   email: "agent@example.com",
   name: "Paid Access Agent",
   loginMethod: "manus",
-  role: "user" as const,
+  role: "agent" as const,
   createdAt: new Date(),
   updatedAt: new Date(),
   lastSignedIn: new Date(),

@@ -7,6 +7,6 @@ describe("protected customer account route", () => {
   it("keeps the documented account URL behind the same role-aware customer dashboard guard", () => {
     expect(appSource).toContain('<Route path="/account" component={CustomerDashboardRoute} />');
     expect(appSource).toContain('function CustomerDashboardRoute()');
-    expect(appSource).toContain('<ProtectedWorkspace allowedRoles={["user", "moderator", "admin"]}><CustomerDashboard /></ProtectedWorkspace>');
+    expect(appSource).toContain('<ProtectedWorkspace allowedRoles={["seeker"]}><CustomerDashboard /></ProtectedWorkspace>');
   });
 });

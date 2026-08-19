@@ -12,7 +12,7 @@ describe("safe staff and Agent sign-in boundaries", () => {
   });
 
   it("keeps the actual role-scoped workspaces behind ProtectedWorkspace after sign-in", () => {
-    expect(app).toContain('<ProtectedWorkspace allowedRoles={["user"]}><AgentWorkspacePage /></ProtectedWorkspace>');
+    expect(app).toContain('<ProtectedWorkspace allowedRoles={["agent"]}><AgentWorkspacePage /></ProtectedWorkspace>');
     expect(app).toContain('<ProtectedWorkspace allowedRoles={["admin", "moderator"]}><Operations /></ProtectedWorkspace>');
     expect(app).toContain('<ProtectedWorkspace allowedRoles={["admin"]}><Admin /></ProtectedWorkspace>');
   });

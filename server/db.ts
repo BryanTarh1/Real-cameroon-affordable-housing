@@ -391,6 +391,7 @@ export async function createLocalAgentAccount(input: {
   name: string;
   email: string;
   passwordHash: string;
+  role: "seeker" | "agent";
   onboarding?: { applicantType: "agent"; taxpayerNumber: string; workProofUrl: string; governmentIdUrl?: string };
 }) {
   const db = await getDb();
@@ -409,7 +410,7 @@ export async function createLocalAgentAccount(input: {
       name: input.name,
       email: input.email,
       loginMethod: "ahc_local",
-      role: "user",
+      role: input.role,
       lastSignedIn: new Date(),
     });
     const user = (await tx.select().from(users).where(eq(users.openId, localOpenId)).limit(1))[0];
@@ -523,8 +524,8 @@ export async function setUserBan(actorUserId: number, targetUserId: number, isBa
   return { success: true };
 }
 
-/** Assign operational authority only from an existing Admin session; public AHC registration always remains role=user. */
-export async function setUserRole(actorUserId: number, targetUserId: number, role: "user" | "moderator" | "admin") {
+/** Assign an explicit AHC role only from an existing Admin session; public registration may create only Seeker or Agent accounts. */
+export async function setUserRole(actorUserId: number, targetUserId: number, role: "seeker" | "agent" | "moderator" | "admin") {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
   if (actorUserId === targetUserId) throw new Error("Administrators cannot change their own role.");

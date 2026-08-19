@@ -84,7 +84,7 @@ async function startServer() {
   app.post("/api/agent/identity-document", express.raw({ type: ["image/jpeg", "image/jpg"], limit: "10mb" }), async (req, res) => {
     const user = await authenticateLocalRequest(req);
     const kind = typeof req.query.kind === "string" ? req.query.kind : "";
-    if (!user || user.isBanned || user.role !== "user" || !["front", "back", "face"].includes(kind)) {
+    if (!user || user.isBanned || user.role !== "agent" || !["front", "back", "face"].includes(kind)) {
       res.status(401).json({ error: "Sign in as an Agent to upload identity documents." });
       return;
     }

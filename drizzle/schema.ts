@@ -27,7 +27,7 @@ export const users = mysqlTable("users", {
   emailAccountUpdatesEnabled: boolean("emailAccountUpdatesEnabled").default(true).notNull(),
   emailMatchAlertsEnabled: boolean("emailMatchAlertsEnabled").default(false).notNull(),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "moderator", "admin"]).default("user").notNull(),
+  role: mysqlEnum("role", ["seeker", "agent", "moderator", "admin"]).default("seeker").notNull(),
   isBanned: boolean("isBanned").default(false).notNull(),
   bannedAt: timestamp("bannedAt"),
   bannedByUserId: int("bannedByUserId"),

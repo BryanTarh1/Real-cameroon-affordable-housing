@@ -173,6 +173,7 @@ const localAccountSchema = z.object({
   name: z.string().trim().min(2).max(100),
   email: z.string().trim().email().max(320),
   password: z.string().min(10).max(128),
+  role: z.enum(["seeker", "agent"]),
   captchaToken: z.string().min(1).max(2048),
   onboarding: z.object({
     applicantType: z.literal("agent"), taxpayerNumber: z.string().trim().min(4).max(64), governmentIdUrl: z.string().url().optional(), workProofUrl: z.string().url(),
@@ -211,6 +212,7 @@ export const appRouter = router({
           name: input.name,
           email,
           passwordHash: await hashLocalPassword(input.password),
+          role: input.role,
           onboarding: input.onboarding,
         });
         const cookieOptions = getSessionCookieOptions(ctx.req);
@@ -524,7 +526,7 @@ export const appRouter = router({
     users: adminProcedure.query(() => listAdminUsers()),
     setUserBan: adminProcedure.input(z.object({ userId: z.number().int().positive(), isBanned: z.boolean(), reason: z.string().trim().min(8).max(800) }))
       .mutation(({ ctx, input }) => setUserBan(ensureUserId(ctx.user?.id), input.userId, input.isBanned, input.reason)),
-    setUserRole: adminProcedure.input(z.object({ userId: z.number().int().positive(), role: z.enum(["user", "moderator", "admin"]) }))
+    setUserRole: adminProcedure.input(z.object({ userId: z.number().int().positive(), role: z.enum(["seeker", "agent", "moderator", "admin"]) }))
       .mutation(({ ctx, input }) => setUserRole(ensureUserId(ctx.user?.id), input.userId, input.role)),
     cashFlowAudit: adminProcedure.query(() => getAdminCashFlowAudit()),
     commissionLedger: adminProcedure.query(() => listAdminCommissionLedger()),

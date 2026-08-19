@@ -31,7 +31,7 @@ const testUser = {
   email: "owner@example.com",
   name: "Owner Applicant",
   loginMethod: "ahc_local",
-  role: "user" as const,
+  role: "agent" as const,
   isBanned: false,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -46,7 +46,7 @@ function publicCaller() {
   } as unknown as TrpcContext);
 }
 
-function protectedCaller(role: "user" | "admin" = "user") {
+function protectedCaller(role: "agent" | "admin" = "agent") {
   return appRouter.createCaller({
     user: { ...testUser, role },
     req: { protocol: "https", headers: {} },
@@ -75,6 +75,7 @@ describe("AHC trust-workflow validation", () => {
       name: "Agent Applicant",
       email: "agent-proof-missing@example.com",
       password: "Strong-password-2026",
+      role: "agent",
       captchaToken: "turnstile-token",
       onboarding: {
         applicantType: "agent",
@@ -85,7 +86,7 @@ describe("AHC trust-workflow validation", () => {
     expect(database.createLocalAgentAccount).not.toHaveBeenCalled();
   });
 
-  it("passes a complete Agent identity application to persistence without accepting a self-assigned staff role", async () => {
+  it("passes a complete Agent identity application to persistence with the explicit Agent role", async () => {
     vi.mocked(database.createLocalAgentAccount).mockResolvedValue(testUser as never);
     const api = publicCaller();
 
@@ -100,13 +101,14 @@ describe("AHC trust-workflow validation", () => {
         governmentIdUrl: "https://example.com/government-id.png",
         workProofUrl: "https://example.com/work-proof.png",
       },
-      role: "admin",
-    } as never)).resolves.toMatchObject({ id: testUser.id, role: "user" });
+      role: "agent",
+    })).resolves.toMatchObject({ id: testUser.id, role: "agent" });
 
     expect(database.createLocalAgentAccount).toHaveBeenCalledWith({
       name: "Supplier Applicant",
       email: "supplier@example.com",
       passwordHash: "scrypt$trust-workflow$hash",
+      role: "agent",
       onboarding: {
         applicantType: "agent",
         taxpayerNumber: "CM-TAX-2026-001",
@@ -116,13 +118,27 @@ describe("AHC trust-workflow validation", () => {
     });
   });
 
-  it("returns an explicit empty Agent workspace profile instead of crashing a signed-in supplier", async () => {
+  it("rejects a self-assigned staff role during public registration", async () => {
+    const api = publicCaller();
+
+    await expect(api.auth.registerLocalAgent({
+      name: "Blocked Staff Applicant",
+      email: "blocked-staff@example.com",
+      password: "Strong-password-2026",
+      role: "admin",
+      captchaToken: "turnstile-token",
+    } as never)).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    expect(database.createLocalAgentAccount).not.toHaveBeenCalled();
+  });
+
+  it("returns an explicit empty Agent workspace profile instead of crashing a signed-in Agent", async () => {
     const api = protectedCaller();
 
     await expect(api.agent.profile()).resolves.toBeNull();
   });
 
-  it("allows any signed-in supplier to create the unified Agent profile", async () => {
+  it("allows an explicit Agent to create the unified Agent profile", async () => {
     vi.mocked(database.upsertAgentProfile).mockResolvedValue({ userId: testUser.id, publicName: "Unified Supplier" } as never);
     const api = protectedCaller();
     await expect(api.agent.setupProfile({ publicName: "Unified Supplier", whatsappPhone: "+237690000000" }))

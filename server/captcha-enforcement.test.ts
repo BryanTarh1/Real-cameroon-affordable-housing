@@ -21,7 +21,7 @@ const seeker = {
   email: "seeker@example.com",
   name: "Seeker",
   loginMethod: "ahc_local",
-  role: "user" as const,
+  role: "seeker" as const,
   isBanned: false,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -79,7 +79,7 @@ describe("AHC server-side Turnstile enforcement", () => {
   it("fails closed when Turnstile is not configured", async () => {
     ENV.turnstileSecretKey = "";
 
-    await expect(caller().auth.registerLocalAgent({ name: "New Agent", email: "new@example.com", password: "Strong-password-2026", captchaToken: "unverified-token" })).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    await expect(caller().auth.registerLocalAgent({ name: "New Agent", email: "new@example.com", password: "Strong-password-2026", role: "agent", captchaToken: "unverified-token" })).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
     expect(database.createLocalAgentAccount).not.toHaveBeenCalled();
   });
 

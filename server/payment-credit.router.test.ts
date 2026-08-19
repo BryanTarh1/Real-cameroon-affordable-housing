@@ -18,7 +18,7 @@ vi.mock("./db", async importOriginal => {
 import * as database from "./db";
 import { appRouter } from "./routers";
 
-const agent = { id: 62, openId: "payment-agent", email: "agent@example.com", name: "Payment Agent", loginMethod: "manus", role: "user" as const, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() };
+const agent = { id: 62, openId: "payment-agent", email: "agent@example.com", name: "Payment Agent", loginMethod: "manus", role: "agent" as const, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() };
 const moderator = { id: 63, openId: "payment-moderator", email: "moderator@example.com", name: "Payment Moderator", loginMethod: "manus", role: "moderator" as const, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() };
 const admin = { id: 64, openId: "payment-admin", email: "admin@example.com", name: "Payment Admin", loginMethod: "manus", role: "admin" as const, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() };
 

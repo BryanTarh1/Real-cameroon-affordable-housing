@@ -720,3 +720,4 @@
 
 ## Admin role wording
 - [x] Replace the Admin-board audience label “Seeker / Agent” with “Seeker or Agent” without changing underlying role values or authorization behavior. The selector still submits the same internal `user`, `moderator`, and `admin` values; a production build passes.
+- [x] Replace the combined `user` role with distinct `seeker` and `agent` roles through a safe migration; update Admin role assignment, preserve Moderator/Admin protections, and add authorization regressions for each role. Existing accounts were mapped according to Agent-profile ownership, public registration permits only Seeker or Agent, and the Admin selector now offers Seeker, Agent, Moderator, and Admin independently. All 211 Vitest tests and the production build pass.

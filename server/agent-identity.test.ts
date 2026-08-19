@@ -8,7 +8,7 @@ describe("Agent identity evidence boundaries", () => {
     expect(source).toContain('/api/agent/identity-document');
     expect(source).toContain('image/jpeg');
     expect(source).toContain('private/agent-identity/');
-    expect(source).toContain('user.role !== "user"');
+    expect(source).toContain('user.role !== "agent"');
     expect(source).toContain('saveAgentIdentityDocument');
   });
 

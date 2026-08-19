@@ -21,15 +21,28 @@ const authenticatedUser = {
   email: "seeker@example.com",
   name: "Appointment Seeker",
   loginMethod: "ahc_local",
-  role: "user" as const,
+  role: "seeker" as const,
   isBanned: false,
   createdAt: new Date(),
   updatedAt: new Date(),
   lastSignedIn: new Date(),
 };
 
+const agentUser = {
+  ...authenticatedUser,
+  id: 914,
+  openId: "appointment-test-agent",
+  email: "agent@example.com",
+  name: "Appointment Agent",
+  role: "agent" as const,
+};
+
 function caller(user = authenticatedUser) {
   return appRouter.createCaller({ user, req: { protocol: "https", headers: {} }, res: { cookie: vi.fn(), clearCookie: vi.fn() } } as unknown as TrpcContext);
+}
+
+function agentCaller() {
+  return caller(agentUser);
 }
 
 describe("AHC viewing appointment concierge", () => {
@@ -58,7 +71,7 @@ describe("AHC viewing appointment concierge", () => {
   });
 
   it("requires a substantive reason before an Agent declines a viewing request", async () => {
-    await expect(caller().agent.viewingAppointments.respond({ appointmentId: 73, decision: "declined" }))
+    await expect(agentCaller().agent.viewingAppointments.respond({ appointmentId: 73, decision: "declined" }))
       .rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(database.respondToViewingAppointment).not.toHaveBeenCalled();
   });
@@ -69,10 +82,10 @@ describe("AHC viewing appointment concierge", () => {
       availabilityStatus: "confirmed",
     } as never);
 
-    await expect(caller().agent.viewingAppointments.reconfirmAvailability({ appointmentId: 73 }))
+    await expect(agentCaller().agent.viewingAppointments.reconfirmAvailability({ appointmentId: 73 }))
       .resolves.toMatchObject({ availabilityStatus: "confirmed" });
     expect(database.reconfirmViewingAppointmentAvailability).toHaveBeenCalledWith({
-      agentUserId: authenticatedUser.id,
+      agentUserId: agentUser.id,
       appointmentId: 73,
     });
   });

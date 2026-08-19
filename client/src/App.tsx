@@ -76,11 +76,11 @@ function AgentOnboardingRoute() {
   // The signed-out Agent portal contains only the local AHC account form. It does not
   // request or expose Agent workspace data until the session is established.
   if (!loading && !user) return <AgentWorkspacePage />;
-  return <ProtectedWorkspace allowedRoles={["user"]}><AgentWorkspacePage /></ProtectedWorkspace>;
+  return <ProtectedWorkspace allowedRoles={["agent"]}><AgentWorkspacePage /></ProtectedWorkspace>;
 }
 
 function CustomerDashboardRoute() {
-  return <ProtectedWorkspace allowedRoles={["user", "moderator", "admin"]}><CustomerDashboard /></ProtectedWorkspace>;
+  return <ProtectedWorkspace allowedRoles={["seeker"]}><CustomerDashboard /></ProtectedWorkspace>;
 }
 
 function MarketplaceRoute() {
