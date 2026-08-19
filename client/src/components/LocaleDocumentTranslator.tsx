@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Languages } from "lucide-react";
+import { useLocation } from "wouter";
 import { useMarketplaceLanguage } from "@/hooks/useMarketplaceLanguage";
 import { isAhcInterfaceTranslation, translateAhcInterfaceText } from "@/lib/uiFrench";
 
@@ -48,7 +49,9 @@ function applyLocale(language: "en" | "fr") {
 /** Applies the selected locale to AHC-owned static interface copy rendered by legacy screens. */
 export function LocaleDocumentTranslator() {
   const { language, setLanguage } = useMarketplaceLanguage();
+  const [location] = useLocation();
   const scheduled = useRef<number | null>(null);
+  const isPublicMarketplace = location === "/" || location.startsWith("/listings/");
 
   useEffect(() => {
     const schedule = () => {
@@ -63,6 +66,8 @@ export function LocaleDocumentTranslator() {
       if (scheduled.current) window.cancelAnimationFrame(scheduled.current);
     };
   }, [language]);
+
+  if (isPublicMarketplace) return null;
 
   return <label className="fixed left-3 top-3 z-[80] inline-flex items-center gap-2 rounded-full border border-white/30 bg-[#132c34]/95 px-3 py-1.5 text-xs font-bold text-white shadow-lg backdrop-blur" aria-label="Language selector">
     <Languages size={15} aria-hidden="true" />

@@ -748,3 +748,6 @@
 
 ## Universal public verification disclosure
 - [x] Remove the redundant “Physical badges only” public control and replace it with a bilingual statement that every public home has current Field Moderator verification and approved real media. Focused regression, 218-test suite, production build, and desktop/mobile review pass.
+
+## Language control clarity
+- [x] Remove the duplicate public language control while retaining a single accessible English/French selector and full-page translation behaviour. Focused regression, 218-test suite, production build, and desktop/mobile review pass.

@@ -193,15 +193,15 @@ export default function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light" switchable>
-        <TooltipProvider>
-          <Toaster position="bottom-right" />
-          <ThemeToggle />
-          <LocaleDocumentTranslator />
-          <CommissionLedgerCsvExport />
-          <WouterRouter>
-            <LegacyHashLinkBridge />
-            <SessionControl />
-            <Router />
+          <TooltipProvider>
+            <Toaster position="bottom-right" />
+            <ThemeToggle />
+            <CommissionLedgerCsvExport />
+            <WouterRouter>
+              <LocaleDocumentTranslator />
+              <LegacyHashLinkBridge />
+              <SessionControl />
+              <Router />
           </WouterRouter>
         </TooltipProvider>
       </ThemeProvider>
