@@ -739,3 +739,12 @@
 - [x] Add a privacy-safe email fallback for approved owner alerts while Meta WhatsApp activation is unavailable. Resend is used only when Meta WhatsApp has not completed signed delivery-webhook activation.
 - [x] Implement the approved transactional-email sender, owner recipient configuration, delivery audit state, and non-blocking failure handling for owner alerts. Resend credentials and sender validation pass; a controlled email activation alert was accepted by the provider.
 - [x] Isolate the live Resend credential probe from ordinary offline regressions while retaining a repeatable explicit provider-validation command. `pnpm test:resend:live` verifies configured live credentials; normal tests stay offline and deterministic.
+
+## Pilot and launch-readiness assessment
+- [x] Assess the current marketplace against pilot-launch requirements and prioritise only the next additions that materially improve safety, trust, usability, or operations. Recommendation delivered separately; no unselected feature work was committed.
+
+## Independent project handover
+- [x] Prepare a beginner-safe guide for exporting the project, backing up its data and media, recreating dependencies, and running it independently outside the current platform. The guide identifies the current storage dependency that must be replaced before independent public hosting.
+
+## Universal public verification disclosure
+- [x] Remove the redundant “Physical badges only” public control and replace it with a bilingual statement that every public home has current Field Moderator verification and approved real media. Focused regression, 218-test suite, production build, and desktop/mobile review pass.
