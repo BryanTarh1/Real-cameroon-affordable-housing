@@ -2,6 +2,9 @@
 @import "leaflet/dist/leaflet.css";
 @import "tailwindcss";
 
+/* Truthful public-media boundary: never substitute generated footage for a missing field walkthrough. */
+.photo-preview-placeholder.media-unavailable{padding:1rem;text-align:center;background:linear-gradient(135deg,#ebe4d5,#c6d1cf)}.photo-preview-placeholder.media-unavailable small{max-width:27rem;color:#405452;font-size:.75rem;font-weight:600;line-height:1.35}.detail-media-unavailable{display:flex;gap:.75rem;align-items:flex-start;margin:18px 0 20px;padding:1rem;background:#f6efe2;border-left:4px solid #b66e24;color:var(--ink)}.detail-media-unavailable svg{color:#a95d17;flex:0 0 auto}.detail-media-unavailable strong,.detail-media-unavailable span{display:block}.detail-media-unavailable span{margin-top:.3rem;color:#405452;font-size:.84rem;line-height:1.45}
+
 .agent-list-freshness{display:flex;align-items:center;gap:5px;margin:8px 0 0;color:var(--teal)}.agent-list-freshness svg{flex:none}.agent-list .agent-list-freshness span{margin:0;color:inherit;font-size:10px;font-weight:800;line-height:1.4;text-transform:none}
 .owner-status{border-left:4px solid var(--ochre)}.owner-status-approved{border-left-color:var(--teal)}.owner-document-checks,.owner-review-documents,.owner-review-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.owner-document-checks span{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:800;color:var(--teal)}.owner-review-documents a{font-size:10px}.owner-review-actions{justify-content:flex-end}.owner-review-actions button{min-width:132px}
 

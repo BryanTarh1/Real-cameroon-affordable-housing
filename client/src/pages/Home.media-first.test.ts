@@ -17,4 +17,10 @@ describe("public media-first listing cards", () => {
     expect(styles).toContain(".listing-media-preview:focus-visible");
     expect(styles).toContain("@media(max-width:720px)");
   });
+
+  it("does not manufacture a video for a physically verified listing that lacks a published walkthrough", () => {
+    expect(homeSource).toContain('text(language, "walkthroughPending")');
+    expect(homeSource).toContain('text(language, "walkthroughPendingBody")');
+    expect(homeSource).toContain('listing.verificationStatus === "physical_verified"');
+  });
 });

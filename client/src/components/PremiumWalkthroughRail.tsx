@@ -12,6 +12,8 @@ type PremiumListing = MapListing & {
   propertyType: string;
   featured: boolean;
   costs: { monthlyRent: number; totalMoveInCashRequired: number };
+  verificationStatus: "physical_verified" | "remote_checked" | "unverified";
+  photosCount: number;
   walkthrough: { url: string; durationSeconds: number } | null;
   neighborhoodEssentials: {
     waterAccess: string;
@@ -43,7 +45,7 @@ function RoadLabel(value: string, language: PublicLanguage) {
 
 export function PremiumWalkthroughRail({ listings, language = "en", onOpen }: { listings: PremiumListing[]; language?: PublicLanguage; onOpen: (listing: PremiumListing) => void }) {
   const labels = marketplaceCopy[language];
-  const premiumListings = listings.filter(listing => listing.walkthrough);
+  const premiumListings = listings.filter(listing => listing.walkthrough || listing.verificationStatus === "physical_verified");
   const [videoReadyListingId, setVideoReadyListingId] = useState<string | null>(null);
   if (!premiumListings.length) return null;
   return <section className="premium-rail" aria-labelledby="premium-walkthrough-title">
@@ -54,8 +56,8 @@ export function PremiumWalkthroughRail({ listings, language = "en", onOpen }: { 
     <div className="premium-feed" role="region" aria-label={labels.moderatorTours}>
       {premiumListings.map(listing => <article className="premium-video-card" key={listing.id}>
         <div className="premium-video-frame">
-          <video src={listing.walkthrough!.url} controls muted playsInline preload="metadata" onPlay={() => setVideoReadyListingId(listing.id)} aria-label={`${labels.videoTour} ${listing.title}`} />
-          <span className="video-proof">{listing.title.startsWith("TEST DATA") ? <CircleAlert size={14} /> : <BadgeCheck size={14} />}{listing.title.startsWith("TEST DATA") ? ` ${labels.tourTest} · ${listing.walkthrough!.durationSeconds}s` : ` ${labels.moderatorTour} · ${listing.walkthrough!.durationSeconds}s`}</span>
+          {listing.walkthrough ? <video src={listing.walkthrough.url} controls muted playsInline preload="metadata" onPlay={() => setVideoReadyListingId(listing.id)} aria-label={`${labels.videoTour} ${listing.title}`} /> : <div className="premium-video-unavailable"><CircleAlert size={25} /><strong>{labels.walkthroughPending}</strong><span>{labels.walkthroughPendingBody}</span></div>}
+          <span className="video-proof">{listing.walkthrough ? <>{listing.title.startsWith("TEST DATA") ? <CircleAlert size={14} /> : <BadgeCheck size={14} />}{listing.title.startsWith("TEST DATA") ? ` ${labels.tourTest} · ${listing.walkthrough.durationSeconds}s` : ` ${labels.moderatorTour} · ${listing.walkthrough.durationSeconds}s`}</> : <><CircleAlert size={14} /> {labels.walkthroughPending}</>}</span>
           {listing.trust.guaranteedTotalCash && <span className="cash-guarantee"><ShieldCheck size={14} /> {labels.guaranteedCash}</span>}
         </div>
         <div className="premium-card-copy">
