@@ -23,4 +23,11 @@ describe("public media-first listing cards", () => {
     expect(homeSource).toContain('text(language, "walkthroughPendingBody")');
     expect(homeSource).toContain('listing.verificationStatus === "physical_verified"');
   });
+
+  it("renders only the curated public-media projection as photo evidence", () => {
+    expect(homeSource).toContain("listing.publicMedia[0]");
+    expect(homeSource).toContain("listing.publicMedia.map(media");
+    expect(homeSource).toContain("MODERATOR-APPROVED");
+    expect(homeSource).not.toContain("verificationEvidence");
+  });
 });

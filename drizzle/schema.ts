@@ -343,6 +343,28 @@ export const verificationEvidence = mysqlTable("verification_evidence", {
 }, (table) => [index("verification_evidence_order_idx").on(table.verificationOrderId, table.createdAt)]);
 
 /**
+ * A deliberately curated public projection of selected Field Moderator photos.
+ * It never makes raw evidence public automatically: every source record needs an
+ * explicit operational approval and document evidence is excluded by application rules.
+ */
+export const listingPublicMedia = mysqlTable("listing_public_media", {
+  id: int("id").autoincrement().primaryKey(),
+  listingId: varchar("listingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
+  verificationEvidenceId: int("verificationEvidenceId").notNull().references(() => verificationEvidence.id, { onDelete: "cascade" }),
+  mediaUrl: text("mediaUrl").notNull(),
+  kind: mysqlEnum("kind", ["exterior", "interior", "bathroom", "other"]).notNull(),
+  /** Keeps seeded demo evidence visibly distinct from live moderator-captured gallery photos. */
+  provenance: mysqlEnum("provenance", ["moderator_captured", "moderator_captured_test_data"]).default("moderator_captured").notNull(),
+  displayOrder: int("displayOrder").default(0).notNull(),
+  approvedByUserId: int("approvedByUserId").references(() => users.id, { onDelete: "set null" }),
+  approvedAt: timestamp("approvedAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("listing_public_media_evidence_idx").on(table.verificationEvidenceId),
+  index("listing_public_media_listing_order_idx").on(table.listingId, table.displayOrder),
+]);
+
+/**
  * A moderator-captured, short vertical viewing clip. It becomes public only after
  * the linked field visit has passed and the listing itself remains published.
  * The storage key is retained for staff accountability; public searches receive

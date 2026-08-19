@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, lt, ne, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, lt, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { nanoid } from "nanoid";
 import {
@@ -9,6 +9,7 @@ import {
   listingCosts,
   listingCredits,
   listingPriceHistory,
+  listingPublicMedia,
   listingNeighborhoodAssessments,
   leadEvents,
   listingPromotions,
@@ -662,7 +663,14 @@ export type PublicListingFilters = {
   availability?: "any" | "available_now";
 };
 
-function mapListing(row: any) {
+type CuratedPublicMedia = {
+  url: string;
+  kind: "exterior" | "interior" | "bathroom" | "other";
+  provenance: "moderator_captured" | "moderator_captured_test_data";
+  displayOrder: number;
+};
+
+function mapListing(row: any, publicMedia: CuratedPublicMedia[] = []) {
   const verificationStatus = getEffectivePublicVerificationStatus(row.verificationStatus, row.verificationExpiresAt);
   const costs = {
     monthlyRent: Number(row.monthlyRent),
@@ -689,6 +697,7 @@ function mapListing(row: any) {
     featured: Boolean(row.isFeatured) && (!row.featuredUntil || new Date(row.featuredUntil) > new Date()),
     verificationStatus,
     photosCount: row.photosCount,
+    publicMedia,
     walkthrough: row.walkthroughUrl && row.walkthroughStatus === "published" ? {
       url: row.walkthroughUrl,
       durationSeconds: row.walkthroughDurationSeconds,
@@ -714,6 +723,25 @@ function mapListing(row: any) {
     agent: { name: row.publicName ?? row.agentNameSnapshot, whatsappPhone: row.whatsappPhone ?? null },
     costs: { ...costs, totalMoveInCashRequired: calculateTotalMoveInCash(costs) },
   };
+}
+
+async function assertListingEligibleForPublicPublication(tx: any, listing: {
+  id: string;
+  verificationStatus: "unverified" | "remote_checked" | "physical_verified";
+  verificationExpiresAt: Date | string | null;
+}) {
+  if (getEffectivePublicVerificationStatus(listing.verificationStatus, listing.verificationExpiresAt) !== "physical_verified") {
+    throw new Error("A listing needs a current passed physical verification before it can be public.");
+  }
+  const [approvedPhoto, publishedWalkthrough] = await Promise.all([
+    tx.select({ id: listingPublicMedia.id }).from(listingPublicMedia)
+      .where(eq(listingPublicMedia.listingId, listing.id)).limit(1),
+    tx.select({ id: listingWalkthroughVideos.id }).from(listingWalkthroughVideos)
+      .where(and(eq(listingWalkthroughVideos.listingId, listing.id), eq(listingWalkthroughVideos.status, "published"))).limit(1),
+  ]);
+  if (!approvedPhoto.length && !publishedWalkthrough.length) {
+    throw new Error("A listing needs an approved public photo or a published moderator walkthrough before it can be public.");
+  }
 }
 
 /** A physical badge is an expiring field observation, never a permanent property claim. */
@@ -763,8 +791,25 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
       desc(listings.lastReconfirmed),
     );
 
+  const listingIds = rows.map(row => row.id);
+  const mediaRows = listingIds.length
+    ? await db.select({ listingId: listingPublicMedia.listingId, mediaUrl: listingPublicMedia.mediaUrl, kind: listingPublicMedia.kind, provenance: listingPublicMedia.provenance, displayOrder: listingPublicMedia.displayOrder })
+      .from(listingPublicMedia).where(inArray(listingPublicMedia.listingId, listingIds))
+    : [];
+  const mediaByListingId = new Map<string, CuratedPublicMedia[]>();
+  for (const media of mediaRows) {
+    const items = mediaByListingId.get(media.listingId) ?? [];
+    items.push({ url: media.mediaUrl, kind: media.kind, provenance: media.provenance, displayOrder: media.displayOrder });
+    mediaByListingId.set(media.listingId, items);
+  }
+  for (const items of Array.from(mediaByListingId.values())) {
+    items.sort((a: CuratedPublicMedia, b: CuratedPublicMedia) => a.displayOrder - b.displayOrder);
+  }
+
   const needle = filters.search?.trim().toLowerCase();
-  return rows.map(mapListing).filter((listing) => {
+  return rows.map(row => mapListing(row, mediaByListingId.get(row.id) ?? [])).filter((listing) => {
+    if (listing.verificationStatus !== "physical_verified") return false;
+    if (!listing.publicMedia.length && !listing.walkthrough) return false;
     if (filters.city && filters.city !== "All cities" && listing.city !== filters.city) return false;
     if (filters.maxMonthlyRent && listing.costs.monthlyRent > filters.maxMonthlyRent) return false;
     if (filters.maxMoveInCash && listing.costs.totalMoveInCashRequired > filters.maxMoveInCash) return false;
@@ -1620,6 +1665,7 @@ export async function releaseListingSafetyHold(operatorUserId: number, listingId
     const listing = (await tx.select().from(listings).where(eq(listings.id, listingId)).limit(1))[0];
     if (!listing) throw new Error("Listing not found.");
     if (listing.status !== "suspended") throw new Error("Only a suspended listing can be released from a safety hold.");
+    await assertListingEligibleForPublicPublication(tx, listing);
     const now = new Date();
     await tx.update(listings).set({
       status: "published",
@@ -2326,6 +2372,7 @@ export async function decideListingReview(operatorUserId: number, listingId: str
     if (listing.agentUserId === operatorUserId) throw new Error("A reviewer cannot decide their own listing.");
     const now = new Date();
     const target = decision === "approved" ? "published" : decision;
+    if (decision === "approved") await assertListingEligibleForPublicPublication(tx, listing);
     await tx.update(listings).set({
       status: target, reviewedAt: now, reviewedByUserId: operatorUserId, reviewSummary: reason,
       approvedAt: decision === "approved" ? now : null,
