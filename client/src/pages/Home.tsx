@@ -234,7 +234,7 @@ export default function Home({ directListingId }: { directListingId?: string }) 
   const labels = marketplaceCopy[language];
   const [city, setCity] = useState("All cities");
   const [search, setSearch] = useState("");
-  const [maxMoveInCash, setMaxMoveInCash] = useState(300_000);
+  const [maxMoveInCash, setMaxMoveInCash] = useState(1_000_000);
   const [propertyType, setPropertyType] = useState("Any type");
   const [furnishingStatus, setFurnishingStatus] = useState<"any" | "not_stated" | "unfurnished" | "partly_furnished" | "fully_furnished">("any");
   const [neighborhood, setNeighborhood] = useState("");

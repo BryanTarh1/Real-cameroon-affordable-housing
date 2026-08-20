@@ -30,4 +30,9 @@ describe("public media-first listing cards", () => {
     expect(homeSource).toContain("MODERATOR-APPROVED");
     expect(homeSource).not.toContain("verificationEvidence");
   });
+
+  it("starts compact discovery without silently excluding eligible homes by move-in budget", () => {
+    expect(homeSource).toContain("const [maxMoveInCash, setMaxMoveInCash] = useState(1_000_000);");
+    expect(homeSource).toContain('<option value={1000000}>{labels.anyAmount}</option>');
+  });
 });

@@ -808,3 +808,9 @@
 - [x] Refine the public discovery layout so media appears first, total move-in cash follows immediately beneath it, and the search entry is compact with optional filters revealed only on request.
 - [x] Add privacy-safe relevant-property suggestions based only on the current public listing/search context. Ranking considers city, property type, bedroom count, displayed rent band, and optional area wording; it never reads saved items, viewer history, contacts, private evidence, or exact coordinates.
 - [x] Add focused tests and responsive validation for listing quality, property facts, compact search, media-first hierarchy, and relevant-property suggestions. Full regression and build validation pass with 232 tests, 1 intentional live-provider skip, plus desktop and mobile marketplace review.
+
+## Public inventory correction after media-quality rollout
+
+- [x] Audit and correct the unexpectedly low visible public-home count without relaxing the verified-media standard. The compact search no longer defaults to a 300,000 XAF ceiling, so it now presents both currently eligible walkthrough-backed TEST DATA homes; the default remains adjustable by the viewer.
+- [x] Verify visible inventory count, recommendation availability, regression safeguards, and responsive marketplace presentation. The full suite passes with 233 tests and one intentional live-provider skip; the production build and desktop marketplace review confirm both eligible homes are visible.
+- [ ] Add new owner-authorized, genuine Field Moderator-captured photos or published walkthroughs for the remaining clearly labelled TEST DATA listings before they can return to public discovery. Existing evidence supplies only two or three distinct non-document photos per excluded listing; it must not be duplicated, invented, or represented as verified property media.
