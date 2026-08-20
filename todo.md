@@ -842,3 +842,9 @@
 - [x] Rework listing cards so approved or clearly labelled illustrative TEST DATA media leads, Total Move-In Cash and rent remain immediately clear, and compact facts, verification freshness, provenance, and landmark-only privacy stay visible without visual overload.
 - [x] Add accessible collection navigation, mobile scroll behavior, appropriate empty states, and no-content fallbacks; retain existing search, favourites, safety, and viewing-request functions.
 - [x] Add focused tests and responsive review for the reinvented discovery experience. The focused shelf regression passes, the full suite passes with 236 tests and one intentional live-provider skip, the production build passes, and desktop/mobile reviews are complete.
+
+## Real public-listing focused discovery
+
+- [x] Remove the separate non-production/private-style public browsing treatment and replace remaining public “private viewing” wording with neutral viewing-request language. Landmark-only address protection and the authorised-viewing contact boundary remain unchanged.
+- [x] Make the real eligible public-home collection the primary media-first visual experience, without a special TEST DATA/private presentation competing with actual property cards. The duplicate long-form discovery grid is retired; the compact budget-fit tool remains optional below the real home shelf.
+- [x] Validate real-listing routing, favourites, viewing requests, map gating, provenance disclosures, desktop/mobile presentation, and source-contract coverage. The full suite passes with 237 tests, one intentional live-provider skip, and the production build passes.

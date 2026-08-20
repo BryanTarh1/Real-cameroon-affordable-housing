@@ -49,6 +49,11 @@ describe("public media-first listing cards", () => {
     expect(homeSource).not.toContain("rating:");
   });
 
+  it("keeps the real public listing shelf free of a separate non-production walkthrough preview", () => {
+    expect(homeSource).toContain("<ContextualHomeShelf eyebrow={browseCopy.cityEyebrow}");
+    expect(homeSource).not.toContain("NonProductionWalkthroughDemo");
+  });
+
   it("keeps Total Move-In Cash, provenance, freshness, and landmark privacy visible in browse tiles", () => {
     expect(homeSource).toContain("browse-home-cash");
     expect(homeSource).toContain("illustrativeTestMedia");
