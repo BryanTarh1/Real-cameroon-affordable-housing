@@ -829,3 +829,16 @@
 - [x] Create a refreshed 11-slide PowerPoint presentation covering the product, marketplace advantage, media-first discovery, operational model, architecture, security, and next steps.
 - [x] Produce an in-depth Word Software Requirements Specification with functional and non-functional requirements, data entities, role permissions, interfaces, workflows, acceptance criteria, risks, and release prerequisites.
 - [x] Review both deliverables for accuracy and readability, then deliver the PowerPoint and Word document as downloadable files.
+
+## BBoyo public profitability estimate
+
+- [ ] Identify the relevant BBoyo housing marketplace entity and collect public evidence on its business model, pricing, scale, funding, traffic, and disclosures.
+- [ ] Produce a clearly labelled, assumption-driven profitability range that distinguishes public facts from scenario inputs and explains material uncertainty.
+
+## Context-aware visual discovery reinvention
+
+- [x] Define an AHC-specific media-led browsing system inspired by the usability of the supplied reference without copying Airbnb branding, wording, rating conventions, or layout verbatim.
+- [x] Create responsive horizontal property collections driven by current public listing context, including city/neighbourhood, affordability, household fit, and related-home signals. Sparse inventory displays one non-repetitive shelf; richer inventory unlocks further budget and household collections.
+- [x] Rework listing cards so approved or clearly labelled illustrative TEST DATA media leads, Total Move-In Cash and rent remain immediately clear, and compact facts, verification freshness, provenance, and landmark-only privacy stay visible without visual overload.
+- [x] Add accessible collection navigation, mobile scroll behavior, appropriate empty states, and no-content fallbacks; retain existing search, favourites, safety, and viewing-request functions.
+- [x] Add focused tests and responsive review for the reinvented discovery experience. The focused shelf regression passes, the full suite passes with 236 tests and one intentional live-provider skip, the production build passes, and desktop/mobile reviews are complete.

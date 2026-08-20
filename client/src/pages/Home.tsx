@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { ApproximateMap, type MapListing } from "@/components/ApproximateMap";
 import { trpc } from "@/lib/trpc";
@@ -12,7 +12,7 @@ import { PremiumWalkthroughRail } from "@/components/PremiumWalkthroughRail";
 import { NonProductionWalkthroughDemo } from "@/components/NonProductionWalkthroughDemo";
 import { SeekerMatchAlerts } from "@/components/SeekerMatchAlerts";
 import { SeekerAppointmentHistory, ViewingAppointmentRequest } from "@/components/ViewingAppointmentConcierge";
-import { BadgeCheck, Bath, BedDouble, Building2, CarFront, ChevronDown, CircleAlert, Clock3, MapPinned, Menu, MessageCircle, Share2, ShieldCheck, Sparkles, Video, X } from "lucide-react";
+import { BadgeCheck, Bath, BedDouble, Building2, CarFront, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Clock3, MapPinned, Menu, MessageCircle, Share2, ShieldCheck, Sparkles, Video, X } from "lucide-react";
 import { toast } from "sonner";
 import "./launch-refinements.css";
 import "./Home.search-skeleton.css";
@@ -126,6 +126,43 @@ function ListingCard({ listing, onOpen, language, lowData = false }: { listing: 
     <div className="listing-trust-row"><span className={listing.verificationStatus === "physical_verified" ? "trust-positive" : "trust-neutral"}>{listing.verificationStatus === "physical_verified" ? <BadgeCheck size={15} /> : <Clock3 size={15} />}{listing.verificationStatus === "physical_verified" ? text(language, "physicallyVerified") : text(language, "notPhysicallyVerified")}<small>{listing.verificationStatus === "physical_verified" ? ` · ${text(language, "moderatorVisitPassed")}` : ` · ${text(language, "noModeratorVisit")}`}</small></span><span className="freshness-relative freshness-indicator" aria-label={`${text(language, "reconfirmed")} ${relativeReconfirmed(listing.lastReconfirmed, language)}`}><Clock3 size={14} /> {text(language, "reconfirmed")} {relativeReconfirmed(listing.lastReconfirmed, language)} <small>· {days} {days === 1 ? text(language, "dayLeft") : text(language, "daysLeft")}</small></span></div>
     <button className="card-action" onClick={onOpen}>{text(language, "viewCosts")} <span>→</span></button>
   </article>;
+}
+
+function BrowseHomeTile({ listing, onOpen, language, lowData = false }: { listing: Listing; onOpen: () => void; language: Language; lowData?: boolean }) {
+  const walkthrough = publicWalkthroughForDetail(listing.walkthrough);
+  const primaryPhoto = listing.publicMedia[0] ?? null;
+  const hasIllustrativeMedia = listing.publicMedia.some(media => media.provenance === "illustrative_test_data");
+  const isFrench = language === "fr";
+  const isVerified = listing.verificationStatus === "physical_verified";
+  const facts = `${listing.bedrooms} ${isFrench ? "ch." : "bed"} · ${listing.bathrooms} ${isFrench ? "sdb" : "bath"} · ${listing.parkingSpaces} ${isFrench ? "park." : "park"}`;
+  return <article className="browse-home-tile">
+    <button type="button" className="browse-home-media" onClick={onOpen} aria-label={`${listing.title} — ${text(language, "viewCosts")}`}>
+      {!lowData && walkthrough ? <video src={walkthrough.url} muted autoPlay loop playsInline preload="metadata" aria-hidden="true" /> : primaryPhoto ? <img src={primaryPhoto.url} alt={`${listing.title} — ${text(language, "photoPreview")}`} /> : <div className="browse-home-media-empty"><CircleAlert size={20} /><span>{text(language, "walkthroughPending")}</span></div>}
+      <span className="browse-home-status">{hasIllustrativeMedia ? text(language, "illustrativeTestMedia") : isVerified ? text(language, "physicallyVerified") : text(language, "photoPreview")}</span>
+      <span className="browse-home-cash"><small>{text(language, "totalCash")}</small><b>{formatXaf(listing.costs.totalMoveInCashRequired, language)}</b></span>
+      <span className="browse-home-open">{isFrench ? "Ouvrir" : "Open"} <span aria-hidden="true">↗</span></span>
+    </button>
+    <button type="button" className="browse-home-copy" onClick={onOpen}>
+      <span className="browse-home-place">{listing.city} · {listing.neighborhood}</span>
+      <h3>{listing.title}</h3>
+      <p className="browse-home-facts">{facts}</p>
+      <div className="browse-home-rent"><span>{text(language, "monthlyRent")}</span><b>{formatXaf(listing.costs.monthlyRent, language)}</b></div>
+      <div className="browse-home-meta"><span><Clock3 size={13} /> {text(language, "reconfirmed")} {relativeReconfirmed(listing.lastReconfirmed, language)}</span><span><MapPinned size={13} /> {listing.map.radiusM}m</span></div>
+    </button>
+  </article>;
+}
+
+function ContextualHomeShelf({ eyebrow, title, body, listings, language, onOpen, lowData = false }: { eyebrow: string; title: string; body: string; listings: Listing[]; language: Language; onOpen: (listing: Listing) => void; lowData?: boolean }) {
+  const railRef = useRef<HTMLDivElement>(null);
+  const scrollRail = (direction: -1 | 1) => railRef.current?.scrollBy({ left: direction * Math.max(280, railRef.current.clientWidth * 0.72), behavior: "smooth" });
+  if (!listings.length) return null;
+  return <section className="contextual-home-shelf">
+    <header className="contextual-shelf-heading">
+      <div><span>{eyebrow}</span><h2>{title}</h2><p>{body}</p></div>
+      {listings.length > 1 ? <div className="shelf-controls" aria-label={language === "fr" ? "Navigation de la collection" : "Collection navigation"}><button type="button" onClick={() => scrollRail(-1)} aria-label={language === "fr" ? "Voir les logements précédents" : "View previous homes"}><ChevronLeft size={19} /></button><button type="button" onClick={() => scrollRail(1)} aria-label={language === "fr" ? "Voir les logements suivants" : "View next homes"}><ChevronRight size={19} /></button></div> : null}
+    </header>
+    <div className="contextual-home-rail" ref={railRef} role="list" aria-label={title}>{listings.map(listing => <div role="listitem" key={listing.id}><BrowseHomeTile listing={listing} language={language} lowData={lowData} onOpen={() => onOpen(listing)} /></div>)}</div>
+  </section>;
 }
 
 function ListingDetail({ listing, onClose, onSelectRelated, language, isAuthenticated }: { listing: Listing; onClose: () => void; onSelectRelated: (listing: Listing) => void; language: Language; isAuthenticated: boolean }) {
@@ -263,6 +300,13 @@ export default function Home({ directListingId }: { directListingId?: string }) 
   const listings = (results.data ?? []) as Listing[];
   const budgetListings = budgetFitOnly ? listings.filter(listing => listing.costs.monthlyRent <= Number(monthlyIncome) * 0.3 && listing.costs.totalMoveInCashRequired <= Number(availableSavings)) : listings;
   const directListings = (directResult.data ?? []) as Listing[];
+  const activeBrowseCity = city === "All cities" ? budgetListings[0]?.city ?? (language === "fr" ? "le Cameroun" : "Cameroon") : city;
+  const cityHomes = city === "All cities" ? budgetListings : budgetListings.filter(listing => listing.city === city);
+  const moveInFirstHomes = [...budgetListings].sort((a, b) => a.costs.totalMoveInCashRequired - b.costs.totalMoveInCashRequired).slice(0, 8);
+  const householdHomes = budgetListings.filter(listing => listing.bedrooms >= 2).sort((a, b) => b.bedrooms - a.bedrooms || a.costs.monthlyRent - b.costs.monthlyRent).slice(0, 8);
+  const browseCopy = language === "fr"
+    ? { cityEyebrow: "SÉLECTION ACTUELLE", cityTitle: `Logements à explorer à ${activeBrowseCity}`, cityBody: "Des médias d’abord, puis le coût total à prévoir et les faits utiles pour comparer.", budgetEyebrow: "MIEUX POUR VOTRE BUDGET", budgetTitle: "Commencez avec le coût d’entrée", budgetBody: "Classés par montant total à prévoir avant de déménager — pas seulement selon le loyer mensuel.", familyEyebrow: "POUR PLUS D’ESPACE", familyTitle: "Des logements pensés pour un foyer", familyBody: "Des options avec au moins deux chambres dans votre recherche actuelle." }
+    : { cityEyebrow: "CURRENT SELECTION", cityTitle: `Homes to explore in ${activeBrowseCity}`, cityBody: "Media first, then the total cash required and the facts needed to compare with confidence.", budgetEyebrow: "EASIER ON YOUR MOVE-IN BUDGET", budgetTitle: "Start with the move-in total", budgetBody: "Ordered by the cash needed before moving—not by monthly rent alone.", familyEyebrow: "ROOM FOR A HOUSEHOLD", familyTitle: "Homes with space to grow", familyBody: "Options with at least two bedrooms within your current search." };
   const openListing = (listing: Listing) => setSelected(listing);
   const openFromMap = (id: string) => {
     const listing = listings.find(item => item.id === id);
@@ -277,7 +321,11 @@ export default function Home({ directListingId }: { directListingId?: string }) 
   return <div className={`ahc-app language-transition ${isLanguageTransitioning ? "is-switching-language" : ""}`} lang={language}><header className="topbar"><a className="brand" href="/" data-scroll-target="top"><span className="brand-emblem"><span /><span /><span /></span><span>Affordable Housing<br /><b>Cameroon</b></span></a><nav className={menuOpen ? "nav-links is-open" : "nav-links"}><a href="/" data-scroll-target="homes" onClick={() => setMenuOpen(false)}>{labels.homes}</a><a href="/" data-scroll-target="alerts" onClick={() => setMenuOpen(false)}>{labels.alerts}</a><a href="/" data-scroll-target="trust" onClick={() => setMenuOpen(false)}>{labels.safer}</a><a href="/agent" onClick={() => setMenuOpen(false)}>{labels.agents}</a><a href="/" data-scroll-target="moderators" onClick={() => setMenuOpen(false)}>{labels.moderators}</a></nav><select className="language-select" value={language} onChange={event => setLanguage(event.target.value as typeof language)} aria-label={language === "fr" ? "Choisir la langue" : "Select language"}><option value="en">English</option><option value="fr">Français</option></select><a className="agent-top-cta" href="/agent">{labels.list} <span>↗</span></a><button className="mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label={labels.homes}>{menuOpen ? <X /> : <Menu />}</button></header>
     <main id="top"><aside className="atlas-index" aria-label="AHC"><span>AHC / ROUTE</span><a href="/" data-scroll-target="homes"><b>01</b> {labels.routeFresh}</a><a href="/" data-scroll-target="alerts"><b>02</b> {labels.routeAlerts}</a><a href="/" data-scroll-target="trust"><b>03</b> {labels.routeTrust}</a><a href="/" data-scroll-target="agents"><b>04</b> {labels.routeAgents}</a><a href="/" data-scroll-target="moderators"><b>05</b> {labels.routeModerators}</a></aside><section className="hero"><div className="hero-grid"><div className="hero-copy"><span className="section-overline light">{labels.heroOverline}</span><h1>{labels.fullCost} <em>{labels.beforeMove}</em></h1><p>{labels.freshIntro}</p><div className="hero-proof"><span><ShieldCheck size={16} /> {labels.freshnessRule}</span><span><MapPinned size={16} /> {labels.landmarkMaps}</span></div></div><div className="search-panel search-panel-compact"><span className="search-kicker">{labels.searchKicker}</span><label>{labels.where}<input value={search} onChange={e => setSearch(e.target.value)} placeholder={labels.searchPlaceholder} /></label><div className="two-fields"><label>{labels.city}<select value={city} onChange={e => setCity(e.target.value)}><option>{labels.allCities}</option><option>Yaoundé</option><option>Douala</option></select></label><label>{labels.maxCash}<select value={maxMoveInCash} onChange={e => setMaxMoveInCash(Number(e.target.value))}><option value={100000}>100,000 XAF</option><option value={200000}>200,000 XAF</option><option value={300000}>300,000 XAF</option><option value={500000}>500,000 XAF</option><option value={1000000}>{labels.anyAmount}</option></select></label></div><button type="button" className="search-advanced-toggle" onClick={() => setAdvancedSearchOpen(open => !open)} aria-expanded={advancedSearchOpen}>{advancedSearchOpen ? (language === "fr" ? "Masquer les filtres" : "Hide filters") : (language === "fr" ? "Plus de filtres" : "More filters")}<ChevronDown size={16} className={advancedSearchOpen ? "is-open" : ""} /></button>{advancedSearchOpen ? <div className="search-advanced-fields"><div className="two-fields"><label>{language === "fr" ? "Type de logement" : "Home type"}<select value={propertyType} onChange={e => setPropertyType(e.target.value)}><option>{language === "fr" ? "Tout type" : "Any type"}</option><option>Studio</option><option>Apartment</option><option>House</option><option>Room</option><option>Duplex</option></select></label><label>{furnishingCopy[language].label}<select value={furnishingStatus} onChange={e => setFurnishingStatus(e.target.value as typeof furnishingStatus)}><option value="any">{furnishingCopy[language].any}</option><option value="unfurnished">{furnishingCopy[language].unfurnished}</option><option value="partly_furnished">{furnishingCopy[language].partly_furnished}</option><option value="fully_furnished">{furnishingCopy[language].fully_furnished}</option><option value="not_stated">{furnishingCopy[language].not_stated}</option></select></label></div><div className="two-fields"><label>{furnishingCopy[language].bedrooms}<select value={minBedrooms} onChange={e => setMinBedrooms(Number(e.target.value))}><option value={0}>{furnishingCopy[language].anyBedrooms}</option><option value={1}>1+ {language === "fr" ? "chambre" : "bedroom"}</option><option value={2}>2+ {language === "fr" ? "chambres" : "bedrooms"}</option><option value={3}>3+ {language === "fr" ? "chambres" : "bedrooms"}</option><option value={4}>4+ {language === "fr" ? "chambres" : "bedrooms"}</option></select></label><label>{furnishingCopy[language].monthlyRent}<select value={maxMonthlyRent} onChange={e => setMaxMonthlyRent(Number(e.target.value))}><option value={0}>{furnishingCopy[language].anyRent}</option><option value={50_000}>50,000 XAF</option><option value={75_000}>75,000 XAF</option><option value={100_000}>100,000 XAF</option><option value={150_000}>150,000 XAF</option><option value={250_000}>250,000 XAF</option></select></label></div><div className="two-fields"><label>{language === "fr" ? "Quartier" : "Neighbourhood"}<input value={neighborhood} onChange={e => setNeighborhood(e.target.value)} placeholder="Jouvence" /></label><label>{language === "fr" ? "Disponibilité" : "Availability"}<select value={availability} onChange={e => setAvailability(e.target.value as "any" | "available_now")}><option value="any">{language === "fr" ? "Toute date disponible" : "Any available date"}</option><option value="available_now">{language === "fr" ? "Disponible maintenant" : "Ready now"}</option></select></label></div></div> : null}<button className="button-primary full-width" onClick={() => document.getElementById("homes")?.scrollIntoView({ behavior: "smooth" })}>{labels.seeHomes} <span>↓</span></button><p className="search-foot"><CircleAlert size={14} /> {labels.anonymous}</p></div></div></section>
       <section className="route-strip"><span>01 / {labels.routeOne}</span><span>02 / {labels.routeTwo}</span><span>03 / {labels.routeThree}</span><span>04 / {labels.routeFour}</span></section>
-      {!lowDataMode && <PremiumWalkthroughRail listings={listings} language={language} onOpen={listing => openListing(listing as Listing)} />}
+      <div className="contextual-discovery-collections">
+        <ContextualHomeShelf eyebrow={browseCopy.cityEyebrow} title={browseCopy.cityTitle} body={browseCopy.cityBody} listings={cityHomes} language={language} lowData={lowDataMode} onOpen={openListing} />
+        {moveInFirstHomes.length >= 4 ? <ContextualHomeShelf eyebrow={browseCopy.budgetEyebrow} title={browseCopy.budgetTitle} body={browseCopy.budgetBody} listings={moveInFirstHomes} language={language} lowData={lowDataMode} onOpen={openListing} /> : null}
+        {householdHomes.length >= 4 ? <ContextualHomeShelf eyebrow={browseCopy.familyEyebrow} title={browseCopy.familyTitle} body={browseCopy.familyBody} listings={householdHomes} language={language} lowData={lowDataMode} onOpen={openListing} /> : null}
+      </div>
       <NonProductionWalkthroughDemo language={language} />
       <SeekerAppointmentHistory isAuthenticated={isAuthenticated} language={language} />
       <div id="alerts"><SeekerMatchAlerts isAuthenticated={isAuthenticated} language={language} /></div>
