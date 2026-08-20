@@ -822,3 +822,10 @@
 - [x] Keep the illustrative test-media path isolated from real listing publication: it uses a separate table and explicit `illustrative_test_data` provenance. Both real and test listing discovery still requires a substantive description plus five displayed photos or a published walkthrough; real homes additionally require genuine approved media or an approved walkthrough at publication.
 - [x] Validate that the restored demo catalogue visibly labels illustrative test media, retains privacy boundaries, restores the catalogue from two to three homes, and preserves existing publication-gate tests. Full validation passes with 234 tests, one intentional live-provider skip, production build, and desktop/mobile review.
 - [ ] Complete the Makepe illustrative TEST DATA gallery with one additional distinct image once image generation is available again. The daily free-plan image quota is currently exhausted; Makepe has two approved evidence photos plus two labelled illustrative test images, so remains correctly hidden under the five-photo rule.
+
+## Refreshed AHC presentation and in-depth SRS
+
+- [x] Consolidate the current AHC product scope, user roles, workflows, trust safeguards, technical architecture, integrations, data model, test posture, and deployment boundaries from the implemented project.
+- [x] Create a refreshed 11-slide PowerPoint presentation covering the product, marketplace advantage, media-first discovery, operational model, architecture, security, and next steps.
+- [x] Produce an in-depth Word Software Requirements Specification with functional and non-functional requirements, data entities, role permissions, interfaces, workflows, acceptance criteria, risks, and release prerequisites.
+- [x] Review both deliverables for accuracy and readability, then deliver the PowerPoint and Word document as downloadable files.
