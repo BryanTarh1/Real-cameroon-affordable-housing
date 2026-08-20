@@ -780,3 +780,13 @@
 ## Sign-in feedback and duplicate-submission prevention
 
 - [x] Improve all AHC-supported credential sign-in forms with accessible processing feedback, disabled repeat submission, clear wrong-credential/recoverable-error guidance, and focused automated coverage.
+
+## Seeker safe-viewing status journey
+
+- [x] Confirm the existing privacy-safe Seeker appointment history already presents each user’s own viewing-request statuses, next steps, authorised appointment details, cancellation, and private post-viewing outcomes without premature exact-location disclosure.
+- [x] Confirm the existing authenticated Seeker appointment flow enforces ownership and privacy boundaries through its established router procedures and public marketplace rendering.
+
+## Owner pilot readiness checklist
+
+- [x] Add an Admin-only Pilot Readiness Checklist that converts genuine pilot-summary counts into clear operational next steps without inventing launch metrics or exposing private records.
+- [x] Add focused authorization, guidance-state, and responsive-flow validation for the owner Pilot Readiness Checklist.
