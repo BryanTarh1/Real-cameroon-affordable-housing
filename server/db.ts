@@ -615,6 +615,41 @@ export async function getAdminCashFlowAudit() {
   return { confirmedRevenueXaf: orders.reduce((sum, order) => sum + order.amountXaf, 0), physicalVerificationRevenueXaf: orders.filter(order => physicalVerificationOrderTypes.has(order.type)).reduce((sum, order) => sum + order.amountXaf, 0), platformCommissionAccruedXaf: commissions.reduce((sum, item) => sum + item.platformAmountXaf, 0), fieldModeratorCommissionAccruedXaf: commissions.reduce((sum, item) => sum + item.fieldModeratorAmountXaf, 0), orders };
 }
 
+/** Admin-only operational counts for a small launch pilot. No contacts, notes, evidence, or exact locations are returned. */
+export async function getAdminPilotSummary() {
+  const db = await getDb();
+  const empty = {
+    currentEligibleHomes: 0,
+    verificationDueSoon: 0,
+    agentSubmissionsAwaitingReview: 0,
+    viewingRequestsAwaitingResponse: 0,
+    confirmedViewings: 0,
+    completedViewings: 0,
+    openSafetyReports: 0,
+    generatedAt: new Date(),
+  };
+  if (!db) return empty;
+
+  const [publicHomes, listingRows, appointmentRows, reportRows] = await Promise.all([
+    listFreshPublicListings(),
+    db.select({ status: listings.status, verificationStatus: listings.verificationStatus, verificationExpiresAt: listings.verificationExpiresAt }).from(listings),
+    db.select({ status: viewingAppointments.status, availabilityStatus: viewingAppointments.availabilityStatus }).from(viewingAppointments),
+    db.select({ status: reports.status }).from(reports),
+  ]);
+  const now = new Date();
+  const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1_000);
+  return {
+    currentEligibleHomes: publicHomes.length,
+    verificationDueSoon: listingRows.filter(row => row.status === "published" && row.verificationStatus === "physical_verified" && row.verificationExpiresAt && row.verificationExpiresAt >= now && row.verificationExpiresAt <= threeDaysFromNow).length,
+    agentSubmissionsAwaitingReview: listingRows.filter(row => row.status === "under_review" || row.status === "changes_requested").length,
+    viewingRequestsAwaitingResponse: appointmentRows.filter(row => row.status === "requested" && row.availabilityStatus === "pending").length,
+    confirmedViewings: appointmentRows.filter(row => row.status === "confirmed").length,
+    completedViewings: appointmentRows.filter(row => row.status === "completed").length,
+    openSafetyReports: reportRows.filter(row => row.status === "open").length,
+    generatedAt: now,
+  };
+}
+
 export async function listFieldModeratorCommissions(moderatorUserId: number) {
   const db = await getDb();
   if (!db) return [];

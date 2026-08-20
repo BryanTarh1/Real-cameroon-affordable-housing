@@ -6,6 +6,7 @@ vi.mock("./db", async importOriginal => {
   return {
     ...actual,
     getAdminCashFlowAudit: vi.fn(),
+    getAdminPilotSummary: vi.fn(),
     listAdminCommissionLedger: vi.fn(),
     getPlatformSettings: vi.fn(),
     listAdminUsers: vi.fn(),
@@ -73,5 +74,32 @@ describe("AHC Admin governance and Field Moderator boundaries", () => {
     });
     await expect(callerFor(moderator).admin.cashFlowAudit()).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(database.getAdminCashFlowAudit).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns privacy-safe pilot readiness counts only to Admin", async () => {
+    vi.mocked(database.getAdminPilotSummary).mockResolvedValue({
+      currentEligibleHomes: 4,
+      verificationDueSoon: 1,
+      agentSubmissionsAwaitingReview: 2,
+      viewingRequestsAwaitingResponse: 3,
+      confirmedViewings: 2,
+      completedViewings: 1,
+      openSafetyReports: 1,
+    } as never);
+    await expect(callerFor(admin).admin.pilotSummary()).resolves.toEqual({
+      currentEligibleHomes: 4,
+      verificationDueSoon: 1,
+      agentSubmissionsAwaitingReview: 2,
+      viewingRequestsAwaitingResponse: 3,
+      confirmedViewings: 2,
+      completedViewings: 1,
+      openSafetyReports: 1,
+    });
+    expect(database.getAdminPilotSummary).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not expose pilot readiness counts to a Field Moderator", async () => {
+    await expect(callerFor(moderator).admin.pilotSummary()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(database.getAdminPilotSummary).not.toHaveBeenCalled();
   });
 });

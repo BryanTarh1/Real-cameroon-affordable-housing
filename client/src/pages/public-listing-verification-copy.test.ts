@@ -18,4 +18,17 @@ describe("public listing verification copy", () => {
     expect(localeSource).toContain('reconfirmed: "Reconfirmed"');
     expect(localeSource).toContain('reconfirmed: "Reconfirmé"');
   });
+
+  it("shows a factual Trust Passport without exposing private evidence or an exact address", () => {
+    expect(homeSource).toContain('"TRUST PASSPORT"');
+    expect(homeSource).toContain("Private evidence and the exact address remain protected.");
+    expect(homeSource).toContain('"Only approved media is displayed."');
+    expect(homeSource).toContain('"Disclosed before a viewing, not rent alone."');
+  });
+
+  it("states that a viewing request is not confirmation and exact directions follow confirmation", () => {
+    expect(homeSource).toContain('"The Agent confirms or declines the request."');
+    expect(homeSource).toContain('"Precise directions follow only after confirmation."');
+    expect(homeSource).toContain("No property address or direct contact is shared until the Agent confirms.");
+  });
 });

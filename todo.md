@@ -751,3 +751,28 @@
 
 ## Language control clarity
 - [x] Remove the duplicate public language control while retaining a single accessible English/French selector and full-page translation behaviour. Focused regression, 218-test suite, production build, and desktop/mobile review pass.
+
+## Completed-project recap
+- [x] Prepare a structured owner recap that distinguishes implemented platform capabilities from remaining external activation steps. Delivered as a standalone owner-facing reference document.
+
+## Reusable advanced framework assessment
+- [x] Explain how an advanced reusable local framework is used and assess whether the current marketplace should be converted into one before implementation begins. Delivered as a standalone guide; no framework code was created yet.
+
+## Advanced reusable framework
+
+- [x] Create a separate sanitised framework repository structure that excludes AHC production data, secrets, branding, live domains, and housing-specific rules.
+- [x] Extract reusable role-based access, moderation, media-governance, owner-alert, bilingual-interface, audit, configuration, and test foundations.
+- [x] Provide a documented template/example plus a repeatable new-project workflow and a packaged local-framework archive.
+
+## Competitor-informed AHC enhancement planning
+
+- [x] Prioritise and confirm a competitor-informed enhancement package that emphasises AHC’s current-verification, total move-in cash, media-governance, safety, and location-privacy strengths before implementation.
+- [x] Refocus the next AHC package on real local adoption, trusted early supply, and a controlled pilot because the reviewed competing platforms appear to have limited practical use in the target market.
+
+## Adoption-led Trust Passport and pilot tools
+
+- [x] Add a public Trust Passport that presents approved evidence boundaries, physical-review recency/expiry, approved media status, and transparent total move-in cash without exposing private evidence or exact locations.
+- [x] Add a guarded Safe Viewing Request workflow with privacy-safe scheduling, authorised status handling, and no premature exposure of exact property coordinates.
+- [x] Add an Agent launch/onboarding progress experience that explains the required steps for an eligible public listing without weakening existing role, identity, or media requirements.
+- [x] Add an owner/Admin pilot dashboard showing genuine operational counts for eligible homes, review freshness, agent submissions, safe-viewing requests, and safety reports.
+- [x] Add focused automated tests plus desktop/mobile validation for the new trust, viewing, onboarding, dashboard, authorization, and privacy flows.

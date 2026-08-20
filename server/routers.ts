@@ -25,6 +25,7 @@ import {
   decideListingReview,
   decideVerificationOrder,
   getAdminCashFlowAudit,
+  getAdminPilotSummary,
   getAdminOfficialServiceReceipt,
   getAgentPaidStatus,
   getAgentOfficialServiceReceipt,
@@ -535,6 +536,7 @@ export const appRouter = router({
     setUserRole: adminProcedure.input(z.object({ userId: z.number().int().positive(), role: z.enum(["seeker", "agent", "moderator", "admin"]) }))
       .mutation(({ ctx, input }) => setUserRole(ensureUserId(ctx.user?.id), input.userId, input.role)),
     cashFlowAudit: adminProcedure.query(() => getAdminCashFlowAudit()),
+    pilotSummary: adminProcedure.query(() => getAdminPilotSummary()),
     commissionLedger: adminProcedure.query(() => listAdminCommissionLedger()),
     verificationAudits: adminProcedure.query(() => listVerificationAuditQueue()),
     approveHeldCommission: adminProcedure.input(z.object({ commissionId: z.number().int().positive(), evidenceReviewNote: z.string().trim().min(12).max(1_200) }))
