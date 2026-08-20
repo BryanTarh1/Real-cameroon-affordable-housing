@@ -25,6 +25,13 @@ describe("public listing media and confirmation gate", () => {
     expect(publicListingSource).not.toContain("verificationEvidence.mediaUrl");
   });
 
+  it("keeps illustrative TEST DATA media explicitly separate from genuine approved public-gallery evidence", () => {
+    expect(databaseSource).toContain("listingIllustrativeTestMedia");
+    expect(databaseSource).toContain('provenance: "illustrative_test_data"');
+    expect(databaseSource).toContain("const testListingIds = rows.filter(row => Boolean(row.isTestData)).map(row => row.id);");
+    expect(databaseSource).toContain("if (listing.publicMedia.length < 5 && !listing.walkthrough) return false;");
+  });
+
   it("builds related-home suggestions only from already-public listing projections", () => {
     expect(relatedListingSource).toContain("const publicListings = await listFreshPublicListings();");
     expect(relatedListingSource).toContain("filter((listing) => listing.id !== listingId)");

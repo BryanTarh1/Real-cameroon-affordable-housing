@@ -14,7 +14,7 @@ type PremiumListing = MapListing & {
   costs: { monthlyRent: number; totalMoveInCashRequired: number };
   verificationStatus: "physical_verified" | "remote_checked" | "unverified";
   photosCount: number;
-  publicMedia: { url: string; kind: "exterior" | "interior" | "bathroom" | "other"; provenance: "moderator_captured" | "moderator_captured_test_data"; displayOrder: number }[];
+  publicMedia: { url: string; kind: "exterior" | "interior" | "bathroom" | "other"; provenance: "moderator_captured" | "moderator_captured_test_data" | "illustrative_test_data"; displayOrder: number }[];
   walkthrough: { url: string; durationSeconds: number } | null;
   neighborhoodEssentials: {
     waterAccess: string;
@@ -58,7 +58,7 @@ export function PremiumWalkthroughRail({ listings, language = "en", onOpen }: { 
       {premiumListings.map(listing => <article className="premium-video-card" key={listing.id}>
         <div className="premium-video-frame">
           {listing.walkthrough ? <video src={listing.walkthrough.url} controls muted playsInline preload="metadata" onPlay={() => setVideoReadyListingId(listing.id)} aria-label={`${labels.videoTour} ${listing.title}`} /> : listing.publicMedia[0] ? <img className="premium-approved-photo" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} src={listing.publicMedia[0].url} alt={`${listing.title} ${labels.photoPreview}`} /> : <div className="premium-video-unavailable"><CircleAlert size={25} /><strong>{labels.walkthroughPending}</strong><span>{labels.walkthroughPendingBody}</span></div>}
-          <span className="video-proof">{listing.walkthrough ? <>{listing.title.startsWith("TEST DATA") ? <CircleAlert size={14} /> : <BadgeCheck size={14} />}{listing.title.startsWith("TEST DATA") ? ` ${labels.tourTest} · ${listing.walkthrough.durationSeconds}s` : ` ${labels.moderatorTour} · ${listing.walkthrough.durationSeconds}s`}</> : listing.publicMedia[0] ? <><BadgeCheck size={14} /> {labels.photoPreview}</> : <><CircleAlert size={14} /> {labels.walkthroughPending}</>}</span>
+          <span className="video-proof">{listing.walkthrough ? <>{listing.title.startsWith("TEST DATA") ? <CircleAlert size={14} /> : <BadgeCheck size={14} />}{listing.title.startsWith("TEST DATA") ? ` ${labels.tourTest} · ${listing.walkthrough.durationSeconds}s` : ` ${labels.moderatorTour} · ${listing.walkthrough.durationSeconds}s`}</> : listing.publicMedia[0] ? <>{listing.publicMedia[0].provenance === "illustrative_test_data" ? <CircleAlert size={14} /> : <BadgeCheck size={14} />}{listing.publicMedia[0].provenance === "illustrative_test_data" ? ` ${labels.illustrativeTestMedia}` : ` ${labels.photoPreview}`}</> : <><CircleAlert size={14} /> {labels.walkthroughPending}</>}</span>
           {listing.trust.guaranteedTotalCash && <span className="cash-guarantee"><ShieldCheck size={14} /> {labels.guaranteedCash}</span>}
         </div>
         <div className="premium-card-copy">

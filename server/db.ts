@@ -9,6 +9,7 @@ import {
   listingCosts,
   listingCredits,
   listingPriceHistory,
+  listingIllustrativeTestMedia,
   listingPublicMedia,
   listingNeighborhoodAssessments,
   leadEvents,
@@ -777,7 +778,7 @@ export type PublicListingFilters = {
 type CuratedPublicMedia = {
   url: string;
   kind: "exterior" | "interior" | "bathroom" | "other";
-  provenance: "moderator_captured" | "moderator_captured_test_data";
+  provenance: "moderator_captured" | "moderator_captured_test_data" | "illustrative_test_data";
   displayOrder: number;
 };
 
@@ -794,6 +795,7 @@ function mapListing(row: any, publicMedia: CuratedPublicMedia[] = []) {
   return {
     id: row.id,
     title: row.title,
+    isTestData: Boolean(row.isTestData),
     city: row.city,
     neighborhood: row.neighborhood,
     landmark: row.landmark,
@@ -883,7 +885,7 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
   await archiveStaleListings();
   const cutoff = new Date(Date.now() - FRESHNESS_WINDOW_DAYS * 24 * 60 * 60 * 1000);
   const rows = await db.select({
-    id: listings.id, title: listings.title, city: listings.city, neighborhood: listings.neighborhood,
+    id: listings.id, title: listings.title, isTestData: listings.isTestData, city: listings.city, neighborhood: listings.neighborhood,
     landmark: listings.landmark, propertyType: listings.propertyType, furnishingStatus: listings.furnishingStatus,
     description: listings.description, bedrooms: listings.bedrooms, bathrooms: listings.bathrooms, parkingSpaces: listings.parkingSpaces,
     amenities: listings.amenities, householdFit: listings.householdFit,
@@ -928,6 +930,17 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
   }
   for (const items of Array.from(mediaByListingId.values())) {
     items.sort((a: CuratedPublicMedia, b: CuratedPublicMedia) => a.displayOrder - b.displayOrder);
+  }
+  const testListingIds = rows.filter(row => Boolean(row.isTestData)).map(row => row.id);
+  const illustrativeRows = testListingIds.length
+    ? await db.select({ listingId: listingIllustrativeTestMedia.listingId, mediaUrl: listingIllustrativeTestMedia.mediaUrl, kind: listingIllustrativeTestMedia.kind, displayOrder: listingIllustrativeTestMedia.displayOrder })
+      .from(listingIllustrativeTestMedia).where(inArray(listingIllustrativeTestMedia.listingId, testListingIds))
+    : [];
+  for (const media of illustrativeRows) {
+    const items = mediaByListingId.get(media.listingId) ?? [];
+    items.push({ url: media.mediaUrl, kind: media.kind, provenance: "illustrative_test_data", displayOrder: media.displayOrder });
+    items.sort((a: CuratedPublicMedia, b: CuratedPublicMedia) => a.displayOrder - b.displayOrder);
+    mediaByListingId.set(media.listingId, items);
   }
 
   const needle = filters.search?.trim().toLowerCase();

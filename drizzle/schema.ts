@@ -150,6 +150,8 @@ export const listings = mysqlTable("listings", {
   furnishingStatus: mysqlEnum("furnishingStatus", ["not_stated", "unfurnished", "partly_furnished", "fully_furnished"]).default("not_stated").notNull(),
   /** Agent-declared public summary. Publication requires substantive text; it is never a Field Moderator finding. */
   description: text("description"),
+  /** Explicitly separates non-production fixtures from live rental supply. */
+  isTestData: boolean("isTestData").default(false).notNull(),
   bedrooms: int("bedrooms").default(0).notNull(),
   /** Agent-declared facts, displayed separately from Field Moderator area assessments. */
   bathrooms: int("bathrooms").default(0).notNull(),
@@ -369,6 +371,22 @@ export const listingPublicMedia = mysqlTable("listing_public_media", {
 }, (table) => [
   uniqueIndex("listing_public_media_evidence_idx").on(table.verificationEvidenceId),
   index("listing_public_media_listing_order_idx").on(table.listingId, table.displayOrder),
+]);
+
+/**
+ * Illustrative images for clearly labelled TEST DATA fixtures only. These images
+ * are never linked to verification evidence, cannot create a physical-verification
+ * claim, and are excluded from every non-test listing by the public projection.
+ */
+export const listingIllustrativeTestMedia = mysqlTable("listing_illustrative_test_media", {
+  id: int("id").autoincrement().primaryKey(),
+  listingId: varchar("listingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
+  mediaUrl: text("mediaUrl").notNull(),
+  kind: mysqlEnum("kind", ["exterior", "interior", "bathroom", "other"]).notNull(),
+  displayOrder: int("displayOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  index("listing_illustrative_test_media_listing_order_idx").on(table.listingId, table.displayOrder),
 ]);
 
 /**
