@@ -790,3 +790,8 @@
 
 - [x] Add an Admin-only Pilot Readiness Checklist that converts genuine pilot-summary counts into clear operational next steps without inventing launch metrics or exposing private records.
 - [x] Add focused authorization, guidance-state, and responsive-flow validation for the owner Pilot Readiness Checklist.
+
+## Owner weekly pilot activity
+
+- [x] Add an Admin-only seven-day pilot activity summary using only genuine timestamped listing, viewing, and safety-report records without exposing people, contact details, addresses, or private evidence.
+- [x] Add focused Admin-authorization, time-window, and responsive presentation validation for the weekly pilot activity summary.

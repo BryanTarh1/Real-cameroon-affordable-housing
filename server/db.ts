@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNotNull, lt, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, lt, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { nanoid } from "nanoid";
 import {
@@ -647,6 +647,39 @@ export async function getAdminPilotSummary() {
     completedViewings: appointmentRows.filter(row => row.status === "completed").length,
     openSafetyReports: reportRows.filter(row => row.status === "open").length,
     generatedAt: now,
+  };
+}
+
+/** Admin-only seven-day pilot activity. Returns aggregate counts only, never people, contacts, addresses, notes, or evidence. */
+export async function getAdminWeeklyPilotActivity() {
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1_000);
+  const empty = {
+    windowDays: 7,
+    windowStart,
+    generatedAt: now,
+    listingSubmissions: 0,
+    viewingRequests: 0,
+    viewingsConfirmed: 0,
+    safetyReportsFiled: 0,
+  };
+  const db = await getDb();
+  if (!db) return empty;
+
+  const [listingRows, appointmentRows, confirmedRows, reportRows] = await Promise.all([
+    db.select({ id: listings.id }).from(listings).where(gte(listings.createdAt, windowStart)),
+    db.select({ id: viewingAppointments.id }).from(viewingAppointments).where(gte(viewingAppointments.createdAt, windowStart)),
+    db.select({ id: viewingAppointments.id }).from(viewingAppointments).where(gte(viewingAppointments.availabilityConfirmedAt, windowStart)),
+    db.select({ id: reports.id }).from(reports).where(gte(reports.filedAt, windowStart)),
+  ]);
+  return {
+    windowDays: 7,
+    windowStart,
+    generatedAt: now,
+    listingSubmissions: listingRows.length,
+    viewingRequests: appointmentRows.length,
+    viewingsConfirmed: confirmedRows.length,
+    safetyReportsFiled: reportRows.length,
   };
 }
 

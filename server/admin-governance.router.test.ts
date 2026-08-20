@@ -7,6 +7,7 @@ vi.mock("./db", async importOriginal => {
     ...actual,
     getAdminCashFlowAudit: vi.fn(),
     getAdminPilotSummary: vi.fn(),
+    getAdminWeeklyPilotActivity: vi.fn(),
     listAdminCommissionLedger: vi.fn(),
     getPlatformSettings: vi.fn(),
     listAdminUsers: vi.fn(),
@@ -101,5 +102,26 @@ describe("AHC Admin governance and Field Moderator boundaries", () => {
   it("does not expose pilot readiness counts to a Field Moderator", async () => {
     await expect(callerFor(moderator).admin.pilotSummary()).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect(database.getAdminPilotSummary).not.toHaveBeenCalled();
+  });
+
+  it("returns seven-day aggregate pilot activity only to Admin", async () => {
+    vi.mocked(database.getAdminWeeklyPilotActivity).mockResolvedValue({
+      windowDays: 7,
+      windowStart: new Date("2026-08-13T00:00:00.000Z"),
+      generatedAt: new Date("2026-08-20T00:00:00.000Z"),
+      listingSubmissions: 3,
+      viewingRequests: 4,
+      viewingsConfirmed: 2,
+      safetyReportsFiled: 1,
+    } as never);
+    await expect(callerFor(admin).admin.weeklyPilotActivity()).resolves.toMatchObject({
+      windowDays: 7,
+      listingSubmissions: 3,
+      viewingRequests: 4,
+      viewingsConfirmed: 2,
+      safetyReportsFiled: 1,
+    });
+    await expect(callerFor(moderator).admin.weeklyPilotActivity()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(database.getAdminWeeklyPilotActivity).toHaveBeenCalledTimes(1);
   });
 });
