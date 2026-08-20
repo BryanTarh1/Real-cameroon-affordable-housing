@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { getPasswordInputType } from "@/lib/passwordVisibility";
 import { marketplaceCopy, type PublicLanguage } from "@/lib/marketplaceLocale";
+import { getLocalAuthFailure, getLocalAuthUiCopy, type LocalAuthFeedback } from "@/lib/localAuthFeedback";
 import { TurnstileChallenge } from "@/components/TurnstileChallenge";
 import "./AgentAccountPanel.css";
 
@@ -33,6 +34,7 @@ export function AgentAccountPanel({ audience = "agent", language = "en", onAuthe
   const accountCopy = audienceCopy(language);
   const copy = audience === "seeker" ? { registerLabel: marketplaceCopy[language].seekerRegister, accountLabel: marketplaceCopy[language].seekerAccount, note: marketplaceCopy[language].seekerNote, signInLabel: accountCopy.seeker.signInLabel } : accountCopy[audience];
   const labels = marketplaceCopy[language];
+  const authUi = getLocalAuthUiCopy(language);
   const feedback = language === "fr" ? {
     agentReady: "Le compte agent AHC est prêt", privateEvidence: "Le justificatif fiscal et les images de la pièce d’identité ont été envoyés de manière privée.", accountReady: "Le compte AHC est prêt", detailsReady: "Vous pouvez maintenant ouvrir les détails du logement.", adminCheck: "Votre rôle administrateur sera vérifié avant l’ouverture de l’espace d’administration.", staffCheck: "Votre rôle du personnel sera vérifié avant l’ouverture des opérations.", uploadFailed: "Le compte a été créé, mais une image d’identité n’a pas pu être envoyée.", jpgOnly: "Les images de pièce d’identité doivent être au format JPG.", uploadError: "Impossible d’envoyer l’image de la pièce d’identité.", accountOptions: "options de compte",
   } : {
@@ -48,12 +50,14 @@ export function AgentAccountPanel({ audience = "agent", language = "en", onAuthe
   const [identityFiles, setIdentityFiles] = useState<Record<IdentityKind, File | null>>({ front: null, back: null, face: null });
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
+  const [submissionError, setSubmissionError] = useState<LocalAuthFeedback | null>(null);
   const utils = trpc.useUtils();
   const resetCaptcha = () => {
     setCaptchaToken("");
     setCaptchaResetKey(value => value + 1);
   };
   const onSuccess = async () => {
+    setSubmissionError(null);
     resetCaptcha();
     await Promise.all([utils.auth.me.invalidate(), utils.agent.profile.invalidate(), utils.agent.paidStatus.invalidate(), utils.agent.paymentOrders.invalidate(), utils.agent.listings.invalidate()]);
     if (audience === "agent" && mode === "register") {
@@ -71,9 +75,32 @@ export function AgentAccountPanel({ audience = "agent", language = "en", onAuthe
     }
     onAuthenticated?.();
   };
-  const register = trpc.auth.registerLocalAgent.useMutation({ onSuccess, onError: error => { resetCaptcha(); toast.error(error.message); } });
-  const login = trpc.auth.loginLocalAgent.useMutation({ onSuccess, onError: error => { resetCaptcha(); toast.error(error.message); } });
+  const handleAuthError = (error: unknown) => {
+    resetCaptcha();
+    const authError = error as { message?: string; data?: { code?: string } };
+    const feedbackMessage = getLocalAuthFailure({ message: authError.message, code: authError.data?.code }, language);
+    setSubmissionError(feedbackMessage);
+    toast.error(feedbackMessage.title, { description: feedbackMessage.body });
+  };
+  const register = trpc.auth.registerLocalAgent.useMutation({ onSuccess, onError: handleAuthError });
+  const login = trpc.auth.loginLocalAgent.useMutation({ onSuccess, onError: handleAuthError });
   const pending = register.isPending || login.isPending;
+  const selectMode = (nextMode: Mode) => {
+    setMode(nextMode);
+    setSubmissionError(null);
+    resetCaptcha();
+  };
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (pending) return;
+    if (!captchaToken) {
+      setSubmissionError({ title: authUi.security.title, body: authUi.security.body });
+      return;
+    }
+    setSubmissionError(null);
+    if (mode === "register") register.mutate({ name, email, password, captchaToken, role: audience === "agent" ? "agent" : "seeker", onboarding: audience === "agent" ? { applicantType: "agent", taxpayerNumber, workProofUrl } : undefined });
+    else login.mutate({ email, password, captchaToken });
+  };
   const chooseIdentityFile = (kind: IdentityKind, file: File | undefined) => {
     if (!file) return;
     if (!/^image\/(jpeg|jpg)$/.test(file.type)) {
@@ -84,14 +111,16 @@ export function AgentAccountPanel({ audience = "agent", language = "en", onAuthe
   };
 
   return <section className="agent-account-panel" aria-label={copy.accountLabel}>
-    {audience !== "moderator" && audience !== "admin" && <div className="agent-account-tabs" role="tablist" aria-label={`${audience} ${feedback.accountOptions}`}><button type="button" className={mode === "signIn" ? "active" : ""} onClick={() => setMode("signIn")}>{labels.signIn}</button><button type="button" className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>{labels.createAccount}</button></div>}
-    <form className="agent-form" onSubmit={event => { event.preventDefault(); if (!captchaToken) return; if (mode === "register") register.mutate({ name, email, password, captchaToken, role: audience === "agent" ? "agent" : "seeker", onboarding: audience === "agent" ? { applicantType: "agent", taxpayerNumber, workProofUrl } : undefined }); else login.mutate({ email, password, captchaToken }); }}>
-      {mode === "register" && <label>{labels.fullName}<input required value={name} onChange={event => setName(event.target.value)} autoComplete="name" placeholder={audience === "agent" ? labels.professionalName : labels.fullName} /></label>}
-      {mode === "register" && audience === "agent" && <><label>{labels.taxpayerNumber}<input required value={taxpayerNumber} onChange={event => setTaxpayerNumber(event.target.value)} placeholder={labels.taxpayerPlaceholder} /></label><label>{labels.workProof}<input required type="url" value={workProofUrl} onChange={event => setWorkProofUrl(event.target.value)} placeholder={labels.workProofPlaceholder} /></label><fieldset className="identity-upload-fieldset"><legend>{labels.governmentId}</legend><p className="form-note">{labels.idUploadNote}</p>{(["front", "back", "face"] as IdentityKind[]).map(kind => <label key={kind}>{kind === "front" ? labels.idFront : kind === "back" ? labels.idBack : labels.faceView}<input required type="file" accept="image/jpeg,.jpg,.jpeg" onChange={event => chooseIdentityFile(kind, event.target.files?.[0])} /></label>)}</fieldset></>}
-      <label>{labels.email}<input required type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="email" placeholder="vous@exemple.com" /></label>
-      <label>{labels.password}<div className="password-field"><input required type={getPasswordInputType(passwordVisible)} minLength={mode === "register" ? 10 : 1} value={password} onChange={event => setPassword(event.target.value)} autoComplete={mode === "register" ? "new-password" : "current-password"} placeholder={mode === "register" ? labels.passwordNew : labels.passwordExisting} /><button type="button" className="password-visibility-toggle" onClick={() => setPasswordVisible(current => !current)} aria-label={passwordVisible ? `${labels.hide} ${labels.password.toLowerCase()}` : `${labels.passwordShow} ${labels.password.toLowerCase()}`} aria-pressed={passwordVisible}>{passwordVisible ? <EyeOff size={17} /> : <Eye size={17} />}<span>{passwordVisible ? labels.hide : labels.passwordShow}</span></button></div></label>
+    {audience !== "moderator" && audience !== "admin" && <div className="agent-account-tabs" role="tablist" aria-label={`${audience} ${feedback.accountOptions}`}><button type="button" className={mode === "signIn" ? "active" : ""} onClick={() => selectMode("signIn")} disabled={pending}>{labels.signIn}</button><button type="button" className={mode === "register" ? "active" : ""} onClick={() => selectMode("register")} disabled={pending}>{labels.createAccount}</button></div>}
+    <form className="agent-form" onSubmit={onSubmit} aria-busy={pending}>
+      {mode === "register" && <label>{labels.fullName}<input required value={name} onChange={event => { setName(event.target.value); setSubmissionError(null); }} autoComplete="name" placeholder={audience === "agent" ? labels.professionalName : labels.fullName} disabled={pending} /></label>}
+      {mode === "register" && audience === "agent" && <><label>{labels.taxpayerNumber}<input required value={taxpayerNumber} onChange={event => { setTaxpayerNumber(event.target.value); setSubmissionError(null); }} placeholder={labels.taxpayerPlaceholder} disabled={pending} /></label><label>{labels.workProof}<input required type="url" value={workProofUrl} onChange={event => { setWorkProofUrl(event.target.value); setSubmissionError(null); }} placeholder={labels.workProofPlaceholder} disabled={pending} /></label><fieldset className="identity-upload-fieldset"><legend>{labels.governmentId}</legend><p className="form-note">{labels.idUploadNote}</p>{(["front", "back", "face"] as IdentityKind[]).map(kind => <label key={kind}>{kind === "front" ? labels.idFront : kind === "back" ? labels.idBack : labels.faceView}<input required type="file" accept="image/jpeg,.jpg,.jpeg" onChange={event => chooseIdentityFile(kind, event.target.files?.[0])} disabled={pending} /></label>)}</fieldset></>}
+      <label>{labels.email}<input required type="email" value={email} onChange={event => { setEmail(event.target.value); setSubmissionError(null); }} autoComplete="email" placeholder="vous@exemple.com" disabled={pending} /></label>
+      <label>{labels.password}<div className="password-field"><input required type={getPasswordInputType(passwordVisible)} minLength={mode === "register" ? 10 : 1} value={password} onChange={event => { setPassword(event.target.value); setSubmissionError(null); }} autoComplete={mode === "register" ? "new-password" : "current-password"} placeholder={mode === "register" ? labels.passwordNew : labels.passwordExisting} disabled={pending} /><button type="button" className="password-visibility-toggle" onClick={() => setPasswordVisible(current => !current)} aria-label={passwordVisible ? `${labels.hide} ${labels.password.toLowerCase()}` : `${labels.passwordShow} ${labels.password.toLowerCase()}`} aria-pressed={passwordVisible} disabled={pending}>{passwordVisible ? <EyeOff size={17} /> : <Eye size={17} />}<span>{passwordVisible ? labels.hide : labels.passwordShow}</span></button></div></label>
       <TurnstileChallenge language={language} onToken={setCaptchaToken} resetKey={captchaResetKey} />
-      <button className="button-primary full-width" disabled={pending || !captchaToken}>{pending ? labels.wait : mode === "register" ? copy.registerLabel : copy.signInLabel}</button>
+      <p className={`auth-security-state ${captchaToken ? "is-ready" : ""}`} role="status">{captchaToken ? authUi.securityReady : authUi.securityPending}</p>
+      {submissionError && <div id="auth-submit-error" className="auth-submit-error" role="alert"><b>{submissionError.title}</b><span>{submissionError.body}</span></div>}
+      <button className="button-primary full-width auth-submit-button" disabled={pending || !captchaToken} aria-describedby={submissionError ? "auth-submit-error" : undefined}>{pending ? <><LoaderCircle size={17} className="auth-submit-spinner" aria-hidden="true" /><span>{mode === "register" ? authUi.creating : authUi.signingIn}</span></> : mode === "register" ? copy.registerLabel : copy.signInLabel}</button>
     </form>
     <p className="form-note">{copy.note}</p>
   </section>;

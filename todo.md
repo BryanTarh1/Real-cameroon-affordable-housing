@@ -776,3 +776,7 @@
 - [x] Add an Agent launch/onboarding progress experience that explains the required steps for an eligible public listing without weakening existing role, identity, or media requirements.
 - [x] Add an owner/Admin pilot dashboard showing genuine operational counts for eligible homes, review freshness, agent submissions, safe-viewing requests, and safety reports.
 - [x] Add focused automated tests plus desktop/mobile validation for the new trust, viewing, onboarding, dashboard, authorization, and privacy flows.
+
+## Sign-in feedback and duplicate-submission prevention
+
+- [x] Improve all AHC-supported credential sign-in forms with accessible processing feedback, disabled repeat submission, clear wrong-credential/recoverable-error guidance, and focused automated coverage.
