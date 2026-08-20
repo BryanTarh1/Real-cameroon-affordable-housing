@@ -15,6 +15,7 @@ import { BadgeCheck, Bath, BedDouble, Building2, CarFront, ChevronDown, ChevronL
 import { toast } from "sonner";
 import "./launch-refinements.css";
 import "./Home.search-skeleton.css";
+import "./Home.catalogue-first.css";
 
 const formatXaf = (value: number, language: PublicLanguage = "en") => `${new Intl.NumberFormat(language === "fr" ? "fr-FR" : "en-US").format(value)} XAF`;
 type Language = PublicLanguage;
@@ -299,13 +300,16 @@ export default function Home({ directListingId }: { directListingId?: string }) 
   const listings = (results.data ?? []) as Listing[];
   const budgetListings = budgetFitOnly ? listings.filter(listing => listing.costs.monthlyRent <= Number(monthlyIncome) * 0.3 && listing.costs.totalMoveInCashRequired <= Number(availableSavings)) : listings;
   const directListings = (directResult.data ?? []) as Listing[];
-  const activeBrowseCity = city === "All cities" ? budgetListings[0]?.city ?? (language === "fr" ? "le Cameroun" : "Cameroon") : city;
+  const activeBrowseCity = city === "All cities" ? (language === "fr" ? "Yaoundé et Douala" : "Yaoundé and Douala") : city;
   const cityHomes = city === "All cities" ? budgetListings : budgetListings.filter(listing => listing.city === city);
   const moveInFirstHomes = [...budgetListings].sort((a, b) => a.costs.totalMoveInCashRequired - b.costs.totalMoveInCashRequired).slice(0, 8);
   const householdHomes = budgetListings.filter(listing => listing.bedrooms >= 2).sort((a, b) => b.bedrooms - a.bedrooms || a.costs.monthlyRent - b.costs.monthlyRent).slice(0, 8);
+  const cityBrowseTitle = city === "All cities"
+    ? language === "fr" ? "Logements à Yaoundé et Douala" : "Homes across Yaoundé and Douala"
+    : language === "fr" ? `Logements à ${city}` : `Homes in ${city}`;
   const browseCopy = language === "fr"
-    ? { cityEyebrow: "SÉLECTION ACTUELLE", cityTitle: `Logements à explorer à ${activeBrowseCity}`, cityBody: "Des médias d’abord, puis le coût total à prévoir et les faits utiles pour comparer.", budgetEyebrow: "MIEUX POUR VOTRE BUDGET", budgetTitle: "Commencez avec le coût d’entrée", budgetBody: "Classés par montant total à prévoir avant de déménager — pas seulement selon le loyer mensuel.", familyEyebrow: "POUR PLUS D’ESPACE", familyTitle: "Des logements pensés pour un foyer", familyBody: "Des options avec au moins deux chambres dans votre recherche actuelle." }
-    : { cityEyebrow: "CURRENT SELECTION", cityTitle: `Homes to explore in ${activeBrowseCity}`, cityBody: "Media first, then the total cash required and the facts needed to compare with confidence.", budgetEyebrow: "EASIER ON YOUR MOVE-IN BUDGET", budgetTitle: "Start with the move-in total", budgetBody: "Ordered by the cash needed before moving—not by monthly rent alone.", familyEyebrow: "ROOM FOR A HOUSEHOLD", familyTitle: "Homes with space to grow", familyBody: "Options with at least two bedrooms within your current search." };
+    ? { cityEyebrow: "SÉLECTION ACTUELLE", cityTitle: cityBrowseTitle, cityBody: "Des médias d’abord, puis le coût total à prévoir et les faits utiles pour comparer.", budgetEyebrow: "MIEUX POUR VOTRE BUDGET", budgetTitle: "Commencez avec le coût d’entrée", budgetBody: "Classés par montant total à prévoir avant de déménager — pas seulement selon le loyer mensuel.", familyEyebrow: "POUR PLUS D’ESPACE", familyTitle: "Des logements pensés pour un foyer", familyBody: "Des options avec au moins deux chambres dans votre recherche actuelle." }
+    : { cityEyebrow: "CURRENT SELECTION", cityTitle: cityBrowseTitle, cityBody: "Media first, then the total cash required and the facts needed to compare with confidence.", budgetEyebrow: "EASIER ON YOUR MOVE-IN BUDGET", budgetTitle: "Start with the move-in total", budgetBody: "Ordered by the cash needed before moving—not by monthly rent alone.", familyEyebrow: "ROOM FOR A HOUSEHOLD", familyTitle: "Homes with space to grow", familyBody: "Options with at least two bedrooms within your current search." };
   const openListing = (listing: Listing) => setSelected(listing);
   const openFromMap = (id: string) => {
     const listing = listings.find(item => item.id === id);

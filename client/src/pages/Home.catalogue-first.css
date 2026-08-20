@@ -1,0 +1,44 @@
+/* Catalogue-first public discovery: compact controls, then real eligible homes. */
+.ahc-app main{display:flex;flex-direction:column}
+.ahc-app .atlas-index,.ahc-app .route-strip{display:none}
+.ahc-app .hero{order:-2;padding:12px clamp(20px,5vw,76px);background:linear-gradient(90deg,#fffdf7,#f5efe1);border-bottom:1px solid rgba(19,44,52,.12);color:var(--ink)}
+.ahc-app .hero:before{display:none}
+.ahc-app .hero-grid{max-width:1320px;grid-template-columns:1fr;gap:0}
+.ahc-app .hero-copy{display:none}
+.ahc-app .hero .search-panel{display:grid;grid-template-columns:minmax(210px,1.15fr) minmax(250px,1fr) minmax(138px,.58fr) auto;align-items:end;gap:.55rem .75rem;padding:0;background:transparent;box-shadow:none}
+.ahc-app .hero .search-kicker{grid-column:1/-1;margin:0;color:var(--teal);font-size:.58rem}
+.ahc-app .hero .search-panel>label{min-width:0}
+.ahc-app .hero .search-panel>.two-fields{margin:0;gap:.55rem}
+.ahc-app .hero .search-panel input,.ahc-app .hero .search-panel select{min-height:42px;padding:.58rem .65rem;background:#fffdf7;font-size:.78rem}
+.ahc-app .hero .search-advanced-toggle{min-height:42px;width:100%;padding:.5rem .7rem;border:1px solid var(--line);background:#fffdf7}
+.ahc-app .hero .search-panel>.full-width{width:auto;min-height:42px;margin:0;padding:10px 14px;white-space:nowrap}
+.ahc-app .hero .search-foot{display:none}
+.ahc-app .hero .search-advanced-fields{grid-column:1/-1;grid-template-columns:repeat(3,minmax(0,1fr));gap:.65rem;padding:.75rem;border:1px solid var(--line);background:rgba(255,253,247,.78)}
+.ahc-app .hero .search-advanced-fields>.two-fields{margin:0;gap:.55rem}
+.ahc-app .contextual-discovery-collections{order:-1;width:min(100%,1440px);margin:0 auto 2.25rem;padding:0 clamp(20px,5vw,76px);gap:1.25rem}
+.ahc-app .contextual-discovery-collections>.contextual-home-shelf:first-of-type{padding-top:.1rem;border-top:0}
+.ahc-app .public-verification-disclosure{margin:.8rem 0 0;grid-template-columns:auto minmax(0,1fr) auto}
+.ahc-app .data-saver-toggle{align-self:center;justify-self:end;border:1px solid rgba(45,101,68,.28);background:#fffdf7;color:#285538;padding:.44rem .58rem;font:800 .58rem/1 Manrope,sans-serif;white-space:nowrap}
+.ahc-app .contextual-shelf-heading{padding-top:.1rem}
+
+@media(max-width:940px){
+  .ahc-app .hero .search-panel{grid-template-columns:minmax(0,1fr) minmax(205px,.78fr) auto}
+  .ahc-app .hero .search-panel>.two-fields{grid-column:2/4}
+  .ahc-app .hero .search-advanced-toggle{grid-column:2/3}
+  .ahc-app .hero .search-panel>.full-width{grid-column:3/4}
+  .ahc-app .hero .search-advanced-fields{grid-template-columns:1fr}
+}
+
+@media(max-width:640px){
+  .ahc-app .hero{padding:9px 20px}
+  .ahc-app .hero .search-panel{grid-template-columns:1fr 1fr;gap:.5rem}
+  .ahc-app .hero .search-kicker{display:none}
+  .ahc-app .hero .search-panel>label{grid-column:1/-1}
+  .ahc-app .hero .search-panel>.two-fields{grid-column:1/-1}
+  .ahc-app .hero .search-advanced-toggle,.ahc-app .hero .search-panel>.full-width{grid-column:auto;width:100%}
+  .ahc-app .hero .search-advanced-fields{grid-column:1/-1;padding:.65rem}
+  .ahc-app .hero .search-advanced-fields>.two-fields{grid-template-columns:1fr}
+  .ahc-app .contextual-discovery-collections{padding:0 20px;margin-bottom:1.5rem}
+  .ahc-app .public-verification-disclosure{grid-template-columns:auto minmax(0,1fr);gap:.55rem}
+  .ahc-app .data-saver-toggle{grid-column:2;justify-self:start}
+}

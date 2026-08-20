@@ -4,6 +4,7 @@ import path from "node:path";
 
 const home = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
 const css = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/launch-refinements.css"), "utf8");
+const catalogueFirstCss = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/Home.catalogue-first.css"), "utf8");
 const locale = fs.readFileSync(path.resolve(process.cwd(), "client/src/lib/marketplaceLocale.ts"), "utf8");
 const walkthroughRail = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/PremiumWalkthroughRail.tsx"), "utf8");
 const appointments = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/ViewingAppointmentConcierge.tsx"), "utf8");
@@ -76,6 +77,23 @@ describe("French discovery and media-first property flow", () => {
     expect(home).toContain("marketplace.priceHistory");
     expect(home).toContain("lowDataMode");
     expect(home).toContain("Data saver on");
+  });
+
+  it("opens into compact catalogue-first discovery for Yaoundé and Douala without changing search filters", () => {
+    expect(home).toContain('import "./Home.catalogue-first.css";');
+    expect(home).toContain('language === "fr" ? "Logements à Yaoundé et Douala" : "Homes across Yaoundé and Douala"');
+    expect(home).toContain("const filters = useMemo");
+    expect(home).toContain("maxMoveInCash");
+    expect(home).toContain("advancedSearchOpen");
+    expect(home).toContain("propertyType");
+    expect(home).toContain("furnishingStatus");
+    expect(home).toContain("minBedrooms");
+    expect(home).toContain("maxMonthlyRent");
+    expect(home).toContain("availability");
+    expect(catalogueFirstCss).toContain(".ahc-app .hero-copy{display:none}");
+    expect(catalogueFirstCss).toContain(".ahc-app .hero .search-panel");
+    expect(catalogueFirstCss).toContain(".ahc-app .contextual-discovery-collections");
+    expect(catalogueFirstCss).toContain(".ahc-app .atlas-index,.ahc-app .route-strip{display:none}");
   });
 
   it("keeps availability reconfirmation, structured outcomes, and Agent quality linked to protected APIs", () => {

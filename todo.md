@@ -848,3 +848,11 @@
 - [x] Remove the separate non-production/private-style public browsing treatment and replace remaining public “private viewing” wording with neutral viewing-request language. Landmark-only address protection and the authorised-viewing contact boundary remain unchanged.
 - [x] Make the real eligible public-home collection the primary media-first visual experience, without a special TEST DATA/private presentation competing with actual property cards. The duplicate long-form discovery grid is retired; the compact budget-fit tool remains optional below the real home shelf.
 - [x] Validate real-listing routing, favourites, viewing requests, map gating, provenance disclosures, desktop/mobile presentation, and source-contract coverage. The full suite passes with 237 tests, one intentional live-provider skip, and the production build passes.
+
+## Catalogue-first public Find Homes page
+
+- [x] Restructure the public marketplace so actual eligible house cards appear immediately beneath the header, rather than after the large marketing-style hero and route strip.
+- [x] Replace the large hero/form with compact in-catalogue discovery controls and preserve AHC-specific Total Move-In Cash, approved-media provenance, verification freshness, and landmark-only privacy on real listing cards.
+- [x] Validate desktop/mobile catalogue-first browsing, real-listing routing, safety gates, and no repeated/competing discovery layers before checkpointing. Full validation passes with 238 tests, one intentional live-provider skip, production build, and desktop/mobile review.
+- [x] Present the unfiltered catalogue as a Douala and Yaoundé marketplace rather than deriving the opening shelf wording from the first returned city; do not modify database records.
+- [x] Preserve existing compact search, city selection, move-in budget, advanced filters, and budget-fit behaviour while changing only the public discovery design and wording.
