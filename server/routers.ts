@@ -50,6 +50,7 @@ import {
   listAdminTrustReports,
   listFieldModeratorCommissions,
   listFreshPublicListings,
+  listRelatedPublicListings,
   listOperationsPaymentQueue,
   listOperationsReviewQueue,
   listModeratorVerificationBatches,
@@ -164,6 +165,11 @@ const listingSubmissionSchema = z.object({
   landmark: z.string().trim().min(5).max(500),
   propertyType: z.string().trim().min(2).max(50),
   furnishingStatus: z.enum(["unfurnished", "partly_furnished", "fully_furnished"]),
+  description: z.string().trim().min(40).max(3_000),
+  bedrooms: z.number().int().min(0).max(20),
+  bathrooms: z.number().int().min(0).max(20),
+  parkingSpaces: z.number().int().min(0).max(20),
+  amenities: z.string().trim().max(500).optional(),
   householdFit: z.string().trim().max(80).optional(),
   availableFrom: z.string().date(),
   landmarkLatitude: z.number().min(2).max(5),
@@ -299,6 +305,14 @@ export const appRouter = router({
       propertyType: z.string().trim().max(80).optional(), furnishingStatus: z.enum(["any", "not_stated", "unfurnished", "partly_furnished", "fully_furnished"]).default("any"), neighborhood: z.string().trim().max(100).optional(),
       minBedrooms: z.number().int().min(0).max(20).optional(), availability: z.enum(["any", "available_now"]).default("any"),
     }).optional()).query(async ({ input }) => listFreshPublicListings(input ?? {})),
+    related: publicProcedure.input(z.object({
+      listingId: z.string().min(4).max(32),
+      city: z.string().trim().max(50).optional(),
+      propertyType: z.string().trim().max(80).optional(),
+      minBedrooms: z.number().int().min(0).max(20).optional(),
+      maxMonthlyRent: z.number().int().positive().optional(),
+      neighborhood: z.string().trim().max(100).optional(),
+    })).query(({ input }) => listRelatedPublicListings(input.listingId, input)),
     getContact: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) })).query(({ input }) => ({
       redirectUrl: `/api/listings/${encodeURIComponent(input.listingId)}/whatsapp`,
     })),
@@ -397,7 +411,8 @@ export const appRouter = router({
         id = await createListing({
           agentUserId: userId, agentNameSnapshot: profile.publicName, title: input.title, city: input.city,
           neighborhood: input.neighborhood, landmark: input.landmark, propertyType: input.propertyType, furnishingStatus: input.furnishingStatus,
-          householdFit: input.householdFit, availableFrom: input.availableFrom, publicLatitude: point.latitude,
+          description: input.description, bedrooms: input.bedrooms, bathrooms: input.bathrooms,
+          parkingSpaces: input.parkingSpaces, amenities: input.amenities, householdFit: input.householdFit, availableFrom: input.availableFrom, publicLatitude: point.latitude,
           publicLongitude: point.longitude, mapRadiusM: point.radiusM, costs: input.costs,
         });
       } catch (error) {

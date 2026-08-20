@@ -799,7 +799,13 @@ function mapListing(row: any, publicMedia: CuratedPublicMedia[] = []) {
     landmark: row.landmark,
     propertyType: row.propertyType,
     furnishingStatus: row.furnishingStatus,
+    description: row.description,
     bedrooms: row.bedrooms,
+    bathrooms: row.bathrooms,
+    parkingSpaces: row.parkingSpaces,
+    amenities: typeof row.amenities === "string"
+      ? row.amenities.split(",").map((amenity: string) => amenity.trim()).filter(Boolean).slice(0, 12)
+      : [],
     householdFit: row.householdFit,
     availableFrom: row.availableFrom,
     lastReconfirmed: row.lastReconfirmed,
@@ -807,6 +813,7 @@ function mapListing(row: any, publicMedia: CuratedPublicMedia[] = []) {
     map: { latitude: Number(row.publicLatitude), longitude: Number(row.publicLongitude), radiusM: row.mapRadiusM },
     featured: Boolean(row.isFeatured) && (!row.featuredUntil || new Date(row.featuredUntil) > new Date()),
     verificationStatus,
+    verificationExpiresAt: row.verificationExpiresAt,
     photosCount: row.photosCount,
     publicMedia,
     walkthrough: row.walkthroughUrl && row.walkthroughStatus === "published" ? {
@@ -840,18 +847,22 @@ async function assertListingEligibleForPublicPublication(tx: any, listing: {
   id: string;
   verificationStatus: "unverified" | "remote_checked" | "physical_verified";
   verificationExpiresAt: Date | string | null;
+  description: string | null;
 }) {
   if (getEffectivePublicVerificationStatus(listing.verificationStatus, listing.verificationExpiresAt) !== "physical_verified") {
     throw new Error("A listing needs a current passed physical verification before it can be public.");
   }
-  const [approvedPhoto, publishedWalkthrough] = await Promise.all([
+  if (!listing.description || listing.description.trim().length < 40) {
+    throw new Error("A listing needs a clear public description of at least 40 characters before it can be public.");
+  }
+  const [approvedPhotos, publishedWalkthrough] = await Promise.all([
     tx.select({ id: listingPublicMedia.id }).from(listingPublicMedia)
-      .where(eq(listingPublicMedia.listingId, listing.id)).limit(1),
+      .where(eq(listingPublicMedia.listingId, listing.id)).limit(5),
     tx.select({ id: listingWalkthroughVideos.id }).from(listingWalkthroughVideos)
       .where(and(eq(listingWalkthroughVideos.listingId, listing.id), eq(listingWalkthroughVideos.status, "published"))).limit(1),
   ]);
-  if (!approvedPhoto.length && !publishedWalkthrough.length) {
-    throw new Error("A listing needs an approved public photo or a published moderator walkthrough before it can be public.");
+  if (approvedPhotos.length < 5 && !publishedWalkthrough.length) {
+    throw new Error("A listing needs five approved public photos or a published moderator walkthrough before it can be public.");
   }
 }
 
@@ -873,7 +884,9 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
   const cutoff = new Date(Date.now() - FRESHNESS_WINDOW_DAYS * 24 * 60 * 60 * 1000);
   const rows = await db.select({
     id: listings.id, title: listings.title, city: listings.city, neighborhood: listings.neighborhood,
-    landmark: listings.landmark, propertyType: listings.propertyType, furnishingStatus: listings.furnishingStatus, bedrooms: listings.bedrooms, householdFit: listings.householdFit,
+    landmark: listings.landmark, propertyType: listings.propertyType, furnishingStatus: listings.furnishingStatus,
+    description: listings.description, bedrooms: listings.bedrooms, bathrooms: listings.bathrooms, parkingSpaces: listings.parkingSpaces,
+    amenities: listings.amenities, householdFit: listings.householdFit,
     availableFrom: listings.availableFrom, lastReconfirmed: listings.lastReconfirmed, supplyCapacity: listings.supplyCapacity,
     publicLatitude: listings.publicLatitude, publicLongitude: listings.publicLongitude, mapRadiusM: listings.mapRadiusM,
     isFeatured: listings.isFeatured, featuredUntil: listings.featuredUntil, verificationStatus: listings.verificationStatus, verificationExpiresAt: listings.verificationExpiresAt,
@@ -920,7 +933,8 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
   const needle = filters.search?.trim().toLowerCase();
   return rows.map(row => mapListing(row, mediaByListingId.get(row.id) ?? [])).filter((listing) => {
     if (listing.verificationStatus !== "physical_verified") return false;
-    if (!listing.publicMedia.length && !listing.walkthrough) return false;
+    if (!listing.description || listing.description.trim().length < 40) return false;
+    if (listing.publicMedia.length < 5 && !listing.walkthrough) return false;
     if (filters.city && filters.city !== "All cities" && listing.city !== filters.city) return false;
     if (filters.maxMonthlyRent && listing.costs.monthlyRent > filters.maxMonthlyRent) return false;
     if (filters.maxMoveInCash && listing.costs.totalMoveInCashRequired > filters.maxMoveInCash) return false;
@@ -933,6 +947,44 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
     if (needle && !`${listing.title} ${listing.city} ${listing.neighborhood} ${listing.landmark} ${listing.propertyType}`.toLowerCase().includes(needle)) return false;
     return true;
   });
+}
+
+/**
+ * Produces a small, deterministic “you might also like” set from public listing
+ * projections only. It never reads saved items, viewer history, contact details,
+ * moderator evidence, or exact coordinates.
+ */
+export async function listRelatedPublicListings(
+  listingId: string,
+  context: Pick<PublicListingFilters, "city" | "propertyType" | "minBedrooms" | "maxMonthlyRent" | "neighborhood"> = {},
+) {
+  const publicListings = await listFreshPublicListings();
+  const anchor = publicListings.find((listing) => listing.id === listingId);
+  const preferredCity = anchor?.city ?? context.city;
+  const preferredType = anchor?.propertyType ?? context.propertyType;
+  const preferredBedrooms = anchor?.bedrooms ?? context.minBedrooms;
+  const preferredPrice = anchor?.costs.monthlyRent ?? context.maxMonthlyRent;
+  const preferredNeighborhood = context.neighborhood?.trim().toLowerCase();
+
+  return publicListings
+    .filter((listing) => listing.id !== listingId)
+    .map((listing) => {
+      let score = 0;
+      if (preferredCity && listing.city === preferredCity) score += 10;
+      if (preferredType && listing.propertyType === preferredType) score += 5;
+      if (typeof preferredBedrooms === "number") score += Math.max(0, 3 - Math.abs(listing.bedrooms - preferredBedrooms));
+      if (typeof preferredPrice === "number" && preferredPrice > 0) {
+        const priceDifference = Math.abs(listing.costs.monthlyRent - preferredPrice) / preferredPrice;
+        if (priceDifference <= 0.3) score += 3;
+        else if (priceDifference <= 0.55) score += 1;
+      }
+      if (preferredNeighborhood && listing.neighborhood.toLowerCase().includes(preferredNeighborhood)) score += 1;
+      if (listing.featured) score += 0.25;
+      return { listing, score };
+    })
+    .sort((left, right) => right.score - left.score || right.listing.lastReconfirmed.getTime() - left.listing.lastReconfirmed.getTime())
+    .slice(0, 3)
+    .map(({ listing }) => listing);
 }
 
 export async function getPublicListingContact(listingId: string) {
@@ -1405,6 +1457,7 @@ export type CreateListingInput = {
   agentNameSnapshot: string;
   title: string; city: string; neighborhood: string; landmark: string; propertyType: string;
   furnishingStatus: "unfurnished" | "partly_furnished" | "fully_furnished";
+  description: string; bedrooms: number; bathrooms: number; parkingSpaces: number; amenities?: string;
   householdFit?: string; availableFrom: string; publicLatitude: number; publicLongitude: number; mapRadiusM: number;
   costs: { monthlyRent: number; advanceMonths: number; securityDeposit: number; agencyFee: number; serviceFee: number; firstMonthUtilities: number };
 };
@@ -1442,7 +1495,9 @@ export async function createListing(input: CreateListingInput) {
     if (!isPro && !credit) throw new Error("Your Welcome Bundle or Starter Access includes five listing credits. Reconcile a qualifying plan before submitting a new listing.");
     await tx.insert(listings).values({
       id, title: input.title, city: input.city, neighborhood: input.neighborhood, landmark: input.landmark,
-      propertyType: input.propertyType, furnishingStatus: input.furnishingStatus, householdFit: input.householdFit ?? null, availableFrom: new Date(input.availableFrom),
+      propertyType: input.propertyType, furnishingStatus: input.furnishingStatus, description: input.description,
+      bedrooms: input.bedrooms, bathrooms: input.bathrooms, parkingSpaces: input.parkingSpaces, amenities: input.amenities ?? null,
+      householdFit: input.householdFit ?? null, availableFrom: new Date(input.availableFrom),
       status: "under_review", agentUserId: input.agentUserId, agentNameSnapshot: input.agentNameSnapshot,
       publicLatitude: String(input.publicLatitude), publicLongitude: String(input.publicLongitude), mapRadiusM: input.mapRadiusM,
     });

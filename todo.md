@@ -795,3 +795,16 @@
 
 - [x] Add an Admin-only seven-day pilot activity summary using only genuine timestamped listing, viewing, and safety-report records without exposing people, contact details, addresses, or private evidence.
 - [x] Add focused Admin-authorization, time-window, and responsive presentation validation for the weekly pilot activity summary.
+
+## Viewing follow-through improvement
+
+- [ ] Audit and improve the privacy-safe transition from a Seeker viewing request to a confirmed, cancelled, or completed appointment without exposing exact locations prematurely.
+- [ ] Add focused ownership, status-transition, and responsive-flow validation for the approved viewing follow-through improvement.
+
+## Media-first discovery and listing quality
+
+- [x] Enforce a clear public-listing quality standard requiring a substantive description and at least five approved public images before publication, while preserving an approved public walkthrough as a valid alternative and retaining private-evidence boundaries. Existing approved gallery evidence remains separately curated; no private verification material is projected publicly.
+- [x] Add clear public property facts for bedrooms, bathrooms, parking, and neighbourhood amenities through an additive schema migration, safe public projection, Agent entry form, and listing-detail support. The description and declared facts are labelled as Agent-declared, while field-captured area observations retain their Field Moderator provenance.
+- [x] Refine the public discovery layout so media appears first, total move-in cash follows immediately beneath it, and the search entry is compact with optional filters revealed only on request.
+- [x] Add privacy-safe relevant-property suggestions based only on the current public listing/search context. Ranking considers city, property type, bedroom count, displayed rent band, and optional area wording; it never reads saved items, viewer history, contacts, private evidence, or exact coordinates.
+- [x] Add focused tests and responsive validation for listing quality, property facts, compact search, media-first hierarchy, and relevant-property suggestions. Full regression and build validation pass with 232 tests, 1 intentional live-provider skip, plus desktop and mobile marketplace review.

@@ -31,6 +31,24 @@
 .appointment-actions .button-secondary { background: #f7f3e9; color: #132c34; border-color: #f7f3e9; }
 .appointment-actions .text-button { color: #f3b45b; }
 
+.agent-response-queue {
+  display: flex;
+  gap: .75rem;
+  align-items: flex-start;
+  margin: .9rem 0 1rem;
+  padding: .85rem .95rem;
+  border: 1px solid rgba(243, 180, 91, .48);
+  background: rgba(243, 180, 91, .1);
+}
+
+.agent-response-queue.needs-attention { border-color: rgba(244, 147, 101, .72); background: rgba(244, 147, 101, .12); }
+.agent-response-queue > svg { color: #f3b45b; flex: 0 0 auto; margin-top: .1rem; }
+.agent-response-queue > div { display: grid; gap: .18rem; }
+.agent-response-queue b { font-family: var(--font-serif, Georgia, serif); }
+.appointment-deadline { color: #f3b45b !important; font-weight: 700; }
+.appointment-deadline.overdue { color: #ffb093 !important; }
+
 @media (max-width: 680px) {
   .agent-appointment-list article { grid-template-columns: 1fr; }
+  .agent-response-queue { padding: .8rem; }
 }

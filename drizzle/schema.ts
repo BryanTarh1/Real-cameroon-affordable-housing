@@ -148,7 +148,14 @@ export const listings = mysqlTable("listings", {
   propertyType: varchar("propertyType", { length: 50 }).notNull(),
   /** A declaration, never an inferred amenity claim. Existing records remain explicitly not stated. */
   furnishingStatus: mysqlEnum("furnishingStatus", ["not_stated", "unfurnished", "partly_furnished", "fully_furnished"]).default("not_stated").notNull(),
+  /** Agent-declared public summary. Publication requires substantive text; it is never a Field Moderator finding. */
+  description: text("description"),
   bedrooms: int("bedrooms").default(0).notNull(),
+  /** Agent-declared facts, displayed separately from Field Moderator area assessments. */
+  bathrooms: int("bathrooms").default(0).notNull(),
+  parkingSpaces: int("parkingSpaces").default(0).notNull(),
+  /** Optional agent-declared nearby amenity labels, stored as a safe comma-separated public list. */
+  amenities: varchar("amenities", { length: 500 }),
   householdFit: varchar("householdFit", { length: 80 }),
   availableFrom: date("availableFrom").notNull(),
   status: mysqlEnum("status", ["draft", "under_review", "changes_requested", "rejected", "published", "needs_reconfirmation", "suspended", "archived"]).default("under_review").notNull(),
