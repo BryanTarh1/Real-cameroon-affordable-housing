@@ -856,3 +856,9 @@
 - [x] Validate desktop/mobile catalogue-first browsing, real-listing routing, safety gates, and no repeated/competing discovery layers before checkpointing. Full validation passes with 238 tests, one intentional live-provider skip, production build, and desktop/mobile review.
 - [x] Present the unfiltered catalogue as a Douala and Yaoundé marketplace rather than deriving the opening shelf wording from the first returned city; do not modify database records.
 - [x] Preserve existing compact search, city selection, move-in budget, advanced filters, and budget-fit behaviour while changing only the public discovery design and wording.
+
+## Fuller labelled TEST DATA catalogue restoration
+
+- [x] Audit the existing hidden TEST DATA listings and their public-gallery or illustrative-media readiness without changing real-listing eligibility rules.
+- [x] Restore the fuller TEST DATA catalogue to public discovery only with clear TEST DATA and media-provenance labelling; retain the five-media quality rule for real homes.
+- [x] Add regression coverage and validate desktop/mobile catalogue count, card routing, provenance labels, privacy safeguards, and retained search filters before checkpointing. The unfiltered public search now returns all 8 stored TEST DATA listings; full validation passes with 238 tests, one intentional live-provider skip, production build, and desktop/mobile review.

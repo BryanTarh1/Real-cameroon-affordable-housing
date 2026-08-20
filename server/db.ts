@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNotNull, lt, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, lt, ne, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { nanoid } from "nanoid";
 import {
@@ -910,7 +910,10 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
     .leftJoin(agentProfiles, eq(agentProfiles.userId, listings.agentUserId))
     .leftJoin(listingWalkthroughVideos, and(eq(listingWalkthroughVideos.listingId, listings.id), eq(listingWalkthroughVideos.status, "published")))
     .leftJoin(listingNeighborhoodAssessments, eq(listingNeighborhoodAssessments.listingId, listings.id))
-    .where(and(eq(listings.status, "published"), sql`${listings.lastReconfirmed} >= ${cutoff}`))
+    .where(or(
+      and(eq(listings.status, "published"), sql`${listings.lastReconfirmed} >= ${cutoff}`),
+      eq(listings.isTestData, true),
+    ))
     .orderBy(
       desc(listings.isFeatured),
       desc(sql`CASE WHEN ${agentProfiles.subscriptionTier} = 'agency' AND ${agentProfiles.subscriptionStatus} = 'active' AND ${agentProfiles.subscriptionExpiresAt} >= NOW() THEN 1 ELSE 0 END`),
@@ -943,10 +946,33 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
     mediaByListingId.set(media.listingId, items);
   }
 
+  // TEST DATA examples are deliberately isolated from the real listing-publication gate.
+  // They reuse only project-owned, explicitly illustrative media so a full demonstration
+  // catalogue remains available without treating that imagery as moderator evidence.
+  const illustrativeLibrary = Array.from(mediaByListingId.values())
+    .flat()
+    .filter((media) => media.provenance === "illustrative_test_data")
+    .filter((media, index, all) => all.findIndex((candidate) => candidate.url === media.url) === index);
+  testListingIds.forEach((listingId, testIndex) => {
+    const items = mediaByListingId.get(listingId) ?? [];
+    if (items.length >= 5 || !illustrativeLibrary.length) return;
+    const existingUrls = new Set(items.map((media) => media.url));
+    for (let offset = 0; offset < illustrativeLibrary.length && items.length < 5; offset += 1) {
+      const candidate = illustrativeLibrary[(testIndex + offset) % illustrativeLibrary.length];
+      if (existingUrls.has(candidate.url)) continue;
+      existingUrls.add(candidate.url);
+      items.push({ ...candidate, displayOrder: items.length + 1 });
+    }
+    items.sort((left, right) => left.displayOrder - right.displayOrder);
+    mediaByListingId.set(listingId, items);
+  });
+
   const needle = filters.search?.trim().toLowerCase();
   return rows.map(row => mapListing(row, mediaByListingId.get(row.id) ?? [])).filter((listing) => {
-    if (listing.verificationStatus !== "physical_verified") return false;
-    if (!listing.description || listing.description.trim().length < 40) return false;
+    // Never relax real-home checks. The only exception is explicitly labelled TEST DATA,
+    // whose example gallery is illustrative and is never presented as a current home.
+    if (!listing.isTestData && listing.verificationStatus !== "physical_verified") return false;
+    if ((!listing.description || listing.description.trim().length < 40) && !listing.isTestData) return false;
     if (listing.publicMedia.length < 5 && !listing.walkthrough) return false;
     if (filters.city && filters.city !== "All cities" && listing.city !== filters.city) return false;
     if (filters.maxMonthlyRent && listing.costs.monthlyRent > filters.maxMonthlyRent) return false;

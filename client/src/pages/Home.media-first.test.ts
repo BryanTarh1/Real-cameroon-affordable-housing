@@ -27,12 +27,13 @@ describe("public media-first listing cards", () => {
   it("renders only the curated public-media projection as photo evidence", () => {
     expect(homeSource).toContain("listing.publicMedia[0]");
     expect(homeSource).toContain("listing.publicMedia.map(media");
-    expect(homeSource).toContain("MODERATOR-APPROVED");
+    expect(homeSource).toContain('text(language, "illustrativeTestMedia")');
     expect(homeSource).not.toContain("verificationEvidence");
   });
 
   it("starts compact discovery without silently excluding eligible homes by move-in budget", () => {
     expect(homeSource).toContain("const [maxMoveInCash, setMaxMoveInCash] = useState(1_000_000);");
+    expect(homeSource).toContain("maxMoveInCash: maxMoveInCash === 1_000_000 ? undefined : maxMoveInCash");
     expect(homeSource).toContain('<option value={1000000}>{labels.anyAmount}</option>');
   });
 

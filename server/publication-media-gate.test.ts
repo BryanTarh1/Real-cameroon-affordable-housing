@@ -12,11 +12,13 @@ const relatedListingSource = databaseSource.slice(
 );
 
 describe("public listing media and confirmation gate", () => {
-  it("requires current physical verification, a clear description, and five approved photos or a published walkthrough before a listing is returned publicly", () => {
-    expect(databaseSource).toContain('if (listing.verificationStatus !== "physical_verified") return false;');
-    expect(databaseSource).toContain("if (!listing.description || listing.description.trim().length < 40) return false;");
+  it("requires current physical verification, a clear description, and five approved photos or a published walkthrough before a real listing is returned publicly", () => {
+    expect(databaseSource).toContain('if (getEffectivePublicVerificationStatus(listing.verificationStatus, listing.verificationExpiresAt) !== "physical_verified")');
+    expect(databaseSource).toContain("if (!listing.description || listing.description.trim().length < 40)");
     expect(databaseSource).toContain("if (listing.publicMedia.length < 5 && !listing.walkthrough) return false;");
     expect(databaseSource).toContain("A listing needs five approved public photos or a published moderator walkthrough before it can be public.");
+    expect(publicListingSource).toContain('if (!listing.isTestData && listing.verificationStatus !== "physical_verified") return false;');
+    expect(publicListingSource).toContain('if ((!listing.description || listing.description.trim().length < 40) && !listing.isTestData) return false;');
   });
 
   it("projects approved public-gallery records without selecting private verification-evidence media", () => {
@@ -29,6 +31,8 @@ describe("public listing media and confirmation gate", () => {
     expect(databaseSource).toContain("listingIllustrativeTestMedia");
     expect(databaseSource).toContain('provenance: "illustrative_test_data"');
     expect(databaseSource).toContain("const testListingIds = rows.filter(row => Boolean(row.isTestData)).map(row => row.id);");
+    expect(publicListingSource).toContain("eq(listings.isTestData, true)");
+    expect(publicListingSource).toContain("const illustrativeLibrary = Array.from(mediaByListingId.values())");
     expect(databaseSource).toContain("if (listing.publicMedia.length < 5 && !listing.walkthrough) return false;");
   });
 

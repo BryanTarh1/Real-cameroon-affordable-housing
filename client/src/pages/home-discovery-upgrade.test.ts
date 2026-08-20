@@ -53,12 +53,14 @@ describe("French discovery and media-first property flow", () => {
     expect(globalCss).toContain("prefers-reduced-motion:reduce");
   });
 
-  it("states that every public home is Field Moderator verified instead of offering a redundant physical-badge filter", () => {
+  it("distinguishes live Field Moderator-verified homes from clearly labelled TEST DATA without offering a redundant physical-badge filter", () => {
     expect(home).toContain('className="public-verification-disclosure"');
     expect(home).not.toContain("setVerification");
     expect(home).not.toContain("physicalOnly");
-    expect(locale).toContain('publicVerifiedTitle: "Every public home is Field Moderator verified"');
-    expect(locale).toContain('publicVerifiedTitle: "Chaque logement public est vérifié par un modérateur terrain"');
+    expect(locale).toContain('publicVerifiedTitle: "Live homes are Field Moderator verified"');
+    expect(locale).toContain('publicVerifiedTitle: "Les logements réels sont vérifiés par un modérateur terrain"');
+    expect(home).toContain('const isTestFixture = listing.isTestData || listing.title.startsWith("TEST DATA")');
+    expect(home).toContain('isTestFixture || hasIllustrativeMedia ? text(language, "illustrativeTestMedia")');
     expect(css).toContain(".public-verification-disclosure");
   });
 
