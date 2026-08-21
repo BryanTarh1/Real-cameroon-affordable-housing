@@ -928,3 +928,9 @@
 - [x] Audit the supplied SRS against the implemented AHC marketplace scope, current workflows, safeguards, integrations, and known launch boundaries.
 - [x] Produce an accurate, complete revised Word SRS within the requested 16–22-page limit, without inventing product capabilities or user-generated content.
 - [x] Visually review the generated document for page count, readable tables, structure, and professional formatting before delivery. The revised file renders as 20 pages; front matter, role workflows, architecture, interface/accessibility, quality, launch, and closing traceability pages were visually reviewed.
+
+## Immediate cross-route login synchronization
+
+- [x] Trace the session cookie, `auth.me` query cache, route shell, and sign-in completion flow to identify why the homepage retains an anonymous state until refresh.
+- [x] Synchronize sign-in and sign-out state immediately across public and protected routes, preserving existing role boundaries and external OAuth/local-agent session protections.
+- [x] Add regression coverage and validate seeker sign-in/sign-out propagation across the homepage and a second route without browser refresh before checkpointing. Local sign-in and registration now write the successful user projection into the shared `auth.me` cache before route-dependent invalidations; existing sign-out already sets this cache to `null` immediately. The focused contract test, full 246-test suite (one intentional live-provider skip), production build, and public/protected layout checks pass.

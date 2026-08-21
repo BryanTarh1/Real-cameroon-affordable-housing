@@ -56,10 +56,10 @@ export function AgentAccountPanel({ audience = "agent", language = "en", onAuthe
     setCaptchaToken("");
     setCaptchaResetKey(value => value + 1);
   };
-  const onSuccess = async () => {
+  const afterAuthentication = async () => {
     setSubmissionError(null);
     resetCaptcha();
-    await Promise.all([utils.auth.me.invalidate(), utils.agent.profile.invalidate(), utils.agent.paidStatus.invalidate(), utils.agent.paymentOrders.invalidate(), utils.agent.listings.invalidate()]);
+    await Promise.all([utils.agent.profile.invalidate(), utils.agent.paidStatus.invalidate(), utils.agent.paymentOrders.invalidate(), utils.agent.listings.invalidate()]);
     if (audience === "agent" && mode === "register") {
       try {
         for (const kind of ["front", "back", "face"] as IdentityKind[]) {
@@ -82,8 +82,20 @@ export function AgentAccountPanel({ audience = "agent", language = "en", onAuthe
     setSubmissionError(feedbackMessage);
     toast.error(feedbackMessage.title, { description: feedbackMessage.body });
   };
-  const register = trpc.auth.registerLocalAgent.useMutation({ onSuccess, onError: handleAuthError });
-  const login = trpc.auth.loginLocalAgent.useMutation({ onSuccess, onError: handleAuthError });
+  const register = trpc.auth.registerLocalAgent.useMutation({
+    onSuccess: async user => {
+      utils.auth.me.setData(undefined, user);
+      await afterAuthentication();
+    },
+    onError: handleAuthError,
+  });
+  const login = trpc.auth.loginLocalAgent.useMutation({
+    onSuccess: async user => {
+      utils.auth.me.setData(undefined, user);
+      await afterAuthentication();
+    },
+    onError: handleAuthError,
+  });
   const pending = register.isPending || login.isPending;
   const selectMode = (nextMode: Mode) => {
     setMode(nextMode);
