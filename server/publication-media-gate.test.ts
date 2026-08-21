@@ -36,6 +36,14 @@ describe("public listing media and confirmation gate", () => {
     expect(databaseSource).toContain("if (listing.publicMedia.length < 5 && !listing.walkthrough) return false;");
   });
 
+  it("keeps inconsistent TEST DATA facts out of the public catalogue without relaxing live-home safeguards", () => {
+    expect(publicListingSource).toContain("listing.isTestData && (");
+    expect(publicListingSource).toContain("listing.bathrooms < 1");
+    expect(publicListingSource).toContain('listing.propertyType === "Studio" ? listing.bedrooms !== 0 : listing.bedrooms < 1');
+    expect(publicListingSource).toContain("listing.parkingSpaces < 0");
+    expect(publicListingSource).toContain("listing.amenities.length < 1");
+  });
+
   it("builds related-home suggestions only from already-public listing projections", () => {
     expect(relatedListingSource).toContain("const publicListings = await listFreshPublicListings();");
     expect(relatedListingSource).toContain("filter((listing) => listing.id !== listingId)");

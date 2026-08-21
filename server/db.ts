@@ -974,6 +974,13 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
     // whose example gallery is illustrative and is never presented as a current home.
     if (!listing.isTestData && listing.verificationStatus !== "physical_verified") return false;
     if ((!listing.description || listing.description.trim().length < 40) && !listing.isTestData) return false;
+    if (listing.isTestData && (
+      !listing.description || listing.description.trim().length < 40 ||
+      listing.bathrooms < 1 ||
+      (listing.propertyType === "Studio" ? listing.bedrooms !== 0 : listing.bedrooms < 1) ||
+      listing.parkingSpaces < 0 ||
+      listing.amenities.length < 1
+    )) return false;
     if (listing.publicMedia.length < 5 && !listing.walkthrough) return false;
     if (filters.city && filters.city !== "All cities" && listing.city !== filters.city) return false;
     if (filters.maxMonthlyRent && listing.costs.monthlyRent > filters.maxMonthlyRent) return false;

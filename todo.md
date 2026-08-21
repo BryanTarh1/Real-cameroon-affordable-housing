@@ -869,3 +869,9 @@
 - [x] Add a card-level favourite action connected to the existing authenticated seeker favourites workflow, with clear signed-out guidance and no loss of the card’s detail action.
 - [x] Add accessible hover and keyboard-focus card previews that reveal an amenity summary and a clear View Details action without hiding media provenance, privacy, or TEST DATA labels.
 - [x] Add regression coverage and validate desktop/mobile sorting, favourites, detail routing, privacy, and provenance before checkpointing. Full validation passes with 239 tests, one intentional live-provider skip, production build, and desktop/mobile review.
+
+## Visible TEST DATA listing realism audit
+
+- [x] Audit every visible TEST DATA listing’s title, description, media, bedroom, bathroom, parking, amenity, area, and price fields for contradictions or implausible combinations.
+- [x] Correct all identified TEST DATA listing facts and public-facing presentation so they are internally realistic, while retaining their illustrative-media and TEST DATA disclosures.
+- [x] Add regression coverage and validate desktop/mobile cards and detail views so incorrect property facts cannot return before checkpointing. All 8 TEST DATA entries pass the new consistency audit; full validation passes with 240 tests, one intentional live-provider skip, production build, and desktop/mobile review.
