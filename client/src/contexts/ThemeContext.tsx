@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 
 type Theme = "light" | "dark";
 
@@ -30,6 +30,7 @@ export function ThemeProvider({
   defaultTheme = "light",
   switchable = false,
 }: ThemeProviderProps) {
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [theme, setTheme] = useState<Theme>(() => {
     return switchable ? storedTheme(defaultTheme) : defaultTheme;
   });
@@ -52,8 +53,27 @@ export function ThemeProvider({
     }
   }, [theme, switchable]);
 
+  useEffect(() => {
+    return () => {
+      if (transitionTimerRef.current) {
+        clearTimeout(transitionTimerRef.current);
+      }
+    };
+  }, []);
+
   const toggleTheme = switchable
     ? () => {
+        const root = document.documentElement;
+        root.classList.add("theme-transitioning");
+        // Commit the transition rule before the palette changes so the switch feels intentional.
+        void root.offsetWidth;
+        if (transitionTimerRef.current) {
+          clearTimeout(transitionTimerRef.current);
+        }
+        transitionTimerRef.current = setTimeout(() => {
+          root.classList.remove("theme-transitioning");
+          transitionTimerRef.current = null;
+        }, 260);
         setTheme(prev => (prev === "light" ? "dark" : "light"));
       }
     : undefined;

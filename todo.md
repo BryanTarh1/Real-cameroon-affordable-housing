@@ -915,3 +915,10 @@
 - [x] Identify the public footer selectors that remain hidden or lack contrast after dark mode is enabled.
 - [x] Add durable dark-mode footer surfaces, text, links, and focus states that remain clear at desktop and mobile widths.
 - [x] Add regression coverage, validate the rendered footer in dark mode, and checkpoint the correction. The shared footer now owns a night surface instead of inheriting the dark theme’s light `--ink` foreground token; 244 tests (one intentional live-provider skip), production build, and a full public layout review pass.
+
+## Dark-mode interaction polish
+
+- [x] Add a smooth, restrained, reduced-motion-safe visual transition when the user switches between light and dark themes.
+- [x] Audit and update dropdown, select, popover, dialog, modal, and overlay surfaces so they remain correctly layered, readable, and keyboard-clear in dark mode.
+- [x] Add interactive hover and focus treatments to the public footer’s brand accent and any footer links while retaining touch usability.
+- [x] Add focused regression coverage and validate public and protected dark-mode interactions before checkpointing. Live dark mode confirmed a native select inherits `color-scheme: dark` with readable text; shared overlay and transition source contracts are covered, with 244 tests (one intentional provider skip) and a production build passing.
