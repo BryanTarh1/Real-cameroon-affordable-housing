@@ -4,6 +4,7 @@ import { ApproximateMap, type MapListing } from "@/components/ApproximateMap";
 import { trpc } from "@/lib/trpc";
 import { daysUntilRefresh, relativeReconfirmed } from "@/lib/listingFreshness";
 import { publicWalkthroughForDetail } from "@/lib/publicWalkthrough";
+import { closeDedicatedSeekerWindow, isArmedDedicatedSeekerWindow } from "@/lib/dedicatedSeekerWindow";
 import { catalogueInteractionCopy, interpolate, marketplaceCopy, text, type PublicLanguage } from "@/lib/marketplaceLocale";
 import { useMarketplaceLanguage } from "@/hooks/useMarketplaceLanguage";
 import { AgentAccountPanel } from "@/pages/AgentAccountPanel";
@@ -351,10 +352,9 @@ export default function Home({ directListingId }: { directListingId?: string }) 
     if (listing) openListing(listing);
   };
   if (directListingId) {
-    const isDedicatedSeekerWindow = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("ahc-window") === "seeker";
     const returnFromProperty = () => {
-      if (isDedicatedSeekerWindow) {
-        window.close();
+      if (isArmedDedicatedSeekerWindow()) {
+        closeDedicatedSeekerWindow();
         return;
       }
       window.location.assign("/homes");

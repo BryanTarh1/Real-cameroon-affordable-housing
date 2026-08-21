@@ -51,6 +51,7 @@ describe("protected workspace routes", () => {
   afterEach(cleanup);
   beforeEach(() => {
     vi.clearAllMocks();
+    window.sessionStorage.clear();
     auth.logout.mockResolvedValue(undefined);
   });
 
@@ -175,6 +176,19 @@ describe("protected workspace routes", () => {
     await waitFor(() => expect(auth.logout).toHaveBeenCalledTimes(1));
     expect(closeWindow).toHaveBeenCalledTimes(1);
     expect(window.location.pathname).toBe("/property/test-listing");
+    expect(window.sessionStorage.getItem("ahc-dedicated-seeker-window")).toBe("1");
+    closeWindow.mockRestore();
+  });
+
+  it("closes a platform-opened seeker property window when browser Back is invoked instead of exposing duplicate marketplace content", async () => {
+    const closeWindow = vi.spyOn(window, "close").mockImplementation(() => undefined);
+    renderAt("/property/test-listing?ahc-window=seeker", "seeker");
+
+    window.dispatchEvent(new PopStateEvent("popstate"));
+
+    await waitFor(() => expect(closeWindow).toHaveBeenCalledTimes(1));
+    expect(window.location.pathname).toBe("/property/test-listing");
+    expect(window.sessionStorage.getItem("ahc-dedicated-seeker-window")).toBe("1");
     closeWindow.mockRestore();
   });
 });

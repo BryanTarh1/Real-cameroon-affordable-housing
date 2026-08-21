@@ -940,3 +940,9 @@
 - [x] Trace the public seeker sign-in launch path, close/back controls, and sign-out return behavior to identify every case that can leave duplicate windows or tabs.
 - [x] Close a dedicated seeker sign-in window on cancellation, return, or sign-out when it was opened by the platform, while preserving safe same-tab fallback behavior.
 - [x] Add regression coverage and verify the seeker window behavior does not duplicate tabs before checkpointing. Platform-opened property windows are explicitly marked in the URL; their brand, browse, detail, unavailable, and sign-out return paths close the dedicated window instead of navigating back. Normal direct `/property/:id` links retain same-tab `/homes` navigation. Focused route and source contracts, the full 248-test suite (one intentional provider skip), and a production build pass.
+
+## Exact seeker second-tab close correction
+
+- [x] Reproduce the actual sign-out and back route of the platform-opened seeker tab to identify why it still falls through to a homepage navigation.
+- [x] Ensure all return and sign-out actions in the platform-opened seeker tab close that tab completely, never render duplicate homepage content, and retain safe behavior for direct same-tab links.
+- [x] Add an exact-path regression and validate the corrected second-tab behavior before checkpointing. A platform-opened seeker tab now keeps a session marker and guarded history entry. Interface return, sign-out, and browser Back invoke its close request; if a browser blocks script-close, the tab is replaced with `about:blank` rather than navigating to duplicate marketplace content. Direct same-tab property links retain ordinary catalogue navigation. The exact sign-out and Back tests, full 249-test suite (one intentional provider skip), and production build pass.
