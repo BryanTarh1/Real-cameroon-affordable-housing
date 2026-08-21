@@ -114,7 +114,11 @@ describe("French discovery and media-first property flow", () => {
 
   it("loads the shared AHC visual system across public and protected page surfaces", () => {
     expect(main).toContain('import "./styles/ahc-visual-system.css";');
-    expect(sharedVisualSystem).toContain("--ahc-coral: #dc6b4a");
+    expect(sharedVisualSystem).toContain("--ahc-coral: #9f4741");
+    expect(sharedVisualSystem).toContain("--ahc-sun: #b58a45");
+    expect(sharedVisualSystem).toContain('"DM Serif Display"');
+    expect(sharedVisualSystem).toContain("Elevated AHC layer");
+    expect(sharedVisualSystem).toContain(".topbar::after");
     expect(sharedVisualSystem).toContain("--ahc-display");
     expect(sharedVisualSystem).toContain(".operations-page");
     expect(sharedVisualSystem).toContain(".agent-workspace-page");

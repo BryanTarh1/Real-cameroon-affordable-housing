@@ -351,3 +351,363 @@ textarea:hover {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* Elevated AHC layer: composed, personal, and ceremonial without literal theme language. */
+:root {
+  --ahc-ink: #192035;
+  --ahc-ink-soft: #34405b;
+  --ahc-coral: #9f4741;
+  --ahc-coral-deep: #81342f;
+  --ahc-sun: #b58a45;
+  --ahc-mist: #f4f0e8;
+  --ahc-paper: #fffdfa;
+  --ahc-rule: #d9cdb9;
+  --ahc-shadow: 0 18px 44px rgba(38, 29, 47, 0.12), 0 2px 8px rgba(38, 29, 47, 0.05);
+  --ahc-display: "DM Serif Display", Georgia, serif;
+  --ahc-body: "Plus Jakarta Sans", Manrope, sans-serif;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at 6% 0%, rgba(181, 138, 69, 0.12), transparent 28rem),
+    radial-gradient(ellipse at 98% 20%, rgba(159, 71, 65, 0.075), transparent 30rem),
+    linear-gradient(152deg, #fffdfa 0%, #f7f3eb 48%, #f0eadf 100%);
+}
+
+.ahc-app {
+  --ahc-night: #192035;
+  --ahc-ink: #192035;
+  --ahc-coral: #9f4741;
+  --ahc-sun: #b58a45;
+  --ahc-paper: #fffdfa;
+  --ahc-mist: #f4f0e8;
+  background:
+    radial-gradient(ellipse at 5% -10%, rgba(181, 138, 69, 0.14), transparent 28rem),
+    radial-gradient(ellipse at 100% 18%, rgba(159, 71, 65, 0.075), transparent 29rem),
+    linear-gradient(152deg, #fffdfa 0%, #f7f3eb 48%, #f0eadf 100%);
+}
+
+.brand b,
+.section-heading h2,
+.trust-intro h2,
+.agent-cta h2,
+.not-found-code,
+.not-found-title,
+.property-detail-page-shell h1,
+.property-detail-page-shell h2,
+.operations-page h1,
+.operations-page h2,
+.operations-page h3,
+.agent-workspace-page h1,
+.agent-workspace-page h2,
+.agent-workspace-page h3,
+.acceptance-page h1,
+.acceptance-page h2,
+.acceptance-page h3,
+.agent-drawer h1,
+.agent-drawer h2,
+.agent-drawer h3 {
+  font-family: var(--ahc-display);
+  font-weight: 400;
+  letter-spacing: -0.028em;
+}
+
+.topbar,
+.ahc-app .topbar,
+.property-route-topbar {
+  border-bottom: 1px solid rgba(181, 138, 69, 0.28);
+  background:
+    linear-gradient(90deg, rgba(255, 253, 250, 0.97), rgba(252, 247, 238, 0.94)),
+    var(--ahc-paper);
+  box-shadow: 0 12px 32px rgba(38, 29, 47, 0.07), inset 0 -1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.topbar::after,
+.property-route-topbar::after {
+  display: block;
+  position: absolute;
+  right: 1.5rem;
+  bottom: -1px;
+  left: 1.5rem;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(181, 138, 69, 0.66) 18%, rgba(159, 71, 65, 0.4) 52%, transparent 88%);
+  content: "";
+  pointer-events: none;
+}
+
+.brand {
+  font-weight: 720;
+  letter-spacing: -0.035em;
+}
+
+.brand b {
+  color: var(--ahc-coral);
+  font-size: 1.12em;
+}
+
+.nav-links a,
+.ahc-app .nav-links a {
+  color: rgba(25, 32, 53, 0.72);
+  font-size: 0.7rem;
+  font-weight: 760;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.nav-links a:hover,
+.nav-links a:focus-visible {
+  color: var(--ahc-coral);
+}
+
+.button-primary,
+.agent-top-cta,
+.agent-drawer .button-primary,
+.operations-page .button-primary,
+.agent-workspace-page .button-primary,
+.acceptance-page .button-primary,
+.not-found-home-button {
+  border: 1px solid rgba(126, 48, 43, 0.65);
+  background: linear-gradient(135deg, #af554c 0%, #914038 100%);
+  box-shadow: 0 10px 22px rgba(117, 49, 45, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  letter-spacing: 0.012em;
+}
+
+.button-primary:hover,
+.agent-top-cta:hover,
+.agent-drawer .button-primary:hover,
+.operations-page .button-primary:hover,
+.agent-workspace-page .button-primary:hover,
+.acceptance-page .button-primary:hover,
+.not-found-home-button:hover {
+  background: linear-gradient(135deg, #9d453e 0%, #7f332e 100%);
+  box-shadow: 0 13px 28px rgba(117, 49, 45, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.button-secondary,
+.text-button,
+.language-select,
+.theme-toggle,
+.csv-export {
+  border-color: rgba(181, 138, 69, 0.42) !important;
+  background: rgba(255, 253, 250, 0.82);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86), 0 4px 12px rgba(38, 29, 47, 0.045);
+}
+
+input,
+select,
+textarea,
+.operations-page input,
+.operations-page select,
+.operations-page textarea,
+.agent-workspace-page input,
+.agent-workspace-page select,
+.agent-workspace-page textarea {
+  border-color: rgba(181, 138, 69, 0.34) !important;
+  background: linear-gradient(145deg, rgba(255, 253, 250, 0.98), rgba(250, 246, 238, 0.95)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 3px 10px rgba(38, 29, 47, 0.035);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(159, 71, 65, 0.7) !important;
+  box-shadow: 0 0 0 4px rgba(181, 138, 69, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+.agent-drawer,
+.operations-access-panel,
+.operations-page .agent-drawer,
+.agent-workspace-frame,
+.property-detail-page-shell .detail-shell,
+.acceptance-page > section,
+.ahc-receipt-print-shell,
+.listing-detail-standalone,
+.not-found-card {
+  border-color: rgba(181, 138, 69, 0.32) !important;
+  background:
+    linear-gradient(135deg, rgba(255, 253, 250, 0.98), rgba(250, 246, 238, 0.91)) !important;
+  box-shadow: var(--ahc-shadow) !important;
+}
+
+.operations-page,
+.agent-workspace-page,
+.acceptance-page,
+.property-detail-page-shell {
+  background:
+    radial-gradient(ellipse at 5% 2%, rgba(181, 138, 69, 0.11), transparent 25rem),
+    radial-gradient(ellipse at 98% 15%, rgba(159, 71, 65, 0.07), transparent 30rem),
+    linear-gradient(152deg, #f8f4ec, #eee6d9);
+}
+
+.operations-page :is([class*="card"], [class*="panel"], [class*="summary"], [class*="checklist"], [class*="table-wrap"]),
+.agent-workspace-page :is([class*="card"], [class*="panel"], [class*="summary"], [class*="checklist"], [class*="table-wrap"]),
+.acceptance-page :is([class*="card"], [class*="panel"], [class*="summary"], [class*="checklist"], [class*="table-wrap"]) {
+  border-color: rgba(181, 138, 69, 0.28);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(255, 253, 250, 0.96), rgba(249, 244, 235, 0.88));
+  box-shadow: 0 12px 28px rgba(38, 29, 47, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.operations-page th,
+.agent-workspace-page th {
+  background: rgba(181, 138, 69, 0.12);
+  color: #3b2e1b;
+  letter-spacing: 0.1em;
+}
+
+.operations-page tr:hover td,
+.agent-workspace-page tr:hover td {
+  background: rgba(181, 138, 69, 0.085);
+}
+
+.ahc-app .contextual-shelf-heading h2,
+.ahc-app .browse-home-copy h3,
+.ahc-app .listing-detail-standalone h1,
+.ahc-app .listing-detail-standalone h2 {
+  font-family: var(--ahc-display);
+  font-weight: 400;
+  letter-spacing: -0.028em;
+}
+
+.ahc-app .contextual-shelf-heading h2 {
+  font-size: clamp(1.75rem, 2.55vw, 2.6rem);
+}
+
+.ahc-app .contextual-shelf-heading span,
+.ahc-app .browse-home-place,
+.section-overline,
+.listing-city,
+.modal-eyebrow,
+.result-count,
+.staff-access-brand small,
+.ops-atlas-header .section-overline {
+  color: #86672e;
+  letter-spacing: 0.14em;
+}
+
+.ahc-app .contextual-home-shelf {
+  border-top-color: rgba(181, 138, 69, 0.34);
+}
+
+.ahc-app .contextual-home-rail {
+  padding-top: 0.3rem;
+}
+
+.ahc-app .browse-home-tile {
+  border-color: rgba(181, 138, 69, 0.25);
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(255, 253, 250, 0.95), rgba(248, 242, 233, 0.9));
+  box-shadow: 0 10px 24px rgba(38, 29, 47, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.84);
+}
+
+.ahc-app .browse-home-tile:hover,
+.ahc-app .browse-home-tile:focus-within {
+  border-color: rgba(181, 138, 69, 0.6);
+  box-shadow: 0 20px 38px rgba(38, 29, 47, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+.ahc-app .browse-home-media {
+  border-radius: 19px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.32);
+}
+
+.ahc-app .browse-home-status {
+  border-color: rgba(181, 138, 69, 0.38);
+  background: rgba(255, 253, 250, 0.94);
+  color: #46391f;
+}
+
+.ahc-app .browse-home-cash {
+  border-color: rgba(181, 138, 69, 0.46);
+  background: rgba(25, 32, 53, 0.94);
+  box-shadow: 0 8px 18px rgba(25, 32, 53, 0.28);
+}
+
+.ahc-app .browse-home-cash small,
+.ahc-app .browse-home-preview span {
+  color: #e4c276;
+}
+
+.ahc-app .browse-home-preview,
+.ahc-app .browse-home-open {
+  border-color: rgba(181, 138, 69, 0.36);
+  background: rgba(25, 32, 53, 0.95);
+}
+
+.ahc-app .browse-home-open {
+  color: #fffdfa;
+}
+
+.ahc-app .browse-home-preview-action {
+  background: linear-gradient(135deg, #af554c, #913e37);
+}
+
+.ahc-app .browse-home-preview-action:hover {
+  background: linear-gradient(135deg, #9d453e, #7f332e);
+}
+
+.ahc-app .shelf-controls {
+  border-color: rgba(181, 138, 69, 0.34);
+  background: rgba(255, 253, 250, 0.76);
+  box-shadow: 0 4px 12px rgba(38, 29, 47, 0.045);
+}
+
+.ahc-app .shelf-controls button:hover {
+  background: var(--ahc-night);
+  color: #f8e6b4;
+}
+
+.ahc-app .catalogue-sort-bar {
+  border-color: rgba(181, 138, 69, 0.32);
+}
+
+.ahc-app .catalogue-sort-control select {
+  border-color: rgba(181, 138, 69, 0.42);
+  background: linear-gradient(145deg, #fffdfa, #f7f0e6);
+  color: var(--ahc-night);
+}
+
+.dark {
+  --ahc-paper: #232235;
+  --ahc-mist: #171827;
+  --ahc-rule: #5f5b70;
+}
+
+.dark body,
+.dark .operations-page,
+.dark .agent-workspace-page,
+.dark .acceptance-page,
+.dark .property-detail-page-shell {
+  color: #f8f3e8;
+  background: #171827;
+}
+
+.dark .agent-drawer,
+.dark .operations-access-panel,
+.dark .operations-page .agent-drawer,
+.dark .agent-workspace-frame,
+.dark .property-detail-page-shell .detail-shell,
+.dark .acceptance-page > section,
+.dark .ahc-receipt-print-shell,
+.dark .operations-page :is([class*="card"], [class*="panel"], [class*="summary"]),
+.dark .agent-workspace-page :is([class*="card"], [class*="panel"], [class*="summary"]),
+.dark .acceptance-page :is([class*="card"], [class*="panel"], [class*="summary"]) {
+  border-color: rgba(228, 194, 118, 0.28) !important;
+  background: linear-gradient(145deg, #29283b, #202032) !important;
+}
+
+@media (max-width: 720px) {
+  .topbar::after,
+  .property-route-topbar::after {
+    right: 0.9rem;
+    left: 0.9rem;
+  }
+
+  .ahc-app .browse-home-tile {
+    border-radius: 21px;
+  }
+
+  .ahc-app .browse-home-media {
+    border-radius: 17px;
+  }
+}

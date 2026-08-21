@@ -896,3 +896,10 @@
 - [x] Apply the refined AHC font stack, high-contrast palette, navigation, controls, cards, forms, and feedback patterns as the default visual language across all application pages.
 - [x] Preserve role clarity, protected-workspace usability, error states, data density, responsive layouts, keyboard focus, and reduced-motion support while unifying the presentation.
 - [x] Add regression coverage and validate public, seeker, agent, moderator, and admin representative views across desktop and mobile before checkpointing. Full validation passes with 243 tests, one intentional live-provider skip, production build, and public/protected/fallback desktop/mobile review.
+
+## Understated elevated experience
+
+- [x] Refine shared AHC typography, color tokens, surface materials, spacing, and ornamental restraint to convey dignity and personal importance without literal royalty language or symbols.
+- [x] Introduce subtle elevated interaction details across navigation, controls, cards, forms, dashboards, and feedback states while retaining task clarity and accessibility.
+- [x] Preserve marketplace trust cues, TEST DATA disclosures, role workflows, map privacy, keyboard focus, reduced motion, and responsive performance through the visual evolution.
+- [x] Add regression coverage and validate representative public and protected views across desktop and mobile before checkpointing. Updated shared-style contract coverage; 243 tests pass with one intentional live-provider skip, production build passes, and public/protected/fallback desktop/mobile views were reviewed.
