@@ -16,6 +16,9 @@ const agentQuality = fs.readFileSync(path.resolve(process.cwd(), "client/src/com
 const costDisclosure = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/CostDisclosureForm.tsx"), "utf8");
 const main = fs.readFileSync(path.resolve(process.cwd(), "client/src/main.tsx"), "utf8");
 const sharedVisualSystem = fs.readFileSync(path.resolve(process.cwd(), "client/src/styles/ahc-visual-system.css"), "utf8");
+const appShell = fs.readFileSync(path.resolve(process.cwd(), "client/src/App.tsx"), "utf8");
+const themeProvider = fs.readFileSync(path.resolve(process.cwd(), "client/src/contexts/ThemeContext.tsx"), "utf8");
+const themeToggle = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/ThemeToggle.tsx"), "utf8");
 
 describe("French discovery and media-first property flow", () => {
   it("keeps a persistent English/French language-selection dropdown and translated headline labels", () => {
@@ -126,6 +129,25 @@ describe("French discovery and media-first property flow", () => {
     expect(sharedVisualSystem).toContain(".property-detail-page-shell");
     expect(sharedVisualSystem).toContain("focus-visible");
     expect(sharedVisualSystem).toContain("prefers-reduced-motion");
+  });
+
+  it("keeps a persistent, accessible, high-contrast dark mode across the shared AHC shell", () => {
+    expect(appShell).toContain('<ThemeProvider defaultTheme="light" switchable>');
+    expect(themeProvider).toContain('root.classList.add("dark")');
+    expect(themeProvider).toContain("root.dataset.theme = theme");
+    expect(themeProvider).toContain('localStorage.setItem("theme", theme)');
+    expect(themeToggle).toContain('aria-pressed={theme === "dark"}');
+    expect(sharedVisualSystem).toContain("Functional dark mode");
+    expect(sharedVisualSystem).toContain(".dark .ahc-app {");
+    expect(sharedVisualSystem).toContain(".dark .ahc-app .topbar");
+    expect(sharedVisualSystem).toContain(".dark .ahc-app .browse-home-tile");
+    expect(sharedVisualSystem).toContain(".dark .operations-page th");
+    expect(sharedVisualSystem).toContain('.dark .theme-toggle[aria-pressed="true"]');
+    expect(visualRefinementCss).toContain(".dark .ahc-app .browse-home-tile");
+    expect(visualRefinementCss).toContain(".dark .ahc-app .topbar");
+    expect(visualRefinementCss).toContain(".dark .ahc-app .public-verification-disclosure");
+    expect(catalogueFirstCss).toContain(".dark .ahc-app .hero");
+    expect(catalogueFirstCss).toContain(".dark .catalogue-sort-bar .catalogue-sort-control select");
   });
 
   it("adds client-side catalogue sorting, protected favourites, and accessible card previews without weakening discovery filters", () => {

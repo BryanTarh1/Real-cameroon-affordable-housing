@@ -903,3 +903,9 @@
 - [x] Introduce subtle elevated interaction details across navigation, controls, cards, forms, dashboards, and feedback states while retaining task clarity and accessibility.
 - [x] Preserve marketplace trust cues, TEST DATA disclosures, role workflows, map privacy, keyboard focus, reduced motion, and responsive performance through the visual evolution.
 - [x] Add regression coverage and validate representative public and protected views across desktop and mobile before checkpointing. Updated shared-style contract coverage; 243 tests pass with one intentional live-provider skip, production build passes, and public/protected/fallback desktop/mobile views were reviewed.
+
+## Dark-mode functional repair
+
+- [x] Trace why the visible dark-mode control does not activate a coherent dark application theme across public and protected routes.
+- [x] Repair the theme state, persisted preference, semantic tokens, and shared visual surfaces so dark mode is usable, readable, and consistent.
+- [x] Add focused regression coverage and validate desktop/mobile dark mode across public, Agent, Admin, Field Moderator, and fallback screens before checkpointing. The persisted dark preference was rendered live on the public catalogue; focused route-level cascade coverage, 244 tests (one intentional live-provider skip), production build, and mobile reviews passed.

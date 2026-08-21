@@ -16,17 +16,22 @@ interface ThemeProviderProps {
   switchable?: boolean;
 }
 
+function storedTheme(fallback: Theme): Theme {
+  try {
+    const preference = localStorage.getItem("theme");
+    return preference === "dark" || preference === "light" ? preference : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export function ThemeProvider({
   children,
   defaultTheme = "light",
   switchable = false,
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
-    if (switchable) {
-      const stored = localStorage.getItem("theme");
-      return (stored as Theme) || defaultTheme;
-    }
-    return defaultTheme;
+    return switchable ? storedTheme(defaultTheme) : defaultTheme;
   });
 
   useEffect(() => {
@@ -36,9 +41,14 @@ export function ThemeProvider({
     } else {
       root.classList.remove("dark");
     }
+    root.dataset.theme = theme;
 
     if (switchable) {
-      localStorage.setItem("theme", theme);
+      try {
+        localStorage.setItem("theme", theme);
+      } catch {
+        // A blocked storage API must not prevent visitors from changing theme for this session.
+      }
     }
   }, [theme, switchable]);
 

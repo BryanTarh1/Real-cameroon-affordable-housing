@@ -48,3 +48,9 @@
 }
 
 .catalogue-sort-bar{order:-1;width:min(100% - 2rem,1380px);margin:0 auto;padding:0 0 .85rem;display:flex;justify-content:flex-end}.catalogue-sort-bar .catalogue-sort-control{display:grid;gap:.32rem;min-width:210px;color:var(--ink);font:800 .58rem/1 "DM Mono",monospace;letter-spacing:.08em;text-transform:uppercase}.catalogue-sort-bar .catalogue-sort-control select{min-height:42px;border:1px solid rgba(19,44,52,.2);border-radius:10px;padding:.55rem .7rem;background:#fffdf6;color:var(--ink);font:700 .77rem/1 Manrope,sans-serif;letter-spacing:0;text-transform:none}@media(max-width:640px){.catalogue-sort-bar{width:100%;padding:.15rem 1rem .85rem;justify-content:stretch}.catalogue-sort-bar .catalogue-sort-control{width:100%;min-width:0}.catalogue-sort-bar .catalogue-sort-control select{width:100%}}
+
+.dark .ahc-app .hero{background:linear-gradient(135deg,rgba(35,34,53,.96),rgba(27,28,43,.95));border-bottom-color:rgba(228,194,118,.24);color:#f8f3e8}
+.dark .ahc-app .hero .search-panel input,.dark .ahc-app .hero .search-panel select,.dark .ahc-app .hero .search-advanced-toggle,.dark .catalogue-sort-bar .catalogue-sort-control select{background:#25253a;color:#f8f3e8;border-color:rgba(228,194,118,.36)}
+.dark .ahc-app .hero .search-advanced-fields{background:rgba(35,34,53,.78);border-color:rgba(228,194,118,.24)}
+.dark .ahc-app .data-saver-toggle{border-color:rgba(171,222,190,.45);background:#243b35;color:#c6edd1}
+.dark .catalogue-sort-bar .catalogue-sort-control{color:#cbc4b6}

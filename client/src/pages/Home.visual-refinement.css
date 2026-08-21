@@ -112,3 +112,19 @@
   .ahc-app .browse-home-tile,.ahc-app .browse-home-media>img,.ahc-app .browse-home-media>video,.ahc-app .browse-home-open{transition:none}
   .ahc-app .browse-home-tile:hover{transform:none}
 }
+
+/* Kept in the route stylesheet so public discovery remains dark when these catalogue rules load after shared styles. */
+.dark .ahc-app{color:#f8f3e8;background:radial-gradient(ellipse at 8% 0%,rgba(228,194,118,.1),transparent 28rem),linear-gradient(152deg,#171827,#1d1d2d 52%,#151622)}
+.dark .ahc-app .topbar,.dark .ahc-app .property-route-topbar{border-bottom-color:rgba(228,194,118,.28);background:linear-gradient(90deg,rgba(35,34,53,.98),rgba(29,29,45,.96));box-shadow:0 12px 32px rgba(3,4,12,.28),inset 0 -1px 0 rgba(255,255,255,.04)}
+.dark .ahc-app .brand,.dark .ahc-app .nav-links a,.dark .ahc-app .language-select,.dark .ahc-app .contextual-shelf-heading h2,.dark .ahc-app .browse-home-copy h3,.dark .ahc-app .browse-home-rent b,.dark .ahc-app .listing-detail-standalone h1,.dark .ahc-app .listing-detail-standalone h2{color:#f8f3e8}
+.dark .ahc-app .nav-links a:hover,.dark .ahc-app .nav-links a:focus-visible,.dark .ahc-app .brand b{color:#e4c276}
+.dark .ahc-app .hero,.dark .ahc-app .property-detail-page-shell,.dark .ahc-app .search-panel,.dark .ahc-app .search-advanced-fields,.dark .ahc-app .catalogue-sort-bar{border-color:rgba(228,194,118,.24);background:linear-gradient(135deg,rgba(35,34,53,.96),rgba(27,28,43,.95));color:#f8f3e8}
+.dark .ahc-app .search-panel input,.dark .ahc-app .search-panel select,.dark .ahc-app .language-select,.dark .ahc-app .catalogue-sort-control select,.dark .ahc-app .search-advanced-toggle{border-color:rgba(228,194,118,.36);background:linear-gradient(145deg,#2b2b42,#222237);color:#f8f3e8;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 5px 14px rgba(3,4,12,.2)}
+.dark .ahc-app .search-panel input::placeholder{color:#bdb6aa}
+.dark .ahc-app .contextual-home-shelf,.dark .ahc-app .browse-home-rent,.dark .ahc-app .catalogue-sort-bar{border-color:rgba(228,194,118,.25)}
+.dark .ahc-app .contextual-shelf-heading span,.dark .ahc-app .browse-home-place,.dark .ahc-app .browse-home-meta,.dark .ahc-app .browse-home-rent span,.dark .ahc-app .contextual-shelf-heading p,.dark .ahc-app .catalogue-sort-control{color:#cbc4b6}
+.dark .ahc-app .browse-home-facts{color:#b7d9d4}
+.dark .ahc-app .browse-home-tile,.dark .ahc-app .listing-detail-standalone{border-color:rgba(228,194,118,.27);background:linear-gradient(145deg,#2a2a40,#212136);box-shadow:0 20px 46px rgba(3,4,12,.38),0 2px 10px rgba(3,4,12,.2)}
+.dark .ahc-app .browse-home-status,.dark .ahc-app .shelf-controls{border-color:rgba(228,194,118,.34);background:rgba(35,34,53,.92);color:#f8f3e8}
+.dark .ahc-app .shelf-controls button{color:#f8f3e8}.dark .ahc-app .shelf-controls button:hover{background:#e4c276;color:#252033}
+.dark .ahc-app .public-verification-disclosure{border-left-color:#e4c276;background:linear-gradient(90deg,rgba(223,129,119,.16),rgba(228,194,118,.13));color:#f8f3e8}
