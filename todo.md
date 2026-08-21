@@ -946,3 +946,8 @@
 - [x] Reproduce the actual sign-out and back route of the platform-opened seeker tab to identify why it still falls through to a homepage navigation.
 - [x] Ensure all return and sign-out actions in the platform-opened seeker tab close that tab completely, never render duplicate homepage content, and retain safe behavior for direct same-tab links.
 - [x] Add an exact-path regression and validate the corrected second-tab behavior before checkpointing. A platform-opened seeker tab now keeps a session marker and guarded history entry. Interface return, sign-out, and browser Back invoke its close request; if a browser blocks script-close, the tab is replaced with `about:blank` rather than navigating to duplicate marketplace content. Direct same-tab property links retain ordinary catalogue navigation. The exact sign-out and Back tests, full 249-test suite (one intentional provider skip), and production build pass.
+
+## Ten-minute AHC presentation speaking guide
+
+- [x] Analyze the supplied AHC Product and Technical Overview deck and map its slide sequence to a ten-minute delivery structure.
+- [x] Prepare a concise slide-by-slide speaking guide, including clear placement for the Agent pricing and Field Moderator explanation. The guide allocates 9 minutes 20 seconds across the eleven slides, leaving a 40-second transition/question buffer.
