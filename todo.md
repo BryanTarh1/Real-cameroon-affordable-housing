@@ -909,3 +909,9 @@
 - [x] Trace why the visible dark-mode control does not activate a coherent dark application theme across public and protected routes.
 - [x] Repair the theme state, persisted preference, semantic tokens, and shared visual surfaces so dark mode is usable, readable, and consistent.
 - [x] Add focused regression coverage and validate desktop/mobile dark mode across public, Agent, Admin, Field Moderator, and fallback screens before checkpointing. The persisted dark preference was rendered live on the public catalogue; focused route-level cascade coverage, 244 tests (one intentional live-provider skip), production build, and mobile reviews passed.
+
+## Dark-mode footer correction
+
+- [x] Identify the public footer selectors that remain hidden or lack contrast after dark mode is enabled.
+- [x] Add durable dark-mode footer surfaces, text, links, and focus states that remain clear at desktop and mobile widths.
+- [x] Add regression coverage, validate the rendered footer in dark mode, and checkpoint the correction. The shared footer now owns a night surface instead of inheriting the dark theme’s light `--ink` foreground token; 244 tests (one intentional live-provider skip), production build, and a full public layout review pass.

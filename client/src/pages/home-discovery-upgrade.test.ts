@@ -143,6 +143,8 @@ describe("French discovery and media-first property flow", () => {
     expect(sharedVisualSystem).toContain(".dark .ahc-app .browse-home-tile");
     expect(sharedVisualSystem).toContain(".dark .operations-page th");
     expect(sharedVisualSystem).toContain('.dark .theme-toggle[aria-pressed="true"]');
+    expect(sharedVisualSystem).toContain(".dark .ahc-app > footer");
+    expect(sharedVisualSystem).toContain(".dark .ahc-app > footer span:first-child");
     expect(visualRefinementCss).toContain(".dark .ahc-app .browse-home-tile");
     expect(visualRefinementCss).toContain(".dark .ahc-app .topbar");
     expect(visualRefinementCss).toContain(".dark .ahc-app .public-verification-disclosure");
