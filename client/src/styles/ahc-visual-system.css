@@ -1,0 +1,353 @@
+/* AHC Visual System: shared original presentation for marketplace and workspaces. */
+:root {
+  --ahc-ink: #092d36;
+  --ahc-ink-soft: #174853;
+  --ahc-coral: #dc6b4a;
+  --ahc-coral-deep: #ba5034;
+  --ahc-sun: #f3b94f;
+  --ahc-mist: #f5f5ef;
+  --ahc-paper: #fffefa;
+  --ahc-rule: #d8e0dc;
+  --ahc-shadow: 0 16px 38px rgba(9, 45, 54, 0.1);
+  --ahc-display: "Bricolage Grotesque", Manrope, sans-serif;
+  --ahc-body: "Plus Jakarta Sans", Manrope, sans-serif;
+  --ahc-mono: "DM Mono", monospace;
+}
+
+html,
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--ahc-body);
+}
+
+body {
+  color: var(--ahc-ink);
+  background:
+    radial-gradient(circle at 92% -16%, rgba(243, 185, 79, 0.24), transparent 31rem),
+    linear-gradient(180deg, #fffefa 0%, var(--ahc-mist) 100%);
+}
+
+button,
+input,
+select,
+textarea {
+  border-radius: 12px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--ahc-sun) !important;
+  outline-offset: 3px;
+}
+
+.topbar,
+.property-detail-page-shell,
+.operations-page,
+.agent-workspace-page,
+.acceptance-page,
+.not-found-page {
+  font-family: var(--ahc-body);
+}
+
+.topbar {
+  border-color: rgba(9, 45, 54, 0.12);
+  background: rgba(255, 254, 250, 0.92);
+  box-shadow: 0 1px 0 rgba(9, 45, 54, 0.06), 0 8px 26px rgba(9, 45, 54, 0.045);
+}
+
+.brand b,
+.section-heading h2,
+.trust-intro h2,
+.agent-cta h2,
+.not-found-code,
+.not-found-title,
+.property-detail-page-shell h1,
+.property-detail-page-shell h2,
+.operations-page h1,
+.operations-page h2,
+.operations-page h3,
+.agent-workspace-page h1,
+.agent-workspace-page h2,
+.agent-workspace-page h3,
+.acceptance-page h1,
+.acceptance-page h2,
+.acceptance-page h3,
+.agent-drawer h1,
+.agent-drawer h2,
+.agent-drawer h3 {
+  font-family: var(--ahc-display);
+  letter-spacing: -0.04em;
+}
+
+.section-overline,
+.listing-city,
+.modal-eyebrow,
+.result-count,
+.staff-access-brand small,
+.ops-atlas-header .section-overline {
+  font-family: var(--ahc-mono);
+  letter-spacing: 0.1em;
+}
+
+.button-primary,
+.agent-top-cta,
+.agent-drawer .button-primary,
+.operations-page .button-primary,
+.agent-workspace-page .button-primary,
+.acceptance-page .button-primary {
+  border-radius: 999px;
+  background: var(--ahc-coral);
+  color: #fffefa;
+  box-shadow: 0 8px 18px rgba(186, 80, 52, 0.22);
+}
+
+.button-primary:hover,
+.agent-top-cta:hover,
+.agent-drawer .button-primary:hover,
+.operations-page .button-primary:hover,
+.agent-workspace-page .button-primary:hover,
+.acceptance-page .button-primary:hover {
+  background: var(--ahc-coral-deep);
+  transform: translateY(-1px);
+}
+
+.button-secondary,
+.text-button,
+.operations-page .text-button,
+.agent-workspace-page .text-button {
+  border-radius: 999px;
+  color: var(--ahc-ink);
+}
+
+.button-secondary {
+  border-color: var(--ahc-ink);
+  background: var(--ahc-paper);
+}
+
+input,
+select,
+textarea,
+.operations-page input,
+.operations-page select,
+.operations-page textarea,
+.agent-workspace-page input,
+.agent-workspace-page select,
+.agent-workspace-page textarea {
+  border-color: var(--ahc-rule) !important;
+  background: rgba(255, 254, 250, 0.94) !important;
+  color: var(--ahc-ink) !important;
+  box-shadow: inset 0 1px 0 rgba(9, 45, 54, 0.03);
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: rgba(220, 107, 74, 0.6) !important;
+}
+
+.agent-drawer,
+.operations-access-panel,
+.operations-page .agent-drawer,
+.agent-workspace-frame,
+.property-detail-page-shell .detail-shell,
+.acceptance-page > section,
+.ahc-receipt-print-shell {
+  border: 1px solid var(--ahc-rule);
+  background: rgba(255, 254, 250, 0.96);
+  box-shadow: var(--ahc-shadow);
+}
+
+.operations-page,
+.agent-workspace-page,
+.acceptance-page,
+.property-detail-page-shell {
+  background:
+    radial-gradient(circle at 88% 4%, rgba(243, 185, 79, 0.2), transparent 24rem),
+    var(--ahc-mist);
+}
+
+.operations-page :is([class*="card"], [class*="panel"], [class*="summary"], [class*="checklist"], [class*="table-wrap"]),
+.agent-workspace-page :is([class*="card"], [class*="panel"], [class*="summary"], [class*="checklist"], [class*="table-wrap"]),
+.acceptance-page :is([class*="card"], [class*="panel"], [class*="summary"], [class*="checklist"], [class*="table-wrap"]) {
+  border-color: var(--ahc-rule);
+  border-radius: 18px;
+}
+
+.operations-page :is([class*="card"], [class*="panel"], [class*="summary"]),
+.agent-workspace-page :is([class*="card"], [class*="panel"], [class*="summary"]),
+.acceptance-page :is([class*="card"], [class*="panel"], [class*="summary"]) {
+  background: rgba(255, 254, 250, 0.86);
+  box-shadow: 0 10px 24px rgba(9, 45, 54, 0.055);
+}
+
+.operations-page :is(table, thead, tbody, tr, td, th),
+.agent-workspace-page :is(table, thead, tbody, tr, td, th) {
+  border-color: var(--ahc-rule);
+}
+
+.operations-page th,
+.agent-workspace-page th {
+  background: rgba(9, 45, 54, 0.06);
+  color: var(--ahc-ink);
+  font-family: var(--ahc-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.operations-page tr:hover td,
+.agent-workspace-page tr:hover td {
+  background: rgba(243, 185, 79, 0.1);
+}
+
+.auth-submit-error,
+.report-status,
+.map-gate-panel,
+.public-verification-disclosure {
+  border-radius: 14px;
+}
+
+.auth-submit-error,
+.report-status {
+  border-left-color: var(--ahc-coral);
+}
+
+.theme-toggle,
+.csv-export {
+  border-radius: 999px;
+  font-family: var(--ahc-body);
+}
+
+.dark {
+  --ahc-paper: #113039;
+  --ahc-mist: #092630;
+  --ahc-rule: #3f5d65;
+}
+
+.dark body,
+.dark .operations-page,
+.dark .agent-workspace-page,
+.dark .acceptance-page,
+.dark .property-detail-page-shell {
+  background: #092630;
+}
+
+.dark .agent-drawer,
+.dark .operations-access-panel,
+.dark .operations-page .agent-drawer,
+.dark .agent-workspace-frame,
+.dark .property-detail-page-shell .detail-shell,
+.dark .acceptance-page > section,
+.dark .ahc-receipt-print-shell,
+.dark .operations-page :is([class*="card"], [class*="panel"], [class*="summary"]),
+.dark .agent-workspace-page :is([class*="card"], [class*="panel"], [class*="summary"]),
+.dark .acceptance-page :is([class*="card"], [class*="panel"], [class*="summary"]) {
+  background: #113039;
+  border-color: var(--ahc-rule);
+}
+
+.not-found-page {
+  padding: 1.5rem;
+  color: var(--ahc-ink);
+  background:
+    radial-gradient(circle at 84% 12%, rgba(243, 185, 79, 0.28), transparent 20rem),
+    radial-gradient(circle at 12% 90%, rgba(220, 107, 74, 0.12), transparent 19rem),
+    var(--ahc-mist);
+}
+
+.not-found-card {
+  overflow: hidden;
+  border: 1px solid var(--ahc-rule) !important;
+  border-radius: 24px !important;
+  background: rgba(255, 254, 250, 0.94) !important;
+  box-shadow: var(--ahc-shadow) !important;
+}
+
+.not-found-card::before {
+  display: block;
+  height: 0.5rem;
+  content: "";
+  background: linear-gradient(90deg, var(--ahc-coral), var(--ahc-sun));
+}
+
+.not-found-mark > div {
+  background: rgba(243, 185, 79, 0.18);
+}
+
+.not-found-mark svg {
+  color: var(--ahc-coral);
+}
+
+.not-found-code {
+  color: var(--ahc-ink);
+}
+
+.not-found-title {
+  color: var(--ahc-ink-soft);
+}
+
+.not-found-copy {
+  color: rgba(9, 45, 54, 0.76);
+}
+
+.not-found-home-button {
+  border-radius: 999px !important;
+  background: var(--ahc-coral) !important;
+  color: #fffefa !important;
+  box-shadow: 0 8px 18px rgba(186, 80, 52, 0.22);
+}
+
+.not-found-home-button:hover {
+  background: var(--ahc-coral-deep) !important;
+  transform: translateY(-1px);
+}
+
+.dark .not-found-page {
+  background: #092630;
+}
+
+.dark .not-found-card {
+  background: #113039 !important;
+  border-color: var(--ahc-rule) !important;
+}
+
+.dark .not-found-code,
+.dark .not-found-title,
+.dark .not-found-copy {
+  color: #fffefa;
+}
+
+@media (max-width: 720px) {
+  .operations-page,
+  .agent-workspace-page,
+  .acceptance-page,
+  .property-detail-page-shell {
+    background: var(--ahc-mist);
+  }
+
+  .agent-drawer,
+  .operations-access-panel,
+  .operations-page .agent-drawer,
+  .agent-workspace-frame,
+  .acceptance-page > section {
+    border-radius: 14px;
+    box-shadow: 0 8px 22px rgba(9, 45, 54, 0.07);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

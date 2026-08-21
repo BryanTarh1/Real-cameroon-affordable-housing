@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import superjson from "superjson";
 import App from "./App";
 import "./index.css";
+import "./styles/ahc-visual-system.css";
 import { legacyHashPathToBrowserPath } from "./lib/legacyHashRoutes";
 
 function migrateLegacyHashRoute() {

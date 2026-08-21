@@ -889,3 +889,10 @@
 - [x] Improve property-card media framing, factual hierarchy, favourite controls, collection navigation, and filter/sort controls without copying the supplied reference’s branding or layout.
 - [x] Preserve visible Total Move-In Cash, verification freshness, TEST DATA/media provenance, landmark-only privacy, responsive utility, and keyboard focus treatment through the visual redesign.
 - [x] Validate desktop/mobile contrast, legibility, interaction reachability, and retained marketplace safeguards before checkpointing. Full validation passes with 242 tests, one intentional live-provider skip, production build, and desktop/mobile review.
+
+## Application-wide AHC visual system
+
+- [x] Audit public, account, agent, moderator, and admin page surfaces to identify shared style hooks and page-specific readability risks.
+- [x] Apply the refined AHC font stack, high-contrast palette, navigation, controls, cards, forms, and feedback patterns as the default visual language across all application pages.
+- [x] Preserve role clarity, protected-workspace usability, error states, data density, responsive layouts, keyboard focus, and reduced-motion support while unifying the presentation.
+- [x] Add regression coverage and validate public, seeker, agent, moderator, and admin representative views across desktop and mobile before checkpointing. Full validation passes with 243 tests, one intentional live-provider skip, production build, and public/protected/fallback desktop/mobile review.

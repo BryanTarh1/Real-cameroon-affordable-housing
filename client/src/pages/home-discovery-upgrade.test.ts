@@ -14,6 +14,8 @@ const globalCss = fs.readFileSync(path.resolve(process.cwd(), "client/src/index.
 const agentConcierge = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/AgentViewingConcierge.tsx"), "utf8");
 const agentQuality = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/AgentQualityDashboard.tsx"), "utf8");
 const costDisclosure = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/CostDisclosureForm.tsx"), "utf8");
+const main = fs.readFileSync(path.resolve(process.cwd(), "client/src/main.tsx"), "utf8");
+const sharedVisualSystem = fs.readFileSync(path.resolve(process.cwd(), "client/src/styles/ahc-visual-system.css"), "utf8");
 
 describe("French discovery and media-first property flow", () => {
   it("keeps a persistent English/French language-selection dropdown and translated headline labels", () => {
@@ -108,6 +110,18 @@ describe("French discovery and media-first property flow", () => {
     expect(visualRefinementCss).toContain(".ahc-app .browse-home-favorite");
     expect(visualRefinementCss).toContain(".ahc-app .public-verification-disclosure");
     expect(visualRefinementCss).toContain("prefers-reduced-motion:reduce");
+  });
+
+  it("loads the shared AHC visual system across public and protected page surfaces", () => {
+    expect(main).toContain('import "./styles/ahc-visual-system.css";');
+    expect(sharedVisualSystem).toContain("--ahc-coral: #dc6b4a");
+    expect(sharedVisualSystem).toContain("--ahc-display");
+    expect(sharedVisualSystem).toContain(".operations-page");
+    expect(sharedVisualSystem).toContain(".agent-workspace-page");
+    expect(sharedVisualSystem).toContain(".acceptance-page");
+    expect(sharedVisualSystem).toContain(".property-detail-page-shell");
+    expect(sharedVisualSystem).toContain("focus-visible");
+    expect(sharedVisualSystem).toContain("prefers-reduced-motion");
   });
 
   it("adds client-side catalogue sorting, protected favourites, and accessible card previews without weakening discovery filters", () => {
