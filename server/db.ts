@@ -3,7 +3,9 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { nanoid } from "nanoid";
 import {
   adminAuditEvents,
+  agentReviews,
   agentProfiles,
+  confirmedPurchases,
   fieldVerificationCommissions,
   InsertUser,
   listingCosts,
@@ -841,7 +843,7 @@ function mapListing(row: any, publicMedia: CuratedPublicMedia[] = []) {
       ],
       responseMetricAvailable: false,
     },
-    agent: { name: row.publicName ?? row.agentNameSnapshot, whatsappPhone: row.whatsappPhone ?? null },
+    agent: { id: row.agentUserId ?? null, name: row.publicName ?? row.agentNameSnapshot, whatsappPhone: row.whatsappPhone ?? null },
     costs: { ...costs, totalMoveInCashRequired: calculateTotalMoveInCash(costs) },
   };
 }
@@ -893,7 +895,7 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
     availableFrom: listings.availableFrom, lastReconfirmed: listings.lastReconfirmed, supplyCapacity: listings.supplyCapacity,
     publicLatitude: listings.publicLatitude, publicLongitude: listings.publicLongitude, mapRadiusM: listings.mapRadiusM,
     isFeatured: listings.isFeatured, featuredUntil: listings.featuredUntil, verificationStatus: listings.verificationStatus, verificationExpiresAt: listings.verificationExpiresAt,
-    photosCount: listings.photosCount, agentNameSnapshot: listings.agentNameSnapshot,
+    photosCount: listings.photosCount, agentUserId: listings.agentUserId, agentNameSnapshot: listings.agentNameSnapshot,
     monthlyRent: listingCosts.monthlyRent, advanceMonths: listingCosts.advanceMonths,
     securityDeposit: listingCosts.securityDeposit, agencyFee: listingCosts.agencyFee,
     serviceFee: listingCosts.serviceFee, firstMonthUtilities: listingCosts.firstMonthUtilities,
@@ -1446,6 +1448,205 @@ export async function recordSeekerViewingOutcome(input: {
       await tx.update(listings).set({ status: "needs_reconfirmation" }).where(and(eq(listings.id, appointment.listingId), eq(listings.status, "published")));
     }
     return { success: true } as const;
+  });
+}
+
+/** Admin-only queue: completed viewings that have not yet established private review eligibility. */
+export async function listAdminPurchaseConfirmationCandidates() {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({
+    appointmentId: viewingAppointments.id,
+    listingId: listings.id,
+    listingTitle: listings.title,
+    city: listings.city,
+    neighborhood: listings.neighborhood,
+    seekerUserId: viewingAppointments.seekerUserId,
+    agentUserId: viewingAppointments.agentUserId,
+    agentNameSnapshot: listings.agentNameSnapshot,
+    agentPublicName: agentProfiles.publicName,
+    completedAt: viewingAppointments.outcomeRecordedAt,
+  }).from(viewingAppointments)
+    .innerJoin(listings, eq(listings.id, viewingAppointments.listingId))
+    .leftJoin(agentProfiles, eq(agentProfiles.userId, viewingAppointments.agentUserId))
+    .leftJoin(confirmedPurchases, eq(confirmedPurchases.appointmentId, viewingAppointments.id))
+    .where(and(eq(viewingAppointments.status, "completed"), sql`${confirmedPurchases.id} IS NULL`))
+    .orderBy(desc(viewingAppointments.outcomeRecordedAt));
+  return rows.map(row => ({
+    ...row,
+    agentName: row.agentPublicName ?? row.agentNameSnapshot,
+  }));
+}
+
+/**
+ * Records a completed home outcome after an Admin has independently confirmed it.
+ * It never records tenancy money and derives seeker, Agent, and listing solely from
+ * the completed appointment so an Admin cannot compose an arbitrary review link.
+ */
+export async function confirmPurchaseFromViewing(input: { adminUserId: number; appointmentId: number; note?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async (tx) => {
+    const appointment = (await tx.select({
+      id: viewingAppointments.id,
+      listingId: viewingAppointments.listingId,
+      seekerUserId: viewingAppointments.seekerUserId,
+      agentUserId: viewingAppointments.agentUserId,
+      status: viewingAppointments.status,
+    }).from(viewingAppointments).where(eq(viewingAppointments.id, input.appointmentId)).limit(1))[0];
+    if (!appointment || appointment.status !== "completed") {
+      throw new Error("Only a completed viewing can be confirmed as a home outcome.");
+    }
+    if (appointment.seekerUserId === appointment.agentUserId) {
+      throw new Error("A purchaser review cannot be confirmed for the same account as the Agent.");
+    }
+    const listing = (await tx.select({ agentUserId: listings.agentUserId }).from(listings)
+      .where(eq(listings.id, appointment.listingId)).limit(1))[0];
+    if (!listing || listing.agentUserId !== appointment.agentUserId) {
+      throw new Error("The completed viewing no longer has a matching Agent-owned listing.");
+    }
+    const participants = await tx.select({ id: users.id, role: users.role }).from(users)
+      .where(inArray(users.id, [appointment.seekerUserId, appointment.agentUserId]));
+    const seeker = participants.find(person => person.id === appointment.seekerUserId);
+    const agent = participants.find(person => person.id === appointment.agentUserId);
+    if (seeker?.role !== "seeker" || agent?.role !== "agent") {
+      throw new Error("The completed viewing no longer has an eligible seeker and Agent pairing.");
+    }
+    const existing = (await tx.select({ id: confirmedPurchases.id }).from(confirmedPurchases)
+      .where(eq(confirmedPurchases.appointmentId, appointment.id)).limit(1))[0];
+    if (existing) return { id: existing.id, created: false } as const;
+    const inserted = await tx.insert(confirmedPurchases).values({
+      appointmentId: appointment.id,
+      seekerUserId: appointment.seekerUserId,
+      agentUserId: appointment.agentUserId,
+      listingId: appointment.listingId,
+      confirmedByAdminUserId: input.adminUserId,
+      note: input.note?.trim() || null,
+    });
+    const confirmedPurchaseId = Number(inserted[0].insertId);
+    await tx.insert(adminAuditEvents).values({
+      action: "purchase_confirmed",
+      actorUserId: input.adminUserId,
+      targetUserId: appointment.seekerUserId,
+      details: `Completed viewing ${appointment.id} established private review eligibility for Agent ${appointment.agentUserId} on listing ${appointment.listingId}.`,
+    });
+    return { id: confirmedPurchaseId, created: true } as const;
+  });
+}
+
+/** Private, seeker-owned eligibility list. A listing title is shown only to its own confirmed purchaser. */
+export async function listConfirmedPurchasesForSeeker(seekerUserId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({
+    confirmedPurchaseId: confirmedPurchases.id,
+    agentUserId: confirmedPurchases.agentUserId,
+    confirmedAt: confirmedPurchases.confirmedAt,
+    listingTitle: listings.title,
+    listingCity: listings.city,
+    agentName: agentProfiles.publicName,
+    reviewId: agentReviews.id,
+    reviewStatus: agentReviews.moderationStatus,
+  }).from(confirmedPurchases)
+    .innerJoin(listings, eq(listings.id, confirmedPurchases.listingId))
+    .leftJoin(agentProfiles, eq(agentProfiles.userId, confirmedPurchases.agentUserId))
+    .leftJoin(agentReviews, eq(agentReviews.confirmedPurchaseId, confirmedPurchases.id))
+    .where(eq(confirmedPurchases.seekerUserId, seekerUserId))
+    .orderBy(desc(confirmedPurchases.confirmedAt));
+  return rows.map(row => ({ ...row, canSubmit: !row.reviewId }));
+}
+
+/** Creates a non-rated review only for the seeker's own unreviewed, Admin-confirmed home outcome. */
+export async function createAgentReview(input: { seekerUserId: number; confirmedPurchaseId: number; reviewText: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async (tx) => {
+    const purchase = (await tx.select({
+      id: confirmedPurchases.id,
+      seekerUserId: confirmedPurchases.seekerUserId,
+      agentUserId: confirmedPurchases.agentUserId,
+    }).from(confirmedPurchases).where(eq(confirmedPurchases.id, input.confirmedPurchaseId)).limit(1))[0];
+    if (!purchase || purchase.seekerUserId !== input.seekerUserId) {
+      throw new Error("This confirmed home outcome is not available for your review.");
+    }
+    if (purchase.seekerUserId === purchase.agentUserId) {
+      throw new Error("You cannot submit a review for your own Agent account.");
+    }
+    const existing = (await tx.select({ id: agentReviews.id }).from(agentReviews)
+      .where(eq(agentReviews.confirmedPurchaseId, purchase.id)).limit(1))[0];
+    if (existing) throw new Error("A review has already been submitted for this confirmed home outcome.");
+    const inserted = await tx.insert(agentReviews).values({
+      confirmedPurchaseId: purchase.id,
+      reviewerUserId: input.seekerUserId,
+      agentUserId: purchase.agentUserId,
+      reviewText: input.reviewText.trim(),
+    });
+    return { id: Number(inserted[0].insertId), moderationStatus: "pending" as const };
+  });
+}
+
+/** Public profile projection: no purchaser name, account ID, listing, or staff data is exposed. */
+export async function listApprovedAgentReviews(agentUserId: number) {
+  const db = await getDb();
+  if (!db) return { total: 0, reviews: [] };
+  const reviews = await db.select({
+    id: agentReviews.id,
+    reviewText: agentReviews.reviewText,
+    createdAt: agentReviews.createdAt,
+  }).from(agentReviews)
+    .where(and(eq(agentReviews.agentUserId, agentUserId), eq(agentReviews.moderationStatus, "approved")))
+    .orderBy(desc(agentReviews.createdAt));
+  return { total: reviews.length, reviews };
+}
+
+/** Admin moderation queue. It minimises data shown while retaining the context needed to make a decision. */
+export async function listPendingAgentReviews() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    reviewId: agentReviews.id,
+    reviewText: agentReviews.reviewText,
+    createdAt: agentReviews.createdAt,
+    confirmedAt: confirmedPurchases.confirmedAt,
+    seekerUserId: agentReviews.reviewerUserId,
+    agentUserId: agentReviews.agentUserId,
+    agentName: agentProfiles.publicName,
+    listingId: confirmedPurchases.listingId,
+    listingTitle: listings.title,
+    listingCity: listings.city,
+  }).from(agentReviews)
+    .innerJoin(confirmedPurchases, eq(confirmedPurchases.id, agentReviews.confirmedPurchaseId))
+    .innerJoin(listings, eq(listings.id, confirmedPurchases.listingId))
+    .leftJoin(agentProfiles, eq(agentProfiles.userId, agentReviews.agentUserId))
+    .where(eq(agentReviews.moderationStatus, "pending"))
+    .orderBy(desc(agentReviews.createdAt));
+}
+
+/** Makes a pending review public or rejects it. The underlying review text remains immutable. */
+export async function moderateAgentReview(input: { adminUserId: number; reviewId: number; decision: "approved" | "rejected"; note?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  return db.transaction(async (tx) => {
+    const review = (await tx.select({
+      id: agentReviews.id,
+      moderationStatus: agentReviews.moderationStatus,
+      agentUserId: agentReviews.agentUserId,
+    }).from(agentReviews).where(eq(agentReviews.id, input.reviewId)).limit(1))[0];
+    if (!review || review.moderationStatus !== "pending") throw new Error("This purchaser review is no longer awaiting moderation.");
+    const now = new Date();
+    await tx.update(agentReviews).set({
+      moderationStatus: input.decision,
+      moderationNote: input.note?.trim() || null,
+      moderatedByAdminUserId: input.adminUserId,
+      moderatedAt: now,
+    }).where(eq(agentReviews.id, review.id));
+    await tx.insert(adminAuditEvents).values({
+      action: "agent_review_moderated",
+      actorUserId: input.adminUserId,
+      targetUserId: review.agentUserId,
+      details: `Purchaser review ${review.id} was ${input.decision}.`,
+    });
+    return { success: true, status: input.decision } as const;
   });
 }
 

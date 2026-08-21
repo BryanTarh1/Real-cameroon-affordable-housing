@@ -14,4 +14,13 @@ describe("Admin Portal role assignment", () => {
     expect(adminPortalSource).not.toContain('<option value="user">Seeker or Agent</option>');
     expect(adminPortalSource).not.toContain('<option value="user">Seeker / Agent</option>');
   });
+
+  it("keeps purchaser review eligibility and publication under separate Administrator controls", () => {
+    expect(adminPortalSource).toContain("trpc.admin.purchaseConfirmationCandidates.useQuery");
+    expect(adminPortalSource).toContain("trpc.admin.confirmPurchase.useMutation");
+    expect(adminPortalSource).toContain("trpc.admin.pendingAgentReviews.useQuery");
+    expect(adminPortalSource).toContain("trpc.admin.moderateAgentReview.useMutation");
+    expect(adminPortalSource).toContain("Confirm only after independent follow-up");
+    expect(adminPortalSource).toContain("Reviewer identity is intentionally not displayed here.");
+  });
 });

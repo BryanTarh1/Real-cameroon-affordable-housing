@@ -95,6 +95,16 @@
 .ahc-app .listing-detail-standalone{border-color:rgba(16,43,58,.12);border-radius:24px;background:#fff;box-shadow:0 18px 38px rgba(16,43,58,.1)}
 .ahc-app .listing-detail-standalone h1,.ahc-app .listing-detail-standalone h2{font-family:"Bricolage Grotesque",Manrope,sans-serif;color:var(--ahc-night);letter-spacing:-.045em}
 .ahc-app .public-verification-disclosure{border-left-color:var(--ahc-coral);background:linear-gradient(90deg,rgba(217,101,70,.1),rgba(245,200,91,.1));color:var(--ahc-night)}
+.ahc-app .verified-purchaser-reviews{margin:1.3rem 0;padding:1.1rem;border:1px solid rgba(16,43,58,.13);border-radius:18px;background:linear-gradient(135deg,rgba(255,253,248,.96),rgba(245,200,91,.1));box-shadow:0 8px 20px rgba(16,43,58,.055)}
+.ahc-app .verified-purchaser-reviews-heading>span{display:inline-flex;align-items:center;gap:.36rem;color:var(--ahc-coral);font-family:"DM Mono",monospace;font-size:.61rem;font-weight:800;letter-spacing:.085em}
+.ahc-app .verified-purchaser-reviews h3{margin:.4rem 0 .35rem;color:var(--ahc-night);font-family:"Bricolage Grotesque",Manrope,sans-serif;font-size:1.3rem;letter-spacing:-.035em}
+.ahc-app .verified-purchaser-reviews-heading p{margin:0;max-width:56rem;color:#55626a;font-size:.79rem;line-height:1.55}
+.ahc-app .verified-purchaser-review-notice{display:flex;align-items:flex-start;gap:.45rem;margin-top:.8rem;padding:.66rem .72rem;border-left:3px solid var(--ahc-sun);border-radius:8px;background:rgba(16,43,58,.055);color:#3d515b;font-size:.72rem;line-height:1.48}
+.ahc-app .verified-purchaser-review-notice svg{flex:0 0 auto;margin-top:.06rem;color:var(--ahc-coral)}
+.ahc-app .verified-purchaser-review-list{display:grid;gap:.65rem;margin-top:.85rem}
+.ahc-app .verified-purchaser-review-list article{padding:.78rem .82rem;border:1px solid rgba(16,43,58,.1);border-radius:12px;background:rgba(255,255,255,.72)}
+.ahc-app .verified-purchaser-review-list p{margin:0;color:#263a43;font-size:.82rem;font-style:italic;line-height:1.6}.ahc-app .verified-purchaser-review-list small{display:block;margin-top:.42rem;color:#617078;font-family:"DM Mono",monospace;font-size:.6rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.ahc-app .verified-purchaser-review-empty,.ahc-app .verified-purchaser-review-loading,.ahc-app .verified-purchaser-review-error{margin:.82rem 0 0;padding:.78rem;border:1px dashed rgba(16,43,58,.18);border-radius:11px;color:#596871;font-size:.78rem}.ahc-app .verified-purchaser-review-error{border-color:rgba(164,53,42,.32);color:#8e3327}
 @media(max-width:720px){
   .ahc-app .topbar{min-height:64px}
   .ahc-app .contextual-discovery-collections{gap:1.4rem;margin-top:1rem}
@@ -128,3 +138,5 @@
 .dark .ahc-app .browse-home-status,.dark .ahc-app .shelf-controls{border-color:rgba(228,194,118,.34);background:rgba(35,34,53,.92);color:#f8f3e8}
 .dark .ahc-app .shelf-controls button{color:#f8f3e8}.dark .ahc-app .shelf-controls button:hover{background:#e4c276;color:#252033}
 .dark .ahc-app .public-verification-disclosure{border-left-color:#e4c276;background:linear-gradient(90deg,rgba(223,129,119,.16),rgba(228,194,118,.13));color:#f8f3e8}
+.dark .ahc-app .verified-purchaser-reviews{border-color:rgba(228,194,118,.28);background:linear-gradient(145deg,#2a2a40,#212136);box-shadow:0 14px 30px rgba(3,4,12,.28)}
+.dark .ahc-app .verified-purchaser-reviews h3{color:#f8f3e8}.dark .ahc-app .verified-purchaser-reviews-heading p,.dark .ahc-app .verified-purchaser-review-empty,.dark .ahc-app .verified-purchaser-review-loading{color:#cbc4b6}.dark .ahc-app .verified-purchaser-review-notice{background:rgba(228,194,118,.1);color:#e8e0d3}.dark .ahc-app .verified-purchaser-review-list article{border-color:rgba(228,194,118,.2);background:rgba(24,24,38,.7)}.dark .ahc-app .verified-purchaser-review-list p{color:#f4efe4}.dark .ahc-app .verified-purchaser-review-list small{color:#d9bd72}

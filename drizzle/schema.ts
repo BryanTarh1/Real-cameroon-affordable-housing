@@ -128,7 +128,7 @@ export const platformSettings = mysqlTable("platform_settings", {
 /** Immutable record of administrator actions affecting trust, access, or commercial rules. */
 export const adminAuditEvents = mysqlTable("admin_audit_events", {
   id: int("id").autoincrement().primaryKey(),
-  action: mysqlEnum("action", ["settings_updated", "user_banned", "user_unbanned", "role_changed", "onboarding_reviewed", "trust_report_reviewed"]).notNull(),
+  action: mysqlEnum("action", ["settings_updated", "user_banned", "user_unbanned", "role_changed", "onboarding_reviewed", "trust_report_reviewed", "purchase_confirmed", "agent_review_moderated"]).notNull(),
   actorUserId: int("actorUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
   targetUserId: int("targetUserId").references(() => users.id, { onDelete: "set null" }),
   details: text("details").notNull(),
@@ -694,6 +694,50 @@ export const viewingAppointmentSeekerOutcomes = mysqlTable("viewing_appointment_
 }, (table) => [
   index("viewing_outcomes_listing_idx").on(table.listingId, table.outcome, table.createdAt),
   index("viewing_outcomes_seeker_idx").on(table.seekerUserId, table.createdAt),
+]);
+
+/**
+ * An administrator-confirmed completed home outcome. It is derived from a
+ * completed appointment; no rent, deposit, or tenancy payment is processed or
+ * stored by AHC. This private eligibility record is the only path to a review.
+ */
+export const confirmedPurchases = mysqlTable("confirmed_purchases", {
+  id: int("id").autoincrement().primaryKey(),
+  appointmentId: int("appointmentId").notNull().unique().references(() => viewingAppointments.id, { onDelete: "cascade" }),
+  seekerUserId: int("seekerUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  agentUserId: int("agentUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  listingId: varchar("listingId", { length: 32 }).notNull().references(() => listings.id, { onDelete: "cascade" }),
+  confirmedByAdminUserId: int("confirmedByAdminUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  /** Private operational note, never returned in public review or profile data. */
+  note: varchar("note", { length: 500 }),
+  confirmedAt: timestamp("confirmedAt").defaultNow().notNull(),
+}, (table) => [
+  index("confirmed_purchases_seeker_idx").on(table.seekerUserId, table.confirmedAt),
+  index("confirmed_purchases_agent_idx").on(table.agentUserId, table.confirmedAt),
+  index("confirmed_purchases_listing_idx").on(table.listingId, table.confirmedAt),
+]);
+
+/**
+ * A non-rated review written only by the confirmed purchaser linked above.
+ * Public projections intentionally omit purchaser identity, internal notes,
+ * purchase/listing references, and moderation decision metadata.
+ */
+export const agentReviews = mysqlTable("agent_reviews", {
+  id: int("id").autoincrement().primaryKey(),
+  confirmedPurchaseId: int("confirmedPurchaseId").notNull().unique().references(() => confirmedPurchases.id, { onDelete: "cascade" }),
+  reviewerUserId: int("reviewerUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  agentUserId: int("agentUserId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  reviewText: varchar("reviewText", { length: 500 }).notNull(),
+  moderationStatus: mysqlEnum("moderationStatus", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  /** Private Admin moderation note; it is not shown to the public or Agent. */
+  moderationNote: varchar("moderationNote", { length: 500 }),
+  moderatedByAdminUserId: int("moderatedByAdminUserId").references(() => users.id, { onDelete: "set null" }),
+  moderatedAt: timestamp("moderatedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => [
+  index("agent_reviews_public_idx").on(table.agentUserId, table.moderationStatus, table.createdAt),
+  index("agent_reviews_reviewer_idx").on(table.reviewerUserId, table.createdAt),
+  index("agent_reviews_moderation_queue_idx").on(table.moderationStatus, table.createdAt),
 ]);
 
 export type User = typeof users.$inferSelect;

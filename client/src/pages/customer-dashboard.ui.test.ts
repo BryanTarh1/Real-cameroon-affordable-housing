@@ -50,6 +50,15 @@ describe("customer dashboard and payment feedback", () => {
     expect(dashboard).toContain("will not imply live email or WhatsApp delivery until a provider is configured");
   });
 
+  it("offers purchaser-review submission only through private Administrator-confirmed seeker eligibility", () => {
+    expect(dashboard).toContain("trpc.marketplace.agentReviews.canReview.useQuery");
+    expect(dashboard).toContain("trpc.marketplace.agentReviews.submit.useMutation");
+    expect(dashboard).toContain('user.role === "seeker"');
+    expect(dashboard).toContain("Administrator-confirmed home outcomes");
+    expect(dashboard).toContain("your name is never shown publicly");
+    expect(dashboard).toContain("Submitted reviews require Administrator moderation before publication.");
+  });
+
   it("labels the checkout simulator as no-charge testing and covers pending, success, and retry feedback", () => {
     expect(dashboard).toContain("TEST ONLY");
     expect(dashboard).toContain("never contacts a payment provider, charges a payment method, or creates an AHC order");

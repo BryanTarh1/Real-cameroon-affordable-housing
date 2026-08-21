@@ -13,7 +13,9 @@ import {
   archiveStaleListings,
   clearLocalLoginFailures,
   cancelAgentViewingSlot,
+  confirmPurchaseFromViewing,
   createAgentViewingSlot,
+  createAgentReview,
   createSeekerMatchAlertPreference,
   createLocalAgentAccount,
   createViewingAppointment,
@@ -34,6 +36,7 @@ import {
   getCustomerDashboard,
   clearCustomerProfileImageKey,
   markSeekerReportReviewUpdateRead,
+  moderateAgentReview,
   listCustomerBrowsingHistory,
   getAgentQualityDashboard,
   getAgentIdentityStatus,
@@ -47,6 +50,7 @@ import {
   listAdminUsers,
   listAdminCommissionLedger,
   listAdminLeadEvents,
+  listAdminPurchaseConfirmationCandidates,
   listAdminTrustReports,
   listFieldModeratorCommissions,
   listFreshPublicListings,
@@ -57,6 +61,9 @@ import {
   listOperationsVerificationEvidence,
   listOperationsVerificationQueue,
   listOwnerAlerts,
+  listApprovedAgentReviews,
+  listConfirmedPurchasesForSeeker,
+  listPendingAgentReviews,
   listVerificationAuditQueue,
   listReviewHistory,
   listSeekerMatchAlertDeliveries,
@@ -209,6 +216,15 @@ function ensureUserId(id: number | undefined): number {
   return id;
 }
 
+/** Purchaser reviews remain reserved for seeker accounts even when another role has a valid session. */
+function ensureSeeker(user: { id?: number; role?: string } | null | undefined): number {
+  const userId = ensureUserId(user?.id);
+  if (user?.role !== "seeker") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Only seeker accounts can submit a verified purchaser review." });
+  }
+  return userId;
+}
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -352,6 +368,27 @@ export const appRouter = router({
     }),
     priceHistory: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
       .query(({ input }) => listSeekerVisiblePriceHistory(input.listingId)),
+    agentReviews: router({
+      list: publicProcedure.input(z.object({ agentUserId: z.number().int().positive() }))
+        .query(({ input }) => listApprovedAgentReviews(input.agentUserId)),
+      canReview: protectedProcedure.input(z.object({ agentUserId: z.number().int().positive().optional() }).optional())
+        .query(async ({ ctx, input }) => {
+          const seekerUserId = ensureSeeker(ctx.user);
+          const eligiblePurchases = await listConfirmedPurchasesForSeeker(seekerUserId);
+          const filtered = input?.agentUserId
+            ? eligiblePurchases.filter(purchase => purchase.agentUserId === input.agentUserId)
+            : eligiblePurchases;
+          return { canReview: filtered.some(purchase => purchase.canSubmit), eligiblePurchases: filtered };
+        }),
+      submit: protectedProcedure.input(z.object({
+        confirmedPurchaseId: z.number().int().positive(),
+        reviewText: z.string().trim().min(20).max(500),
+      })).mutation(({ ctx, input }) => createAgentReview({
+        seekerUserId: ensureSeeker(ctx.user),
+        confirmedPurchaseId: input.confirmedPurchaseId,
+        reviewText: input.reviewText,
+      })),
+    }),
     appointments: router({
       mine: protectedProcedure.query(({ ctx }) => listSeekerViewingAppointments(ensureUserId(ctx.user?.id))),
       availableSlots: protectedProcedure.input(z.object({ listingId: z.string().min(4).max(32) }))
@@ -561,6 +598,26 @@ export const appRouter = router({
     trustReports: adminProcedure.query(() => listAdminTrustReports()),
     resolveTrustReport: adminProcedure.input(z.object({ reportId: z.number().int().positive() }))
       .mutation(({ ctx, input }) => resolveTrustReport(ensureUserId(ctx.user?.id), input.reportId)),
+    purchaseConfirmationCandidates: adminProcedure.query(() => listAdminPurchaseConfirmationCandidates()),
+    confirmPurchase: adminProcedure.input(z.object({
+      appointmentId: z.number().int().positive(),
+      note: z.string().trim().min(8).max(500).optional(),
+    })).mutation(({ ctx, input }) => confirmPurchaseFromViewing({
+      adminUserId: ensureUserId(ctx.user?.id),
+      appointmentId: input.appointmentId,
+      note: input.note,
+    })),
+    pendingAgentReviews: adminProcedure.query(() => listPendingAgentReviews()),
+    moderateAgentReview: adminProcedure.input(z.object({
+      reviewId: z.number().int().positive(),
+      decision: z.enum(["approved", "rejected"]),
+      note: z.string().trim().max(500).optional(),
+    })).mutation(({ ctx, input }) => moderateAgentReview({
+      adminUserId: ensureUserId(ctx.user?.id),
+      reviewId: input.reviewId,
+      decision: input.decision,
+      note: input.note,
+    })),
     ownerAlertProvider: adminProcedure.query(() => getOwnerAlertProviderStatus()),
     ownerAlerts: adminProcedure.input(z.object({ limit: z.number().int().min(1).max(100).default(50) }).optional())
       .query(({ input }) => listOwnerAlerts(input?.limit ?? 50)),

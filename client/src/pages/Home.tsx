@@ -44,7 +44,7 @@ type Listing = MapListing & {
   supplyCapacity: "agent_representative" | "direct_owner";
   photosCount: number;
   publicMedia: { url: string; kind: "exterior" | "interior" | "bathroom" | "other"; provenance: "moderator_captured" | "moderator_captured_test_data" | "illustrative_test_data"; displayOrder: number }[];
-  agent: { name: string; whatsappPhone: string | null };
+  agent: { id: number | null; name: string; whatsappPhone: string | null };
   walkthrough: { url: string; durationSeconds: number; verifiedAt: Date | string | null } | null;
   neighborhoodEssentials: { waterAccess: string; powerReliability: string; roadAccess: string; taxiWalkMinutes: number | null; junctionName: string | null; junctionMinutes: number | null; assessedAt: Date | string } | null;
   trust: { guaranteedTotalCash: boolean; guaranteeRule: string; badges: { code: string; label: string }[]; responseMetricAvailable: boolean };
@@ -102,6 +102,26 @@ function TrustPassport({ listing, language }: { listing: Listing; language: Lang
       <div><Sparkles size={17} /><span><small>{isFrench ? "Coût d’entrée" : "Move-in cost"}</small><b>{formatXaf(listing.costs.totalMoveInCashRequired, language)}</b><em>{isFrench ? "Total annoncé avant la visite, pas seulement le loyer." : "Disclosed before a viewing, not rent alone."}</em></span></div>
       <div><MapPinned size={17} /><span><small>{isFrench ? "Protection du lieu" : "Location protection"}</small><b>{isFrench ? `Zone autour d’un repère · ${listing.map.radiusM} m` : `Landmark area · ${listing.map.radiusM}m`}</b><em>{isFrench ? "Les directions exactes suivent seulement une visite confirmée." : "Exact directions follow only a confirmed viewing."}</em></span></div>
     </div>
+  </section>;
+}
+
+/** Public reviews are deliberately non-rated and anonymous; Agent quality remains a separate operational measure. */
+function VerifiedPurchaserReviews({ agentUserId, agentName, language }: { agentUserId: number | null; agentName: string; language: Language }) {
+  const isFrench = language === "fr";
+  const reviews = trpc.marketplace.agentReviews.list.useQuery(
+    { agentUserId: agentUserId ?? 0 },
+    { enabled: Boolean(agentUserId) },
+  );
+  const publishedReviews = reviews.data ?? [];
+  const reviewDate = (value: Date | string) => new Intl.DateTimeFormat(isFrench ? "fr-FR" : "en-GB", { month: "short", year: "numeric" }).format(new Date(value));
+  return <section className="verified-purchaser-reviews" aria-labelledby="verified-purchaser-reviews-title">
+    <div className="verified-purchaser-reviews-heading">
+      <span><BadgeCheck size={16} /> {isFrench ? "AVIS D’ACHETEURS VÉRIFIÉS" : "VERIFIED PURCHASER REVIEWS"}</span>
+      <h3 id="verified-purchaser-reviews-title">{isFrench ? `Expériences publiées avec ${agentName}` : `Published experiences with ${agentName}`}</h3>
+      <p>{isFrench ? "Seules les personnes dont l’issue de logement a été confirmée par un Administrateur peuvent écrire ici. Les identités restent privées." : "Only people whose home outcome has been confirmed by an Administrator can write here. Their identities remain private."}</p>
+    </div>
+    <div className="verified-purchaser-review-notice"><ShieldCheck size={15} /><span>{isFrench ? "Ces avis ne sont pas une note et ne modifient pas le score de confiance opérationnel de l’Agent." : "These reviews are not a rating and do not change the Agent’s operational trust score."}</span></div>
+    {reviews.isLoading ? <p className="verified-purchaser-review-loading">{isFrench ? "Chargement des avis publiés…" : "Loading published reviews…"}</p> : reviews.isError ? <p className="verified-purchaser-review-error">{isFrench ? "Les avis ne sont pas disponibles pour le moment." : "Reviews are not available right now."}</p> : publishedReviews.length ? <div className="verified-purchaser-review-list">{publishedReviews.map(review => <article key={review.id}><p>“{review.reviewText}”</p><small>{isFrench ? "Acheteur vérifié" : "Verified purchaser"} · {reviewDate(review.createdAt)}</small></article>)}</div> : <p className="verified-purchaser-review-empty">{isFrench ? "Aucun avis vérifié n’a encore été publié pour cet Agent." : "No verified purchaser review has been published for this Agent yet."}</p>}
   </section>;
 }
 
@@ -264,6 +284,7 @@ function ListingDetail({ listing, onClose, onSelectRelated, language, isAuthenti
     {listing.neighborhoodEssentials ? <section className="neighborhood-facts"><span>{language === "fr" ? "ÉVALUATION DE QUARTIER PAR MODÉRATEUR" : "FIELD MODERATOR AREA CHECK"}</span><p>{language === "fr" ? `Eau : ${listing.neighborhoodEssentials.waterAccess} · Électricité : ${listing.neighborhoodEssentials.powerReliability} · Route : ${listing.neighborhoodEssentials.roadAccess}` : `Water: ${listing.neighborhoodEssentials.waterAccess} · Power: ${listing.neighborhoodEssentials.powerReliability} · Road: ${listing.neighborhoodEssentials.roadAccess}`}</p></section> : null}
     {relatedListings.length ? <section className="related-properties" aria-label={language === "fr" ? "Autres logements qui pourraient vous plaire" : "Other homes you might like"}><div><span>{language === "fr" ? "À DÉCOUVRIR AUSSI" : "MORE TO EXPLORE"}</span><h3>{language === "fr" ? "Vous pourriez aussi aimer" : "You might also like"}</h3><p>{language === "fr" ? "Suggestions basées sur le secteur, le type, les chambres et le budget affichés — jamais sur vos données privées." : "Suggestions use the displayed area, type, bedrooms and budget — never your private data."}</p></div><div className="related-property-grid">{relatedListings.map(relatedListing => <button key={relatedListing.id} type="button" onClick={() => onSelectRelated(relatedListing)}><img src={relatedListing.publicMedia[0]?.url} alt="" /><span>{relatedListing.city} / {relatedListing.neighborhood}</span><b>{relatedListing.title}</b><em>{formatXaf(relatedListing.costs.totalMoveInCashRequired, language)}</em></button>)}</div></section> : null}
     <TrustPassport listing={listing} language={language} />
+    <VerifiedPurchaserReviews agentUserId={listing.agent.id} agentName={listing.agent.name} language={language} />
     <div className="listing-disclosures"><div><b>{text(language, "paidListingTitle")}</b><span>{text(language, "paidListingBody")}</span></div><div><b>{text(language, "noRentTitle")}</b><span>{text(language, "noRentBody")}</span></div><div><b>{text(language, "protectVisit")}</b><span>{text(language, "protectVisitBody")}</span></div></div>
     <div className="freshness-callout"><ShieldCheck size={18} /><div><b>{listing.verificationStatus === "physical_verified" ? text(language, "physicalBadge") : text(language, "freshnessCheck")}</b><span>{text(language, "freshnessBody")}</span></div></div>
     {isAuthenticated && <><section className="protected-detail-gate shortlist-panel"><div><span>SHORTLIST</span><h3>{isSaved ? "Saved for comparison" : "Compare this home later"}</h3><p>{isSaved ? "This listing is in your private shortlist. You can remove it at any time." : "Save up to your own private shortlist to compare total cash, freshness and practical details."}</p></div><button className="button-secondary" disabled={saveListing.isPending || removeListing.isPending} onClick={() => isSaved ? removeListing.mutate({ listingId: listing.id }) : saveListing.mutate({ listingId: listing.id })}>{isSaved ? "Remove from shortlist" : "Save to shortlist"}</button></section>
