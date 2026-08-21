@@ -116,6 +116,20 @@ describe("French discovery and media-first property flow", () => {
     expect(locale).toContain('saveFavorite: "Enregistrer en favoris"');
   });
 
+  it("opens property details on a dedicated route in a new tab without removing protected detail safeguards", () => {
+    expect(home).toContain('window.open(`/property/${encodeURIComponent(listing.id)}`, "_blank", "noopener,noreferrer")');
+    expect(home).toContain('export default function Home({ directListingId }: { directListingId?: string })');
+    expect(home).toContain('function ListingDetail({ listing, onClose, onSelectRelated, language, isAuthenticated, standalone = false }');
+    expect(home).toContain('className="property-detail-page-shell"');
+    expect(home).toContain('className={standalone ? "property-detail-surface" : "listing-modal"}');
+    expect(home).toContain('className="property-route-topbar"');
+    expect(home).toContain('className="map-gate-panel"');
+    expect(home).toContain('<ViewingAppointmentRequest listing={listing} language={language}');
+    expect(css).toContain('.property-detail-page-shell');
+    expect(css).toContain('.property-detail-surface');
+    expect(css).toContain('.property-route-topbar');
+  });
+
   it("keeps availability reconfirmation, structured outcomes, and Agent quality linked to protected APIs", () => {
     expect(appointments).toContain("recordSeekerOutcome");
     expect(agentConcierge).toContain("reconfirmAvailability");

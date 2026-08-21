@@ -875,3 +875,10 @@
 - [x] Audit every visible TEST DATA listing’s title, description, media, bedroom, bathroom, parking, amenity, area, and price fields for contradictions or implausible combinations.
 - [x] Correct all identified TEST DATA listing facts and public-facing presentation so they are internally realistic, while retaining their illustrative-media and TEST DATA disclosures.
 - [x] Add regression coverage and validate desktop/mobile cards and detail views so incorrect property facts cannot return before checkpointing. All 8 TEST DATA entries pass the new consistency audit; full validation passes with 240 tests, one intentional live-provider skip, production build, and desktop/mobile review.
+
+## Dedicated new-tab property detail pages
+
+- [x] Replace the cramped in-page listing-detail presentation with a dedicated property route that has its own responsive page layout and clear return navigation.
+- [x] Open property-card detail actions in a new browser tab while retaining accessible keyboard behaviour and the existing safe detail action on every card.
+- [x] Preserve property media, TEST DATA provenance, Trust Passport, sign-in boundary, landmark-map gate, favourites, related homes, and protected safe-viewing flow on the new page.
+- [x] Add routing and privacy regressions and validate desktop/mobile dedicated property pages before checkpointing. Full validation passes with 241 tests, one intentional live-provider skip, production build, and desktop/mobile dedicated-route review.
