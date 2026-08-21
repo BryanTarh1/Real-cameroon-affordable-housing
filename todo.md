@@ -922,3 +922,9 @@
 - [x] Audit and update dropdown, select, popover, dialog, modal, and overlay surfaces so they remain correctly layered, readable, and keyboard-clear in dark mode.
 - [x] Add interactive hover and focus treatments to the public footer’s brand accent and any footer links while retaining touch usability.
 - [x] Add focused regression coverage and validate public and protected dark-mode interactions before checkpointing. Live dark mode confirmed a native select inherits `color-scheme: dark` with readable text; shared overlay and transition source contracts are covered, with 244 tests (one intentional provider skip) and a production build passing.
+
+## Revised complete Software Requirements Specification
+
+- [x] Audit the supplied SRS against the implemented AHC marketplace scope, current workflows, safeguards, integrations, and known launch boundaries.
+- [x] Produce an accurate, complete revised Word SRS within the requested 16–22-page limit, without inventing product capabilities or user-generated content.
+- [x] Visually review the generated document for page count, readable tables, structure, and professional formatting before delivery. The revised file renders as 20 pages; front matter, role workflows, architecture, interface/accessibility, quality, launch, and closing traceability pages were visually reviewed.
