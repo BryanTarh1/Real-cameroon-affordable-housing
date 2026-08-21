@@ -169,6 +169,11 @@ function SessionControl() {
   const signOut = async () => {
     try {
       await logout();
+      const isDedicatedSeekerPropertyWindow = window.location.pathname.startsWith("/property/") && new URLSearchParams(window.location.search).get("ahc-window") === "seeker";
+      if (isDedicatedSeekerPropertyWindow) {
+        window.close();
+        return;
+      }
       navigate("/");
       toast.success("Signed out of AHC", { description: "You can now sign in with a different test role." });
     } catch {

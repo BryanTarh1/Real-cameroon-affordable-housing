@@ -104,6 +104,15 @@ describe("French discovery and media-first property flow", () => {
     expect(catalogueFirstCss).toContain(".ahc-app .atlas-index,.ahc-app .route-strip{display:none}");
   });
 
+  it("marks platform-opened seeker property tabs and closes them on return instead of creating a duplicate browse tab", () => {
+    expect(home).toContain('`/property/${encodeURIComponent(listing.id)}?ahc-window=seeker`');
+    expect(home).toContain('new URLSearchParams(window.location.search).get("ahc-window") === "seeker"');
+    expect(home).toContain("const returnFromProperty = () => {");
+    expect(home).toContain("window.close();");
+    expect(home).toContain('onClose={returnFromProperty}');
+    expect(home).toContain('onClick={event => { event.preventDefault(); returnFromProperty(); }}');
+  });
+
   it("uses an original high-contrast visual refinement without hiding catalogue trust or privacy signals", () => {
     expect(home).toContain('import "./Home.visual-refinement.css";');
     expect(visualRefinementCss).toContain('"Bricolage Grotesque"');
@@ -179,7 +188,7 @@ describe("French discovery and media-first property flow", () => {
   });
 
   it("opens property details on a dedicated route in a new tab without removing protected detail safeguards", () => {
-    expect(home).toContain('window.open(`/property/${encodeURIComponent(listing.id)}`, "_blank", "noopener,noreferrer")');
+    expect(home).toContain('window.open(`/property/${encodeURIComponent(listing.id)}?ahc-window=seeker`, "_blank", "noopener,noreferrer")');
     expect(home).toContain('export default function Home({ directListingId }: { directListingId?: string })');
     expect(home).toContain('function ListingDetail({ listing, onClose, onSelectRelated, language, isAuthenticated, standalone = false }');
     expect(home).toContain('className="property-detail-page-shell"');

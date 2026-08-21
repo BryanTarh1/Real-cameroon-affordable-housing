@@ -934,3 +934,9 @@
 - [x] Trace the session cookie, `auth.me` query cache, route shell, and sign-in completion flow to identify why the homepage retains an anonymous state until refresh.
 - [x] Synchronize sign-in and sign-out state immediately across public and protected routes, preserving existing role boundaries and external OAuth/local-agent session protections.
 - [x] Add regression coverage and validate seeker sign-in/sign-out propagation across the homepage and a second route without browser refresh before checkpointing. Local sign-in and registration now write the successful user projection into the shared `auth.me` cache before route-dependent invalidations; existing sign-out already sets this cache to `null` immediately. The focused contract test, full 246-test suite (one intentional live-provider skip), production build, and public/protected layout checks pass.
+
+## Seeker sign-in window return behavior
+
+- [x] Trace the public seeker sign-in launch path, close/back controls, and sign-out return behavior to identify every case that can leave duplicate windows or tabs.
+- [x] Close a dedicated seeker sign-in window on cancellation, return, or sign-out when it was opened by the platform, while preserving safe same-tab fallback behavior.
+- [x] Add regression coverage and verify the seeker window behavior does not duplicate tabs before checkpointing. Platform-opened property windows are explicitly marked in the URL; their brand, browse, detail, unavailable, and sign-out return paths close the dedicated window instead of navigating back. Normal direct `/property/:id` links retain same-tab `/homes` navigation. Focused route and source contracts, the full 248-test suite (one intentional provider skip), and a production build pass.

@@ -248,7 +248,7 @@ function ListingDetail({ listing, onClose, onSelectRelated, language, isAuthenti
   };
 
   const detailContent = <section className={standalone ? "property-detail-surface" : "listing-modal"} role={standalone ? "main" : "dialog"} aria-modal={standalone ? undefined : "true"} aria-label={`Details for ${listing.title}`} onMouseDown={event => event.stopPropagation()}>
-    {standalone ? <a className="property-detail-back" href="/homes"><span aria-hidden="true">←</span> {language === "fr" ? "Retour aux logements" : "Back to homes"}</a> : <button className="modal-close" onClick={onClose} aria-label={text(language, "closeDetails")}><X size={19} /></button>}
+    {standalone ? <a className="property-detail-back" href="/homes" onClick={event => { event.preventDefault(); onClose(); }}><span aria-hidden="true">←</span> {language === "fr" ? "Retour aux logements" : "Back to homes"}</a> : <button className="modal-close" onClick={onClose} aria-label={text(language, "closeDetails")}><X size={19} /></button>}
     <div className="modal-eyebrow">{listing.id} · {listing.city} / {listing.neighborhood}</div><h2>{listing.title}</h2>
     {isNonProductionFixture && <p className="listing-illustrative-media-body"><CircleAlert size={15} /> {text(language, "illustrativeTestMediaBody")}</p>}
     <p className="modal-landmark"><MapPinned size={16} /> {interpolate(text(language, "nearLandmark"), { landmark: listing.landmark, radius: listing.map.radiusM })}</p>
@@ -344,16 +344,24 @@ export default function Home({ directListingId }: { directListingId?: string }) 
     : { cityEyebrow: "CURRENT SELECTION", cityTitle: cityBrowseTitle, cityBody: "Media first, then the total cash required and the facts needed to compare with confidence.", budgetEyebrow: "EASIER ON YOUR MOVE-IN BUDGET", budgetTitle: "Start with the move-in total", budgetBody: "Ordered by the cash needed before moving—not by monthly rent alone.", familyEyebrow: "ROOM FOR A HOUSEHOLD", familyTitle: "Homes with space to grow", familyBody: "Options with at least two bedrooms within your current search." };
   const showCuratedShelves = sortMode === "catalogue";
   const openListing = (listing: Listing) => {
-    window.open(`/property/${encodeURIComponent(listing.id)}`, "_blank", "noopener,noreferrer");
+    window.open(`/property/${encodeURIComponent(listing.id)}?ahc-window=seeker`, "_blank", "noopener,noreferrer");
   };
   const openFromMap = (id: string) => {
     const listing = listings.find(item => item.id === id);
     if (listing) openListing(listing);
   };
   if (directListingId) {
+    const isDedicatedSeekerWindow = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("ahc-window") === "seeker";
+    const returnFromProperty = () => {
+      if (isDedicatedSeekerWindow) {
+        window.close();
+        return;
+      }
+      window.location.assign("/homes");
+    };
     return <div className={`ahc-app property-route language-transition ${isLanguageTransitioning ? "is-switching-language" : ""}`} lang={language}>
-      <header className="property-route-topbar"><a className="brand" href="/homes"><span className="brand-emblem"><span /><span /><span /></span><span>Affordable Housing<br /><b>Cameroon</b></span></a><div><select className="language-select" value={language} onChange={event => setLanguage(event.target.value as typeof language)} aria-label={language === "fr" ? "Choisir la langue" : "Select language"}><option value="en">English</option><option value="fr">Français</option></select><a className="property-route-return" href="/homes">{language === "fr" ? "Voir les logements" : "Browse homes"} <span aria-hidden="true">↗</span></a></div></header>
-      {directResult.isLoading ? <div className="property-route-loading loading-list" aria-label={language === "fr" ? "Chargement du logement" : "Loading property"}><i /><i /><i /></div> : directListing ? <ListingDetail standalone listing={directListing} language={language} isAuthenticated={isAuthenticated} onClose={() => window.location.assign("/homes")} onSelectRelated={openListing} /> : <main className="property-detail-page-shell"><section className="property-detail-empty"><span>AHC / PROPERTY</span><h1>{language === "fr" ? "Ce logement n’est plus disponible" : "This home is no longer available"}</h1><p>{language === "fr" ? "Il a peut-être été retiré ou ne répond plus aux contrôles de publication." : "It may have been removed or no longer meets the public-listing checks."}</p><a className="button-primary" href="/homes">{language === "fr" ? "Retour aux logements" : "Back to homes"}</a></section></main>}
+      <header className="property-route-topbar"><a className="brand" href="/homes" onClick={event => { event.preventDefault(); returnFromProperty(); }}><span className="brand-emblem"><span /><span /><span /></span><span>Affordable Housing<br /><b>Cameroon</b></span></a><div><select className="language-select" value={language} onChange={event => setLanguage(event.target.value as typeof language)} aria-label={language === "fr" ? "Choisir la langue" : "Select language"}><option value="en">English</option><option value="fr">Français</option></select><a className="property-route-return" href="/homes" onClick={event => { event.preventDefault(); returnFromProperty(); }}>{language === "fr" ? "Voir les logements" : "Browse homes"} <span aria-hidden="true">↗</span></a></div></header>
+      {directResult.isLoading ? <div className="property-route-loading loading-list" aria-label={language === "fr" ? "Chargement du logement" : "Loading property"}><i /><i /><i /></div> : directListing ? <ListingDetail standalone listing={directListing} language={language} isAuthenticated={isAuthenticated} onClose={returnFromProperty} onSelectRelated={openListing} /> : <main className="property-detail-page-shell"><section className="property-detail-empty"><span>AHC / PROPERTY</span><h1>{language === "fr" ? "Ce logement n’est plus disponible" : "This home is no longer available"}</h1><p>{language === "fr" ? "Il a peut-être été retiré ou ne répond plus aux contrôles de publication." : "It may have been removed or no longer meets the public-listing checks."}</p><a className="button-primary" href="/homes" onClick={event => { event.preventDefault(); returnFromProperty(); }}>{language === "fr" ? "Retour aux logements" : "Back to homes"}</a></section></main>}
     </div>;
   }
 

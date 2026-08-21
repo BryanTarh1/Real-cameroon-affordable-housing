@@ -165,4 +165,16 @@ describe("protected workspace routes", () => {
     await waitFor(() => expect(auth.logout).toHaveBeenCalledTimes(1));
     expect(window.location.pathname).toBe("/");
   });
+
+  it("closes a platform-opened seeker property window after sign-out instead of returning through another browser route", async () => {
+    const closeWindow = vi.spyOn(window, "close").mockImplementation(() => undefined);
+    renderAt("/property/test-listing?ahc-window=seeker", "seeker");
+
+    fireEvent.click(screen.getByRole("button", { name: "Sign out of Affordable Housing Cameroon" }));
+
+    await waitFor(() => expect(auth.logout).toHaveBeenCalledTimes(1));
+    expect(closeWindow).toHaveBeenCalledTimes(1);
+    expect(window.location.pathname).toBe("/property/test-listing");
+    closeWindow.mockRestore();
+  });
 });
