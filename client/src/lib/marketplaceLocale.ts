@@ -35,6 +35,31 @@ export const marketplaceCopy = {
   },
 } as const;
 
+export const catalogueInteractionCopy = {
+  en: {
+    sort: "Sort homes",
+    catalogueOrder: "Catalogue order",
+    priceLowToHigh: "Total cash: low to high",
+    newestFirst: "Newest first",
+    saveFavorite: "Save to favourites",
+    removeFavorite: "Remove from favourites",
+    favoritesSignIn: "Sign in to save homes to your favourites.",
+    areaAmenities: "Area amenities",
+    viewDetails: "View details",
+  },
+  fr: {
+    sort: "Trier les logements",
+    catalogueOrder: "Ordre du catalogue",
+    priceLowToHigh: "Coût total : croissant",
+    newestFirst: "Les plus récents d’abord",
+    saveFavorite: "Enregistrer en favoris",
+    removeFavorite: "Retirer des favoris",
+    favoritesSignIn: "Connectez-vous pour enregistrer des logements en favoris.",
+    areaAmenities: "Commodités du quartier",
+    viewDetails: "Voir les détails",
+  },
+} as const;
+
 export type MarketplaceCopyKey = keyof typeof marketplaceCopy.en;
 
 export function text(language: PublicLanguage, key: MarketplaceCopyKey) {

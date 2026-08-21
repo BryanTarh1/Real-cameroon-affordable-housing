@@ -862,3 +862,10 @@
 - [x] Audit the existing hidden TEST DATA listings and their public-gallery or illustrative-media readiness without changing real-listing eligibility rules.
 - [x] Restore the fuller TEST DATA catalogue to public discovery only with clear TEST DATA and media-provenance labelling; retain the five-media quality rule for real homes.
 - [x] Add regression coverage and validate desktop/mobile catalogue count, card routing, provenance labels, privacy safeguards, and retained search filters before checkpointing. The unfiltered public search now returns all 8 stored TEST DATA listings; full validation passes with 238 tests, one intentional live-provider skip, production build, and desktop/mobile review.
+
+## Catalogue sorting, favourites, and quick preview
+
+- [x] Add an accessible catalogue sort control for Total Move-In Cash low-to-high and newest-first while preserving all active search and filter criteria.
+- [x] Add a card-level favourite action connected to the existing authenticated seeker favourites workflow, with clear signed-out guidance and no loss of the card’s detail action.
+- [x] Add accessible hover and keyboard-focus card previews that reveal an amenity summary and a clear View Details action without hiding media provenance, privacy, or TEST DATA labels.
+- [x] Add regression coverage and validate desktop/mobile sorting, favourites, detail routing, privacy, and provenance before checkpointing. Full validation passes with 239 tests, one intentional live-provider skip, production build, and desktop/mobile review.

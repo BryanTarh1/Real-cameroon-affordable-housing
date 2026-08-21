@@ -9,6 +9,8 @@
 .ahc-app .hero .search-kicker{grid-column:1/-1;margin:0;color:var(--teal);font-size:.58rem}
 .ahc-app .hero .search-panel>label{min-width:0}
 .ahc-app .hero .search-panel>.two-fields{margin:0;gap:.55rem}
+.ahc-app .hero .catalogue-sort-control{min-width:0}
+.ahc-app .hero .catalogue-sort-control select{width:100%}
 .ahc-app .hero .search-panel input,.ahc-app .hero .search-panel select{min-height:42px;padding:.58rem .65rem;background:#fffdf7;font-size:.78rem}
 .ahc-app .hero .search-advanced-toggle{min-height:42px;width:100%;padding:.5rem .7rem;border:1px solid var(--line);background:#fffdf7}
 .ahc-app .hero .search-panel>.full-width{width:auto;min-height:42px;margin:0;padding:10px 14px;white-space:nowrap}
@@ -24,6 +26,7 @@
 @media(max-width:940px){
   .ahc-app .hero .search-panel{grid-template-columns:minmax(0,1fr) minmax(205px,.78fr) auto}
   .ahc-app .hero .search-panel>.two-fields{grid-column:2/4}
+  .ahc-app .hero .catalogue-sort-control{grid-column:1/2}
   .ahc-app .hero .search-advanced-toggle{grid-column:2/3}
   .ahc-app .hero .search-panel>.full-width{grid-column:3/4}
   .ahc-app .hero .search-advanced-fields{grid-template-columns:1fr}
@@ -35,6 +38,7 @@
   .ahc-app .hero .search-kicker{display:none}
   .ahc-app .hero .search-panel>label{grid-column:1/-1}
   .ahc-app .hero .search-panel>.two-fields{grid-column:1/-1}
+  .ahc-app .hero .catalogue-sort-control{grid-column:auto}
   .ahc-app .hero .search-advanced-toggle,.ahc-app .hero .search-panel>.full-width{grid-column:auto;width:100%}
   .ahc-app .hero .search-advanced-fields{grid-column:1/-1;padding:.65rem}
   .ahc-app .hero .search-advanced-fields>.two-fields{grid-template-columns:1fr}
@@ -42,3 +46,5 @@
   .ahc-app .public-verification-disclosure{grid-template-columns:auto minmax(0,1fr);gap:.55rem}
   .ahc-app .data-saver-toggle{grid-column:2;justify-self:start}
 }
+
+.catalogue-sort-bar{order:-1;width:min(100% - 2rem,1380px);margin:0 auto;padding:0 0 .85rem;display:flex;justify-content:flex-end}.catalogue-sort-bar .catalogue-sort-control{display:grid;gap:.32rem;min-width:210px;color:var(--ink);font:800 .58rem/1 "DM Mono",monospace;letter-spacing:.08em;text-transform:uppercase}.catalogue-sort-bar .catalogue-sort-control select{min-height:42px;border:1px solid rgba(19,44,52,.2);border-radius:10px;padding:.55rem .7rem;background:#fffdf6;color:var(--ink);font:700 .77rem/1 Manrope,sans-serif;letter-spacing:0;text-transform:none}@media(max-width:640px){.catalogue-sort-bar{width:100%;padding:.15rem 1rem .85rem;justify-content:stretch}.catalogue-sort-bar .catalogue-sort-control{width:100%;min-width:0}.catalogue-sort-bar .catalogue-sort-control select{width:100%}}

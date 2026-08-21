@@ -98,6 +98,24 @@ describe("French discovery and media-first property flow", () => {
     expect(catalogueFirstCss).toContain(".ahc-app .atlas-index,.ahc-app .route-strip{display:none}");
   });
 
+  it("adds client-side catalogue sorting, protected favourites, and accessible card previews without weakening discovery filters", () => {
+    expect(home).toContain('const [sortMode, setSortMode] = useState<"catalogue" | "price_low" | "newest">("catalogue")');
+    expect(home).toContain('value="price_low"');
+    expect(home).toContain('value="newest"');
+    expect(home).toContain("left.costs.totalMoveInCashRequired - right.costs.totalMoveInCashRequired");
+    expect(home).toContain("new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()");
+    expect(home).toContain("trpc.marketplace.shortlist.list.useQuery");
+    expect(home).toContain("trpc.marketplace.shortlist.save.useMutation");
+    expect(home).toContain("trpc.marketplace.shortlist.remove.useMutation");
+    expect(home).toContain('className={`browse-home-favorite ${isFavorite ? "is-saved" : ""}`}');
+    expect(home).toContain('className="browse-home-preview"');
+    expect(home).toContain('className="browse-home-preview-action"');
+    expect(css).toContain(".browse-home-favorite");
+    expect(css).toContain(".browse-home-preview-action");
+    expect(locale).toContain('saveFavorite: "Save to favourites"');
+    expect(locale).toContain('saveFavorite: "Enregistrer en favoris"');
+  });
+
   it("keeps availability reconfirmation, structured outcomes, and Agent quality linked to protected APIs", () => {
     expect(appointments).toContain("recordSeekerOutcome");
     expect(agentConcierge).toContain("reconfirmAvailability");

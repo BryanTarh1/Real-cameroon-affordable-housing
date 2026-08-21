@@ -794,6 +794,7 @@ function mapListing(row: any, publicMedia: CuratedPublicMedia[] = []) {
   };
   return {
     id: row.id,
+    createdAt: row.createdAt,
     title: row.title,
     isTestData: Boolean(row.isTestData),
     city: row.city,
@@ -885,7 +886,7 @@ export async function listFreshPublicListings(filters: PublicListingFilters = {}
   await archiveStaleListings();
   const cutoff = new Date(Date.now() - FRESHNESS_WINDOW_DAYS * 24 * 60 * 60 * 1000);
   const rows = await db.select({
-    id: listings.id, title: listings.title, isTestData: listings.isTestData, city: listings.city, neighborhood: listings.neighborhood,
+    id: listings.id, createdAt: listings.createdAt, title: listings.title, isTestData: listings.isTestData, city: listings.city, neighborhood: listings.neighborhood,
     landmark: listings.landmark, propertyType: listings.propertyType, furnishingStatus: listings.furnishingStatus,
     description: listings.description, bedrooms: listings.bedrooms, bathrooms: listings.bathrooms, parkingSpaces: listings.parkingSpaces,
     amenities: listings.amenities, householdFit: listings.householdFit,
