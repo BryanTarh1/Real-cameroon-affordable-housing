@@ -882,3 +882,10 @@
 - [x] Open property-card detail actions in a new browser tab while retaining accessible keyboard behaviour and the existing safe detail action on every card.
 - [x] Preserve property media, TEST DATA provenance, Trust Passport, sign-in boundary, landmark-map gate, favourites, related homes, and protected safe-viewing flow on the new page.
 - [x] Add routing and privacy regressions and validate desktop/mobile dedicated property pages before checkpointing. Full validation passes with 241 tests, one intentional live-provider skip, production build, and desktop/mobile dedicated-route review.
+
+## Original high-contrast catalogue visual refinement
+
+- [x] Refine the public catalogue’s typography, palette, spacing, and visual hierarchy into a distinctly AHC design with clear, accessible contrast.
+- [x] Improve property-card media framing, factual hierarchy, favourite controls, collection navigation, and filter/sort controls without copying the supplied reference’s branding or layout.
+- [x] Preserve visible Total Move-In Cash, verification freshness, TEST DATA/media provenance, landmark-only privacy, responsive utility, and keyboard focus treatment through the visual redesign.
+- [x] Validate desktop/mobile contrast, legibility, interaction reachability, and retained marketplace safeguards before checkpointing. Full validation passes with 242 tests, one intentional live-provider skip, production build, and desktop/mobile review.

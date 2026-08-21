@@ -1,0 +1,114 @@
+/* AHC visual refinement: a high-contrast, editorial catalogue system distinct from travel-marketplace branding. */
+.ahc-app{
+  --ahc-night:#102b3a;
+  --ahc-ink:#10212b;
+  --ahc-coral:#d96546;
+  --ahc-sun:#f5c85b;
+  --ahc-paper:#fffdf8;
+  --ahc-mist:#f3f5f1;
+  background:
+    radial-gradient(circle at 80% -8%,rgba(245,200,91,.16),transparent 28rem),
+    linear-gradient(180deg,#fffdf8 0%,#f7f8f4 42%,#fffdf8 100%);
+  color:var(--ahc-ink);
+  font-family:"Plus Jakarta Sans",Manrope,sans-serif;
+}
+.ahc-app .topbar{
+  min-height:76px;
+  border-bottom:1px solid rgba(16,43,58,.11);
+  background:rgba(255,253,248,.9);
+  box-shadow:0 10px 26px rgba(16,43,58,.055);
+  backdrop-filter:blur(14px);
+}
+.ahc-app .brand{color:var(--ahc-night);font-family:"Bricolage Grotesque",Manrope,sans-serif;font-weight:760;letter-spacing:-.04em}
+.ahc-app .brand b{color:var(--ahc-coral);font-weight:760}
+.ahc-app .brand-emblem{filter:saturate(1.16)}
+.ahc-app .nav-links a{color:#465862;font-family:"Plus Jakarta Sans",Manrope,sans-serif;font-size:.72rem;font-weight:760;letter-spacing:.025em}
+.ahc-app .nav-links a:hover{color:var(--ahc-coral)}
+.ahc-app .language-select{border-radius:999px;border-color:rgba(16,43,58,.16);background:var(--ahc-paper);color:var(--ahc-night);font-family:"Plus Jakarta Sans",Manrope,sans-serif;font-weight:720}
+.ahc-app .agent-top-cta,.ahc-app .button-primary{border-radius:999px;background:var(--ahc-coral);box-shadow:0 8px 16px rgba(217,101,70,.19);color:#fff;font-family:"Plus Jakarta Sans",Manrope,sans-serif;font-weight:800}
+.ahc-app .agent-top-cta:hover,.ahc-app .button-primary:hover{background:#bf4d35;box-shadow:0 10px 20px rgba(191,77,53,.25)}
+.ahc-app .hero{
+  border-bottom:1px solid rgba(16,43,58,.1);
+  background:linear-gradient(105deg,rgba(16,43,58,.04),rgba(245,200,91,.13) 52%,rgba(217,101,70,.07));
+}
+.ahc-app .search-panel{
+  border:1px solid rgba(16,43,58,.14);
+  border-radius:20px;
+  background:rgba(255,253,248,.94);
+  box-shadow:0 13px 30px rgba(16,43,58,.09);
+}
+.ahc-app .search-panel label,.ahc-app .search-kicker{font-family:"Plus Jakarta Sans",Manrope,sans-serif;font-weight:760}
+.ahc-app .search-panel input,.ahc-app .search-panel select{border-radius:10px;border-color:rgba(16,43,58,.15);background:#fff;color:var(--ahc-ink);font-family:"Plus Jakarta Sans",Manrope,sans-serif}
+.ahc-app .catalogue-sort-bar{margin-top:.8rem;padding:.62rem 0;border-top:1px solid rgba(16,43,58,.1);border-bottom:1px solid rgba(16,43,58,.1)}
+.ahc-app .catalogue-sort-control{gap:.55rem;color:#52626b;font-family:"DM Mono",monospace;font-size:.6rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
+.ahc-app .catalogue-sort-control select{border-radius:999px;border:1px solid rgba(16,43,58,.16);padding:.52rem 1.8rem .52rem .8rem;background:var(--ahc-paper);color:var(--ahc-night);font-family:"Plus Jakarta Sans",Manrope,sans-serif;font-size:.73rem;font-weight:800;letter-spacing:0;text-transform:none;box-shadow:0 4px 11px rgba(16,43,58,.06)}
+.ahc-app .contextual-discovery-collections{gap:2.1rem;margin-top:1.55rem}
+.ahc-app .contextual-home-shelf{gap:1rem;padding:1.4rem 0;border-top:1px solid rgba(16,43,58,.12)}
+.ahc-app .contextual-shelf-heading span{color:var(--ahc-coral);font-family:"DM Mono",monospace;font-size:.61rem;font-weight:700;letter-spacing:.11em}
+.ahc-app .contextual-shelf-heading h2{color:var(--ahc-night);font-family:"Bricolage Grotesque",Manrope,sans-serif;font-size:clamp(1.55rem,2.45vw,2.35rem);font-weight:760;letter-spacing:-.052em}
+.ahc-app .contextual-shelf-heading p{color:#56646c;font-family:"Plus Jakarta Sans",Manrope,sans-serif;font-size:.79rem;line-height:1.58}
+.ahc-app .shelf-controls{padding:.24rem;border:1px solid rgba(16,43,58,.09);border-radius:999px;background:rgba(255,253,248,.72)}
+.ahc-app .shelf-controls button{width:38px;height:38px;border:0;background:transparent;color:var(--ahc-night)}
+.ahc-app .shelf-controls button:hover{background:var(--ahc-night);color:#fff}
+.ahc-app .contextual-home-rail{gap:1rem;padding:.15rem .2rem 1.05rem}
+.ahc-app .contextual-home-rail>div{flex-basis:min(282px,78vw)}
+.ahc-app .browse-home-tile{
+  min-height:100%;
+  gap:.72rem;
+  padding:.42rem;
+  border:1px solid rgba(16,43,58,.1);
+  border-radius:22px;
+  background:rgba(255,255,255,.78);
+  box-shadow:0 7px 18px rgba(16,43,58,.055);
+  transition:transform 200ms cubic-bezier(.23,1,.32,1),box-shadow 200ms cubic-bezier(.23,1,.32,1),border-color 200ms cubic-bezier(.23,1,.32,1);
+}
+.ahc-app .browse-home-tile:hover,.ahc-app .browse-home-tile:focus-within{transform:translateY(-4px);border-color:rgba(16,43,58,.22);box-shadow:0 16px 32px rgba(16,43,58,.13)}
+.ahc-app .browse-home-media{aspect-ratio:1.23/1;border-radius:17px;background:#e5e9e4}
+.ahc-app .browse-home-media::after{content:"";position:absolute;inset:45% 0 0;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(16,33,43,.33))}
+.ahc-app .browse-home-media>img,.ahc-app .browse-home-media>video{transition:transform 380ms cubic-bezier(.23,1,.32,1),filter 380ms cubic-bezier(.23,1,.32,1)}
+.ahc-app .browse-home-media:hover>img,.ahc-app .browse-home-media:hover>video{transform:scale(1.06);filter:saturate(1.07) contrast(1.025)}
+.ahc-app .browse-home-status{z-index:2;max-width:64%;padding:.38rem .58rem;border:1px solid rgba(255,255,255,.85);background:rgba(255,253,248,.94);box-shadow:0 4px 12px rgba(16,43,58,.12);color:var(--ahc-night);font-family:"Plus Jakarta Sans",Manrope,sans-serif;font-size:.57rem;font-weight:800;letter-spacing:.02em;text-transform:none}
+.ahc-app .browse-home-favorite{z-index:7;width:37px;height:37px;border-color:rgba(255,255,255,.82);background:rgba(16,43,58,.74);box-shadow:0 4px 12px rgba(16,43,58,.16);color:#fff;backdrop-filter:blur(6px)}
+.ahc-app .browse-home-favorite:hover{background:#fff;color:var(--ahc-coral)}
+.ahc-app .browse-home-favorite.is-saved{border-color:rgba(217,101,70,.2);background:#fff;color:var(--ahc-coral)}
+.ahc-app .browse-home-cash{z-index:2;right:10px;bottom:10px;padding:.48rem .62rem;border:1px solid rgba(255,255,255,.18);border-radius:12px;background:rgba(16,43,58,.92);box-shadow:0 5px 15px rgba(16,43,58,.24);backdrop-filter:blur(6px)}
+.ahc-app .browse-home-cash small{color:var(--ahc-sun);font-family:"DM Mono",monospace;font-size:.5rem;font-weight:700}
+.ahc-app .browse-home-cash b{font-family:"Plus Jakarta Sans",Manrope,sans-serif;font-size:.78rem;font-weight:800}
+.ahc-app .browse-home-open{z-index:4;display:inline-flex;right:auto;bottom:11px;left:11px;align-items:center;gap:.35rem;border-radius:999px;background:#fff;color:var(--ahc-night);box-shadow:0 4px 12px rgba(16,43,58,.17);opacity:0;transform:translateY(5px);transition:opacity 170ms cubic-bezier(.23,1,.32,1),transform 170ms cubic-bezier(.23,1,.32,1)}
+.ahc-app .browse-home-media:hover .browse-home-open,.ahc-app .browse-home-media:focus-visible .browse-home-open{opacity:1;transform:translateY(0)}
+.ahc-app .browse-home-copy{gap:.34rem;padding:0 .15rem .1rem}
+.ahc-app .browse-home-place{color:#65737a;font-family:"DM Mono",monospace;font-size:.59rem;font-weight:700;letter-spacing:.075em}
+.ahc-app .browse-home-copy h3{color:var(--ahc-night);font-family:"Bricolage Grotesque",Manrope,sans-serif;font-size:1rem;font-weight:720;letter-spacing:-.025em}
+.ahc-app .browse-home-facts{color:#28596a;font-family:"Plus Jakarta Sans",Manrope,sans-serif;font-size:.68rem;font-weight:650}
+.ahc-app .browse-home-rent{margin-top:.08rem;padding-top:.55rem;border-top-color:rgba(16,43,58,.1)}
+.ahc-app .browse-home-rent span{color:#66757b;font-family:"Plus Jakarta Sans",Manrope,sans-serif;font-size:.62rem;font-weight:650}
+.ahc-app .browse-home-rent b{color:var(--ahc-night);font-family:"Bricolage Grotesque",Manrope,sans-serif;font-size:.91rem;font-weight:760;letter-spacing:-.025em}
+.ahc-app .browse-home-meta{padding:0 .15rem .16rem;color:#68757c;font-family:"Plus Jakarta Sans",Manrope,sans-serif;font-size:.58rem;font-weight:620}
+.ahc-app .browse-home-meta svg{color:var(--ahc-coral)}
+.ahc-app .browse-home-preview{z-index:4;right:12px;bottom:69px;left:12px;border:1px solid rgba(255,255,255,.18);border-radius:12px;background:rgba(16,43,58,.94);box-shadow:0 8px 18px rgba(16,43,58,.24);backdrop-filter:blur(9px)}
+.ahc-app .browse-home-preview span{color:var(--ahc-sun);font-family:"DM Mono",monospace}
+.ahc-app .browse-home-preview p{font-family:"Plus Jakarta Sans",Manrope,sans-serif;font-size:.68rem;font-weight:600;line-height:1.44}
+.ahc-app .browse-home-preview-action{z-index:5;right:12px;bottom:12px;left:12px;border-radius:11px;background:var(--ahc-coral);box-shadow:0 5px 13px rgba(16,43,58,.18);color:#fff;font-family:"Plus Jakarta Sans",Manrope,sans-serif;font-size:.68rem;font-weight:800}
+.ahc-app .browse-home-preview-action:hover{background:#bf4d35}
+.ahc-app .property-detail-page-shell{background:linear-gradient(180deg,#fffdf8,#f3f5f1 40%,#fffdf8)}
+.ahc-app .property-route-topbar{background:rgba(255,253,248,.92);border-bottom-color:rgba(16,43,58,.11);backdrop-filter:blur(14px)}
+.ahc-app .listing-detail-standalone{border-color:rgba(16,43,58,.12);border-radius:24px;background:#fff;box-shadow:0 18px 38px rgba(16,43,58,.1)}
+.ahc-app .listing-detail-standalone h1,.ahc-app .listing-detail-standalone h2{font-family:"Bricolage Grotesque",Manrope,sans-serif;color:var(--ahc-night);letter-spacing:-.045em}
+.ahc-app .public-verification-disclosure{border-left-color:var(--ahc-coral);background:linear-gradient(90deg,rgba(217,101,70,.1),rgba(245,200,91,.1));color:var(--ahc-night)}
+@media(max-width:720px){
+  .ahc-app .topbar{min-height:64px}
+  .ahc-app .contextual-discovery-collections{gap:1.4rem;margin-top:1rem}
+  .ahc-app .contextual-home-shelf{gap:.72rem;padding:1.08rem 0}
+  .ahc-app .contextual-shelf-heading h2{font-size:1.55rem}
+  .ahc-app .contextual-home-rail{gap:.75rem;margin-right:-20px;padding-right:20px}
+  .ahc-app .contextual-home-rail>div{flex-basis:min(248px,74vw)}
+  .ahc-app .browse-home-tile{padding:.34rem;border-radius:19px}
+  .ahc-app .browse-home-media{border-radius:15px}
+  .ahc-app .browse-home-preview-action{right:10px;bottom:10px;left:10px}
+  .ahc-app .browse-home-preview{right:10px;bottom:64px;left:10px}
+  .ahc-app .catalogue-sort-control{align-items:flex-start;flex-direction:column}
+}
+@media(prefers-reduced-motion:reduce){
+  .ahc-app .browse-home-tile,.ahc-app .browse-home-media>img,.ahc-app .browse-home-media>video,.ahc-app .browse-home-open{transition:none}
+  .ahc-app .browse-home-tile:hover{transform:none}
+}

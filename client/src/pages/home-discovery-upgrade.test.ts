@@ -5,6 +5,7 @@ import path from "node:path";
 const home = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
 const css = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/launch-refinements.css"), "utf8");
 const catalogueFirstCss = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/Home.catalogue-first.css"), "utf8");
+const visualRefinementCss = fs.readFileSync(path.resolve(process.cwd(), "client/src/pages/Home.visual-refinement.css"), "utf8");
 const locale = fs.readFileSync(path.resolve(process.cwd(), "client/src/lib/marketplaceLocale.ts"), "utf8");
 const walkthroughRail = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/PremiumWalkthroughRail.tsx"), "utf8");
 const appointments = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/ViewingAppointmentConcierge.tsx"), "utf8");
@@ -96,6 +97,17 @@ describe("French discovery and media-first property flow", () => {
     expect(catalogueFirstCss).toContain(".ahc-app .hero .search-panel");
     expect(catalogueFirstCss).toContain(".ahc-app .contextual-discovery-collections");
     expect(catalogueFirstCss).toContain(".ahc-app .atlas-index,.ahc-app .route-strip{display:none}");
+  });
+
+  it("uses an original high-contrast visual refinement without hiding catalogue trust or privacy signals", () => {
+    expect(home).toContain('import "./Home.visual-refinement.css";');
+    expect(visualRefinementCss).toContain('"Bricolage Grotesque"');
+    expect(visualRefinementCss).toContain('"Plus Jakarta Sans"');
+    expect(visualRefinementCss).toContain("--ahc-coral:#d96546");
+    expect(visualRefinementCss).toContain(".ahc-app .browse-home-cash");
+    expect(visualRefinementCss).toContain(".ahc-app .browse-home-favorite");
+    expect(visualRefinementCss).toContain(".ahc-app .public-verification-disclosure");
+    expect(visualRefinementCss).toContain("prefers-reduced-motion:reduce");
   });
 
   it("adds client-side catalogue sorting, protected favourites, and accessible card previews without weakening discovery filters", () => {

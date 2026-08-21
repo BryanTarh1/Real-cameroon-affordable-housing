@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import "./launch-refinements.css";
 import "./Home.search-skeleton.css";
 import "./Home.catalogue-first.css";
+import "./Home.visual-refinement.css";
 
 const formatXaf = (value: number, language: PublicLanguage = "en") => `${new Intl.NumberFormat(language === "fr" ? "fr-FR" : "en-US").format(value)} XAF`;
 type Language = PublicLanguage;
