@@ -3,7 +3,7 @@ import { OfficialServiceReceipt } from "@/pages/OfficialServiceReceipt";
 import { trpc } from "@/lib/trpc";
 import { SeekerMatchAlerts } from "@/components/SeekerMatchAlerts";
 import { SeekerAppointmentHistory } from "@/components/ViewingAppointmentConcierge";
-import { ArrowLeft, CheckCircle2, CircleAlert, Heart, History, ImagePlus, LoaderCircle, Mail, PlayCircle, ReceiptText, RefreshCw, Save, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, BadgeCheck, CheckCircle2, CircleAlert, Heart, History, ImagePlus, LoaderCircle, Mail, PlayCircle, ReceiptText, RefreshCw, Save, ShieldCheck, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";

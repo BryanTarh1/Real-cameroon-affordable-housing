@@ -167,28 +167,13 @@ describe("protected workspace routes", () => {
     expect(window.location.pathname).toBe("/");
   });
 
-  it("closes a platform-opened seeker property window after sign-out instead of returning through another browser route", async () => {
-    const closeWindow = vi.spyOn(window, "close").mockImplementation(() => undefined);
-    renderAt("/property/test-listing?ahc-window=seeker", "seeker");
+  it("signs out from a same-tab property route and returns to the public marketplace", async () => {
+    renderAt("/property/test-listing", "seeker");
 
     fireEvent.click(screen.getByRole("button", { name: "Sign out of Affordable Housing Cameroon" }));
 
     await waitFor(() => expect(auth.logout).toHaveBeenCalledTimes(1));
-    expect(closeWindow).toHaveBeenCalledTimes(1);
-    expect(window.location.pathname).toBe("/property/test-listing");
-    expect(window.sessionStorage.getItem("ahc-dedicated-seeker-window")).toBe("1");
-    closeWindow.mockRestore();
-  });
-
-  it("closes a platform-opened seeker property window when browser Back is invoked instead of exposing duplicate marketplace content", async () => {
-    const closeWindow = vi.spyOn(window, "close").mockImplementation(() => undefined);
-    renderAt("/property/test-listing?ahc-window=seeker", "seeker");
-
-    window.dispatchEvent(new PopStateEvent("popstate"));
-
-    await waitFor(() => expect(closeWindow).toHaveBeenCalledTimes(1));
-    expect(window.location.pathname).toBe("/property/test-listing");
-    expect(window.sessionStorage.getItem("ahc-dedicated-seeker-window")).toBe("1");
-    closeWindow.mockRestore();
+    expect(window.location.pathname).toBe("/");
+    expect(window.sessionStorage.getItem("ahc-dedicated-seeker-window")).toBeNull();
   });
 });

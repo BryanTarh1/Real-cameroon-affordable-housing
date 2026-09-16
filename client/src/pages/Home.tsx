@@ -4,7 +4,7 @@ import { ApproximateMap, type MapListing } from "@/components/ApproximateMap";
 import { trpc } from "@/lib/trpc";
 import { daysUntilRefresh, relativeReconfirmed } from "@/lib/listingFreshness";
 import { publicWalkthroughForDetail } from "@/lib/publicWalkthrough";
-import { closeDedicatedSeekerWindow, isArmedDedicatedSeekerWindow } from "@/lib/dedicatedSeekerWindow";
+import { useLocation } from "wouter";
 import { catalogueInteractionCopy, interpolate, marketplaceCopy, text, type PublicLanguage } from "@/lib/marketplaceLocale";
 import { useMarketplaceLanguage } from "@/hooks/useMarketplaceLanguage";
 import { AgentAccountPanel } from "@/pages/AgentAccountPanel";
@@ -112,7 +112,7 @@ function VerifiedPurchaserReviews({ agentUserId, agentName, language }: { agentU
     { agentUserId: agentUserId ?? 0 },
     { enabled: Boolean(agentUserId) },
   );
-  const publishedReviews = reviews.data ?? [];
+  const publishedReviews = reviews.data?.reviews ?? [];
   const reviewDate = (value: Date | string) => new Intl.DateTimeFormat(isFrench ? "fr-FR" : "en-GB", { month: "short", year: "numeric" }).format(new Date(value));
   return <section className="verified-purchaser-reviews" aria-labelledby="verified-purchaser-reviews-title">
     <div className="verified-purchaser-reviews-heading">
@@ -305,6 +305,7 @@ function ListingDetail({ listing, onClose, onSelectRelated, language, isAuthenti
 
 export default function Home({ directListingId }: { directListingId?: string }) {
   const { isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const { language, setLanguage, isLanguageTransitioning } = useMarketplaceLanguage();
   const labels = marketplaceCopy[language];
@@ -366,7 +367,7 @@ export default function Home({ directListingId }: { directListingId?: string }) 
     : { cityEyebrow: "CURRENT SELECTION", cityTitle: cityBrowseTitle, cityBody: "Media first, then the total cash required and the facts needed to compare with confidence.", budgetEyebrow: "EASIER ON YOUR MOVE-IN BUDGET", budgetTitle: "Start with the move-in total", budgetBody: "Ordered by the cash needed before moving—not by monthly rent alone.", familyEyebrow: "ROOM FOR A HOUSEHOLD", familyTitle: "Homes with space to grow", familyBody: "Options with at least two bedrooms within your current search." };
   const showCuratedShelves = sortMode === "catalogue";
   const openListing = (listing: Listing) => {
-    window.open(`/property/${encodeURIComponent(listing.id)}?ahc-window=seeker`, "_blank", "noopener,noreferrer");
+    navigate(`/property/${encodeURIComponent(listing.id)}`);
   };
   const openFromMap = (id: string) => {
     const listing = listings.find(item => item.id === id);
@@ -374,11 +375,7 @@ export default function Home({ directListingId }: { directListingId?: string }) 
   };
   if (directListingId) {
     const returnFromProperty = () => {
-      if (isArmedDedicatedSeekerWindow()) {
-        closeDedicatedSeekerWindow();
-        return;
-      }
-      window.location.assign("/homes");
+      navigate("/homes");
     };
     return <div className={`ahc-app property-route language-transition ${isLanguageTransitioning ? "is-switching-language" : ""}`} lang={language}>
       <header className="property-route-topbar"><a className="brand" href="/homes" onClick={event => { event.preventDefault(); returnFromProperty(); }}><span className="brand-emblem"><span /><span /><span /></span><span>Affordable Housing<br /><b>Cameroon</b></span></a><div><select className="language-select" value={language} onChange={event => setLanguage(event.target.value as typeof language)} aria-label={language === "fr" ? "Choisir la langue" : "Select language"}><option value="en">English</option><option value="fr">Français</option></select><a className="property-route-return" href="/homes" onClick={event => { event.preventDefault(); returnFromProperty(); }}>{language === "fr" ? "Voir les logements" : "Browse homes"} <span aria-hidden="true">↗</span></a></div></header>

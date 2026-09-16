@@ -15,7 +15,6 @@ import { ThemeToggle } from "./components/ThemeToggle";
 import { LocaleDocumentTranslator } from "./components/LocaleDocumentTranslator";
 import { CommissionLedgerCsvExport } from "./components/CommissionLedgerCsvExport";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import { armDedicatedSeekerWindow, closeDedicatedSeekerWindow, isArmedDedicatedSeekerWindow } from "./lib/dedicatedSeekerWindow";
 import { legacyHashPathToBrowserPath } from "./lib/legacyHashRoutes";
 import Home from "./pages/Home";
 import Admin from "./pages/Admin";
@@ -160,23 +159,6 @@ function LegacyHashLinkBridge() {
   return null;
 }
 
-/** Prevent browser Back from turning a platform-opened seeker tab into a duplicate homepage. */
-function DedicatedSeekerWindowGuard() {
-  const [location] = useLocation();
-
-  useEffect(() => {
-    if (!armDedicatedSeekerWindow()) return;
-
-    const closeDedicatedTabOnBack = () => {
-      closeDedicatedSeekerWindow();
-    };
-    window.addEventListener("popstate", closeDedicatedTabOnBack);
-    return () => window.removeEventListener("popstate", closeDedicatedTabOnBack);
-  }, [location]);
-
-  return null;
-}
-
 /** Keeps local-session termination visible across every authenticated AHC route. */
 function SessionControl() {
   const { user, loading, logout } = useAuth();
@@ -185,13 +167,8 @@ function SessionControl() {
   if (loading || !user) return null;
 
   const signOut = async () => {
-    const shouldCloseDedicatedSeekerTab = isArmedDedicatedSeekerWindow();
     try {
       await logout();
-      if (shouldCloseDedicatedSeekerTab) {
-        closeDedicatedSeekerWindow();
-        return;
-      }
       navigate("/");
       toast.success("Signed out of AHC", { description: "You can now sign in with a different test role." });
     } catch {
@@ -223,7 +200,6 @@ export default function App() {
             <WouterRouter>
               <LocaleDocumentTranslator />
               <LegacyHashLinkBridge />
-              <DedicatedSeekerWindowGuard />
               <SessionControl />
               <Router />
           </WouterRouter>

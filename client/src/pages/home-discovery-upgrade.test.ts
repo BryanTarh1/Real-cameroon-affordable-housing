@@ -19,7 +19,6 @@ const sharedVisualSystem = fs.readFileSync(path.resolve(process.cwd(), "client/s
 const appShell = fs.readFileSync(path.resolve(process.cwd(), "client/src/App.tsx"), "utf8");
 const themeProvider = fs.readFileSync(path.resolve(process.cwd(), "client/src/contexts/ThemeContext.tsx"), "utf8");
 const themeToggle = fs.readFileSync(path.resolve(process.cwd(), "client/src/components/ThemeToggle.tsx"), "utf8");
-const dedicatedSeekerWindow = fs.readFileSync(path.resolve(process.cwd(), "client/src/lib/dedicatedSeekerWindow.ts"), "utf8");
 
 describe("French discovery and media-first property flow", () => {
   it("keeps a persistent English/French language-selection dropdown and translated headline labels", () => {
@@ -105,17 +104,15 @@ describe("French discovery and media-first property flow", () => {
     expect(catalogueFirstCss).toContain(".ahc-app .atlas-index,.ahc-app .route-strip{display:none}");
   });
 
-  it("marks platform-opened seeker property tabs and closes them on return or browser Back instead of creating a duplicate browse tab", () => {
-    expect(home).toContain('`/property/${encodeURIComponent(listing.id)}?ahc-window=seeker`');
+  it("keeps property details in the same tab while preserving a dedicated route and normal browser history", () => {
+    expect(home).toContain('navigate(`/property/${encodeURIComponent(listing.id)}`)');
+    expect(home).not.toContain('window.open(`/property/${encodeURIComponent(listing.id)}?ahc-window=seeker`, "_blank", "noopener,noreferrer")');
     expect(home).toContain("const returnFromProperty = () => {");
-    expect(home).toContain("closeDedicatedSeekerWindow();");
+    expect(home).toContain('navigate("/homes");');
     expect(home).toContain('onClose={returnFromProperty}');
     expect(home).toContain('onClick={event => { event.preventDefault(); returnFromProperty(); }}');
-    expect(dedicatedSeekerWindow).toContain('window.sessionStorage.setItem(DEDICATED_SEEKER_WINDOW_STORAGE_KEY, "1")');
-    expect(dedicatedSeekerWindow).toContain('window.history.pushState');
-    expect(appShell).toContain('window.addEventListener("popstate", closeDedicatedTabOnBack)');
-    expect(dedicatedSeekerWindow).toContain('window.location.replace("about:blank")');
-    expect(appShell).toContain("<DedicatedSeekerWindowGuard />");
+    expect(appShell).not.toContain("DedicatedSeekerWindowGuard");
+    expect(appShell).not.toContain("closeDedicatedSeekerWindow");
   });
 
   it("uses an original high-contrast visual refinement without hiding catalogue trust or privacy signals", () => {
@@ -192,8 +189,9 @@ describe("French discovery and media-first property flow", () => {
     expect(locale).toContain('saveFavorite: "Enregistrer en favoris"');
   });
 
-  it("opens property details on a dedicated route in a new tab without removing protected detail safeguards", () => {
-    expect(home).toContain('window.open(`/property/${encodeURIComponent(listing.id)}?ahc-window=seeker`, "_blank", "noopener,noreferrer")');
+  it("opens property details on a dedicated same-tab route without removing protected detail safeguards", () => {
+    expect(home).toContain('navigate(`/property/${encodeURIComponent(listing.id)}`)');
+    expect(home).not.toContain('window.open(`/property/${encodeURIComponent(listing.id)}?ahc-window=seeker`, "_blank", "noopener,noreferrer")');
     expect(home).toContain('export default function Home({ directListingId }: { directListingId?: string })');
     expect(home).toContain('function ListingDetail({ listing, onClose, onSelectRelated, language, isAuthenticated, standalone = false }');
     expect(home).toContain('className="property-detail-page-shell"');
