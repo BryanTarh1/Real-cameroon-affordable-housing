@@ -3,6 +3,7 @@
  */
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AhcLoadingState } from "@/components/AhcLoadingState";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { canAccessWorkspace, workspaceHomeForRole } from "@/lib/workspaceAccess";
 import NotFound from "@/pages/NotFound";
@@ -42,8 +43,11 @@ function ProtectedWorkspace({ allowedRoles, children }: { allowedRoles: readonly
     navigate(workspaceHomeForRole(user?.isBanned ? null : user?.role));
   }, [isAllowed, loading, navigate, user?.isBanned, user?.role]);
 
-  if (loading || !isAllowed) {
-    return <main className="operations-page" aria-busy="true" aria-live="polite"><div className="agent-drawer operations-access-panel"><span className="section-overline">AHC / Protected route</span><h1>{loading ? "Checking secure access…" : "Redirecting to your permitted workspace…"}</h1><p>Changing a hash link does not change your account role or unlock a protected AHC workspace.</p></div></main>;
+  if (loading) {
+    return <AhcLoadingState message="Checking secure access" detail="We’re preparing your protected AHC workspace…" />;
+  }
+  if (!isAllowed) {
+    return <main className="operations-page" aria-busy="true" aria-live="polite"><div className="agent-drawer operations-access-panel"><span className="section-overline">AHC / Protected route</span><h1>Redirecting to your permitted workspace…</h1><p>Changing a hash link does not change your account role or unlock a protected AHC workspace.</p></div></main>;
   }
 
   return <>{children}</>;

@@ -1,0 +1,172 @@
+.ahc-loading-state {
+  --ahc-loader-ink: #102b3a;
+  --ahc-loader-paper: rgba(255, 253, 248, 0.92);
+  --ahc-loader-rule: rgba(16, 43, 58, 0.14);
+  --ahc-loader-coral: #d96546;
+  --ahc-loader-gold: #f3b94f;
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 1.25rem;
+  width: min(440px, calc(100% - 2rem));
+  margin: clamp(3rem, 10vh, 7rem) auto;
+  padding: clamp(2rem, 5vw, 3.4rem) clamp(1.4rem, 5vw, 3rem);
+  overflow: hidden;
+  border: 1px solid var(--ahc-loader-rule);
+  border-top: 4px solid var(--ahc-loader-coral);
+  border-radius: 22px;
+  background: var(--ahc-loader-paper);
+  color: var(--ahc-loader-ink);
+  box-shadow: 0 20px 55px rgba(16, 43, 58, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  text-align: center;
+}
+.ahc-loading-state::before {
+  content: "";
+  position: absolute;
+  top: -90px;
+  right: -70px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(243, 185, 79, 0.28), transparent 68%);
+  pointer-events: none;
+}
+.ahc-loading-state--compact {
+  margin: 3rem auto;
+}
+.ahc-loading-lockup,
+.ahc-loading-copy {
+  position: relative;
+  z-index: 1;
+}
+.ahc-loading-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+}
+.ahc-loading-emblem {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 3.45rem;
+  height: 3.45rem;
+  flex: 0 0 auto;
+  transform: rotate(45deg);
+  border: 2px solid var(--ahc-loader-ink);
+  background: linear-gradient(135deg, rgba(243, 185, 79, 0.25), rgba(255, 253, 248, 0.8));
+  box-shadow: 5px 5px 0 rgba(217, 101, 70, 0.22);
+}
+.ahc-loading-emblem span {
+  position: absolute;
+  display: block;
+  width: 1.6rem;
+  height: 0.34rem;
+  transform: rotate(-45deg);
+  border: 1px solid var(--ahc-loader-ink);
+  background: var(--ahc-loader-gold);
+}
+.ahc-loading-emblem span:nth-child(1) {
+  margin-top: -1rem;
+  margin-left: -0.35rem;
+}
+.ahc-loading-emblem span:nth-child(2) {
+  margin-left: 0.4rem;
+  background: var(--ahc-loader-coral);
+}
+.ahc-loading-emblem span:nth-child(3) {
+  margin-top: 1rem;
+  margin-left: -0.35rem;
+}
+.ahc-loading-wordmark {
+  display: grid;
+  gap: 0.1rem;
+  font-family: "Plus Jakarta Sans", Manrope, sans-serif;
+  font-size: 0.72rem;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.ahc-loading-wordmark strong {
+  font-weight: 800;
+}
+.ahc-loading-wordmark b {
+  color: var(--ahc-loader-coral);
+  font-family: "DM Serif Display", Georgia, serif;
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.ahc-loading-copy {
+  display: grid;
+  gap: 0.35rem;
+}
+.ahc-loading-copy p {
+  margin: 0;
+  font-family: "Bricolage Grotesque", Manrope, sans-serif;
+  font-size: clamp(1.25rem, 3vw, 1.7rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+.ahc-loading-copy span {
+  color: color-mix(in srgb, var(--ahc-loader-ink) 64%, transparent);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+.ahc-loading-progress {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: min(180px, 65%);
+  height: 3px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--ahc-loader-ink) 14%, transparent);
+}
+.ahc-loading-progress::after {
+  content: "";
+  display: block;
+  width: 38%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--ahc-loader-coral), var(--ahc-loader-gold));
+  animation: ahc-loading-progress 1.35s cubic-bezier(0.23, 1, 0.32, 1) infinite;
+}
+@keyframes ahc-loading-progress {
+  0% { transform: translateX(-130%); }
+  55%, 100% { transform: translateX(340%); }
+}
+.dark .ahc-loading-state {
+  --ahc-loader-ink: #f8f3e8;
+  --ahc-loader-paper: rgba(35, 34, 53, 0.96);
+  --ahc-loader-rule: rgba(228, 194, 118, 0.3);
+  --ahc-loader-coral: #df8177;
+  --ahc-loader-gold: #e4c276;
+  box-shadow: 0 24px 60px rgba(3, 4, 12, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.dark .ahc-loading-copy span {
+  color: rgba(248, 243, 232, 0.7);
+}
+@media (max-width: 520px) {
+  .ahc-loading-state {
+    gap: 1rem;
+    padding: 2rem 1.1rem;
+  }
+  .ahc-loading-emblem {
+    width: 2.9rem;
+    height: 2.9rem;
+  }
+  .ahc-loading-emblem span {
+    width: 1.35rem;
+  }
+  .ahc-loading-wordmark {
+    font-size: 0.61rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ahc-loading-progress::after {
+    animation: none;
+    transform: translateX(165%);
+  }
+}

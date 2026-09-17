@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { ApproximateMap, type MapListing } from "@/components/ApproximateMap";
+import { AhcLoadingState } from "@/components/AhcLoadingState";
 import { trpc } from "@/lib/trpc";
 import { daysUntilRefresh, relativeReconfirmed } from "@/lib/listingFreshness";
 import { publicWalkthroughForDetail } from "@/lib/publicWalkthrough";
@@ -15,7 +16,6 @@ import { SeekerAppointmentHistory, ViewingAppointmentRequest } from "@/component
 import { BadgeCheck, Bath, BedDouble, Building2, CarFront, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Clock3, Heart, MapPinned, Menu, MessageCircle, Share2, ShieldCheck, Sparkles, Video, X } from "lucide-react";
 import { toast } from "sonner";
 import "./launch-refinements.css";
-import "./Home.search-skeleton.css";
 import "./Home.catalogue-first.css";
 import "./Home.visual-refinement.css";
 
@@ -379,7 +379,7 @@ export default function Home({ directListingId }: { directListingId?: string }) 
     };
     return <div className={`ahc-app property-route language-transition ${isLanguageTransitioning ? "is-switching-language" : ""}`} lang={language}>
       <header className="property-route-topbar"><a className="brand" href="/homes" onClick={event => { event.preventDefault(); returnFromProperty(); }}><span className="brand-emblem"><span /><span /><span /></span><span>Affordable Housing<br /><b>Cameroon</b></span></a><div><select className="language-select" value={language} onChange={event => setLanguage(event.target.value as typeof language)} aria-label={language === "fr" ? "Choisir la langue" : "Select language"}><option value="en">English</option><option value="fr">Français</option></select><a className="property-route-return" href="/homes" onClick={event => { event.preventDefault(); returnFromProperty(); }}>{language === "fr" ? "Voir les logements" : "Browse homes"} <span aria-hidden="true">↗</span></a></div></header>
-      {directResult.isLoading ? <div className="property-route-loading loading-list" aria-label={language === "fr" ? "Chargement du logement" : "Loading property"}><i /><i /><i /></div> : directListing ? <ListingDetail standalone listing={directListing} language={language} isAuthenticated={isAuthenticated} onClose={returnFromProperty} onSelectRelated={openListing} /> : <main className="property-detail-page-shell"><section className="property-detail-empty"><span>AHC / PROPERTY</span><h1>{language === "fr" ? "Ce logement n’est plus disponible" : "This home is no longer available"}</h1><p>{language === "fr" ? "Il a peut-être été retiré ou ne répond plus aux contrôles de publication." : "It may have been removed or no longer meets the public-listing checks."}</p><a className="button-primary" href="/homes" onClick={event => { event.preventDefault(); returnFromProperty(); }}>{language === "fr" ? "Retour aux logements" : "Back to homes"}</a></section></main>}
+      {directResult.isLoading ? <AhcLoadingState compact message={language === "fr" ? "Chargement du logement" : "Loading your home"} detail={language === "fr" ? "Nous préparons les détails vérifiés…" : "We’re preparing the verified details…"} /> : directListing ? <ListingDetail standalone listing={directListing} language={language} isAuthenticated={isAuthenticated} onClose={returnFromProperty} onSelectRelated={openListing} /> : <main className="property-detail-page-shell"><section className="property-detail-empty"><span>AHC / PROPERTY</span><h1>{language === "fr" ? "Ce logement n’est plus disponible" : "This home is no longer available"}</h1><p>{language === "fr" ? "Il a peut-être été retiré ou ne répond plus aux contrôles de publication." : "It may have been removed or no longer meets the public-listing checks."}</p><a className="button-primary" href="/homes" onClick={event => { event.preventDefault(); returnFromProperty(); }}>{language === "fr" ? "Retour aux logements" : "Back to homes"}</a></section></main>}
     </div>;
   }
 
@@ -389,12 +389,11 @@ export default function Home({ directListingId }: { directListingId?: string }) 
       <section className="route-strip"><span>01 / {labels.routeOne}</span><span>02 / {labels.routeTwo}</span><span>03 / {labels.routeThree}</span><span>04 / {labels.routeFour}</span></section>
       <div id="homes" className="contextual-discovery-collections">
         <section className="public-verification-disclosure"><ShieldCheck size={17} /><div><strong>{text(language, "publicVerifiedTitle")}</strong><span>{text(language, "publicVerifiedBody")}</span></div><button type="button" className="data-saver-toggle" aria-pressed={lowDataMode} onClick={() => setLowDataMode(active => !active)}>{lowDataMode ? "Data saver on" : "Data saver off"}</button></section>
-        {results.isLoading ? <div className="loading-list"><i /><i /><i /></div> : <>
+        {results.isLoading ? <AhcLoadingState message={language === "fr" ? "Chargement des logements" : "Loading fresh homes"} detail={language === "fr" ? "Nous vérifions les annonces disponibles à Yaoundé et Douala…" : "We’re checking the latest available homes in Yaoundé and Douala…"} /> : <>
           <ContextualHomeShelf eyebrow={browseCopy.cityEyebrow} title={browseCopy.cityTitle} body={browseCopy.cityBody} listings={cityHomes} language={language} lowData={lowDataMode} onOpen={openListing} onToggleFavorite={toggleFavorite} savedListingIds={savedListingIds} favoriteBusy={favoriteBusy} />
           {showCuratedShelves && moveInFirstHomes.length >= 4 ? <ContextualHomeShelf eyebrow={browseCopy.budgetEyebrow} title={browseCopy.budgetTitle} body={browseCopy.budgetBody} listings={moveInFirstHomes} language={language} lowData={lowDataMode} onOpen={openListing} onToggleFavorite={toggleFavorite} savedListingIds={savedListingIds} favoriteBusy={favoriteBusy} /> : null}
           {showCuratedShelves && householdHomes.length >= 4 ? <ContextualHomeShelf eyebrow={browseCopy.familyEyebrow} title={browseCopy.familyTitle} body={browseCopy.familyBody} listings={householdHomes} language={language} lowData={lowDataMode} onOpen={openListing} onToggleFavorite={toggleFavorite} savedListingIds={savedListingIds} favoriteBusy={favoriteBusy} /> : null}
         </>}
-        {results.isLoading ? <p className="loading-list-status">{labels.checkingFreshness}</p> : null}
       </div>
       <SeekerAppointmentHistory isAuthenticated={isAuthenticated} language={language} />
       <div id="alerts"><SeekerMatchAlerts isAuthenticated={isAuthenticated} language={language} /></div>
